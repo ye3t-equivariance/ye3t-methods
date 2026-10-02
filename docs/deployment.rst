@@ -82,7 +82,8 @@ source and descriptor sector. The retained strict YACE tests cover positive
 and rejected cases.
 
 For a tagged artifact, the separate ``ye3t-lammps`` consumer supplies the
-``pair_style ye3t`` implementation. Its tested CPU and Kokkos scopes are
-qualified in ``RELEASE_VALIDATION.md``; the quickstart's JSON export does not
-install a LAMMPS pair style. Any additive reference potential in a scientific
-workflow must be configured consistently in fitting and deployment.
+``pair_style ye3t`` implementation. The quickstart's JSON export does not
+install a LAMMPS pair style. The promoted CPU examples and model inputs are in
+:doc:`paper_models`; check the consumer's documentation for its supported GPU
+scope. Any additive reference potential in a scientific workflow must be
+configured consistently in fitting and deployment.

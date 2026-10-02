@@ -10,6 +10,7 @@ set(YE3T_RUNTIME_SOURCE "${CMAKE_CURRENT_SOURCE_DIR}/../../ye3t" CACHE PATH
     "YE3T source tree containing ye3t/runtime/csrc/ye3t_runtime_core.cpp")
 option(YE3T_NATIVE_CPU "Compile CPU kernels for the build host" OFF)
 option(YE3T_ENABLE_IPO "Enable interprocedural optimization" OFF)
+option(YE3T_ASE_ONLY "Build only the density and tagged ASE evaluator library" OFF)
 
 if(NOT EXISTS "${YE3T_RUNTIME_SOURCE}/ye3t/runtime/csrc/ye3t_runtime_core.cpp")
   message(FATAL_ERROR "YE3T_RUNTIME_SOURCE must point to a YE3T source tree")
@@ -53,17 +54,21 @@ add_library(ye3t_runtime_core STATIC
 target_include_directories(ye3t_runtime_core PUBLIC
   "${YE3T_RUNTIME_SOURCE}/ye3t/runtime/csrc")
 
-add_library(ye3t_methods_cpu STATIC
+set(ye3t_methods_cpu_sources
   src/ye3t_canonical_json_hash.cpp
-  src/ye3t_lifted_cauchy_model.cpp
-  src/ye3t_lifted_cauchy_cpu.cpp
-  src/ye3t_lifted_cauchy_source.cpp
   src/ye3t_sha256.cpp
   src/ye3t_tagged_cauchy_model.cpp
   src/ye3t_tagged_cauchy_cpu.cpp
   src/ye3t_yace_model.cpp
   src/ye3t_cpu_evaluator.cpp
   src/ye3t_cpu_source_tiling.cpp)
+if(NOT YE3T_ASE_ONLY)
+  list(APPEND ye3t_methods_cpu_sources
+    src/ye3t_lifted_cauchy_model.cpp
+    src/ye3t_lifted_cauchy_cpu.cpp
+    src/ye3t_lifted_cauchy_source.cpp)
+endif()
+add_library(ye3t_methods_cpu STATIC ${ye3t_methods_cpu_sources})
 target_include_directories(ye3t_methods_cpu PUBLIC "${CMAKE_CURRENT_SOURCE_DIR}/src")
 target_link_libraries(ye3t_methods_cpu PUBLIC ye3t_runtime_core yaml-cpp::yaml-cpp)
 

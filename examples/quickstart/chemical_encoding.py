@@ -1,4 +1,4 @@
-"""Inspect one-hot chemical channels and a fixed in-memory embedding kernel."""
+"""Compare one-hot channels with a fixed, lower-width chemical embedding."""
 
 import torch
 
@@ -8,19 +8,23 @@ from ye3t_ace.equivariant_calc.site_basis_v2 import SiteBasisConfig, SiteBasisV2
 
 
 config = {
-    "metadata": {"name": "chemical_encoding", "status": "low_level_source_example"},
+    "metadata": {
+        "name": "chemical_encoding", "vectors_A": [[1.5, 0.0, 0.0], [0.0, 1.5, 0.0]],
+        "edge_index": [[0, 0], [1, 2]], "atom_types": [0, 0, 1],
+    },
     "basis": {
         "elements": ["Li", "Na"],
         "cutoff_A": 4.0,
+        "radial_decay": 0.25,
         "max_rank": 1,
         "nmax": 1,
         "lmax": 0,
         "one_hot_chemical_basis": "delta",
-        "fixed_embedding_rows": [[1.0, 0.0], [0.5, 0.8660254037844386]],
+        "fixed_embedding_rows": [[1.0], [0.5]],
     },
     "representation": {"source": "ordinary_density", "target_L": 0},
-    "runtime": {"backend": "torch", "device": "cpu", "dtype": "float64"},
-    "model": {"type": "linear_source_probe"},
+    "runtime": {"backend": "torch", "device": "cpu", "dtype": torch.float64},
+    "model": None,
     "targets": {"energy": None, "forces": None},
     "validation": {"compare_embedded_to_one_hot_transform": True},
 }
@@ -47,6 +51,7 @@ basis = Basis(
     max_rank=config["basis"]["max_rank"],
     nmax=config["basis"]["nmax"],
     lmax=config["basis"]["lmax"],
+    radial_decay=config["basis"]["radial_decay"],
 )
 print("one-hot descriptor columns", len(basis.labels))
 for label in basis.labels:
@@ -54,26 +59,26 @@ for label in basis.labels:
 
 site_config = SiteBasisConfig(
     rc=[config["basis"]["cutoff_A"]],
-    lmbda=[0.25],
-    nradmax=1,
-    lmax=0,
-    possible_types=(0, 1),
-    chemical_basis="delta",
+    lmbda=[config["basis"]["radial_decay"]],
+    nradmax=config["basis"]["nmax"],
+    lmax=config["basis"]["lmax"],
+    possible_types=tuple(range(len(elements))),
+    chemical_basis=config["basis"]["one_hot_chemical_basis"],
     charge_mode="none",
     atomic_base_normalization="none",
     factor_normalization="none",
     source_backend=config["runtime"]["backend"],
-    dtype=torch.float64,
+    dtype=config["runtime"]["dtype"],
     complex_dtype=torch.complex128,
 )
 channels = tuple(
     SingleChannelLabel(mu0=0, mu=neighbor_type, kappa0=0, kappa=0,
                        n=1, l=0, m=0)
-    for neighbor_type in (0, 1)
+    for neighbor_type in range(len(elements))
 )
-vectors = torch.tensor([[1.5, 0.0, 0.0], [0.0, 1.5, 0.0]], dtype=torch.float64)
-edges = torch.tensor([[0, 0], [1, 2]], dtype=torch.long)
-types = torch.tensor([0, 0, 1], dtype=torch.long)
+vectors = torch.tensor(config["metadata"]["vectors_A"], dtype=config["runtime"]["dtype"])
+edges = torch.tensor(config["metadata"]["edge_index"], dtype=torch.long)
+types = torch.tensor(config["metadata"]["atom_types"], dtype=torch.long)
 
 one_hot = SiteBasisV2(site_config)
 embedding = FixedChemicalKernel(config["basis"]["fixed_embedding_rows"])
@@ -105,3 +110,4 @@ torch.testing.assert_close(
 )
 print("one-hot source", one_hot_values[0].tolist())
 print("fixed-kernel source", embedded_values[0].tolist())
+print("chemical_width", len(elements), "->", len(config["basis"]["fixed_embedding_rows"][0]))

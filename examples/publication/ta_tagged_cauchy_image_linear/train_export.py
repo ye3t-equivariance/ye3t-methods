@@ -673,7 +673,10 @@ def _artifact_manifest(output_directory):
 
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
-    parser.add_argument("--config", type=Path, default=DEFAULT_CONFIG)
+    parser.add_argument(
+        "--config", type=Path, default=DEFAULT_CONFIG,
+        help="editable Ta config (default: config.json; config_quick.json is a shorter diagnostic)",
+    )
     parser.add_argument(
         "--output",
         type=Path,
@@ -699,7 +702,7 @@ def main():
     parser.add_argument(
         "--preflight-only",
         action="store_true",
-        help="count selected features and resources without compiling or loading data",
+        help="count selected features without compiling or loading the archived Ta dataset",
     )
     args = parser.parse_args()
 

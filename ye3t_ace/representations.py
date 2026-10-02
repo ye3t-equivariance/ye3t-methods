@@ -572,6 +572,34 @@ class YE3TRepresentation:
 
 
     @classmethod
+    def tagged_cauchy_carriers(cls, *, fast_path_policy="auto", metadata=None):
+        """Select compiler-owned ordered-occurrence carrier descriptors."""
+        payload = dict(metadata or {})
+        reserved = {
+            "density": "tagged_occurrence",
+            "source_realization": "tagged_cauchy_occurrence",
+            "coupling_family": "tagged_cauchy_carriers",
+            "source_formal_parent": "(N)",
+            "tag_identity": "distinct_ordered_periodic_occurrences",
+            "right_tag_action": "S_k_on_ordered_occurrences",
+            "source_compiler": "ye3t.couplings.tagged_cauchy_carrier_schedule",
+        }
+        for key, expected in reserved.items():
+            if key in payload and payload[key] != expected:
+                raise ValueError("tagged carrier representation cannot override " + key)
+            payload[key] = expected
+        payload.setdefault("runtime_status", "implemented_under_validation")
+        payload.setdefault("task", "descriptor_only")
+        return cls(
+            basis_family="ye3t", permutation_sector="trivial",
+            construction_mode="experimental", basis_mode="tagged_cauchy_carriers",
+            fast_path_policy=fast_path_policy,
+            permutation_group="formal_factor_S_N",
+            coupling_tree="explicit", coefficient_backend="certified_intertwiner",
+            validation_status="implemented_under_validation", metadata=payload,
+        )
+
+    @classmethod
     def tagged_cauchy_image(
         cls,
         *,
@@ -745,6 +773,11 @@ class YE3TRepresentation:
             or metadata.get("coupling_family") == "linear_lifted_cauchy_scalar"
         ):
             return cls.lifted_cauchy_scalar(
+                fast_path_policy=str(payload.get("fast_path_policy", "auto")),
+                metadata=metadata,
+            )
+        if basis_mode == "tagged_cauchy_carriers" or metadata.get("coupling_family") == "tagged_cauchy_carriers":
+            return cls.tagged_cauchy_carriers(
                 fast_path_policy=str(payload.get("fast_path_policy", "auto")),
                 metadata=metadata,
             )

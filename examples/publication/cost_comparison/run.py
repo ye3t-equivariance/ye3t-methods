@@ -633,13 +633,19 @@ def run_catalogue(config_path, config, system, output):
     return manifest
 
 
-def selected_systems(args):
+def selected_systems(args, config):
     if args.system and args.systems:
         raise ValueError("Use either --system paths or --systems names, not both.")
     if args.system:
         paths = tuple(Path(value).resolve() for value in args.system)
     else:
-        names = tuple(args.systems) if args.systems else ("Si",)
+        names = tuple(args.systems) if args.systems else tuple(
+            config["runtime"].get("default_systems", ("Si",))
+        )
+        if not names or any(name not in SYSTEM_NAMES for name in names):
+            raise ValueError(
+                f"runtime.default_systems must select names from {SYSTEM_NAMES}."
+            )
         paths = tuple((HERE / "systems" / f"{name}.json").resolve() for name in names)
     records = []
     seen = set()
@@ -942,9 +948,18 @@ def run_stage(stage, args, config_path, config, records, workflow_base):
 
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
-    parser.add_argument("--config", type=Path, default=HERE / "config.json")
-    parser.add_argument("--system", type=Path, action="append")
-    parser.add_argument("--systems", nargs="+", choices=SYSTEM_NAMES)
+    parser.add_argument(
+        "--config", type=Path, default=HERE / "config.json",
+        help="editable paper workflow config (default: adjacent config.json)",
+    )
+    parser.add_argument(
+        "--system", type=Path, action="append",
+        help="path to a custom systems/*.json record; may be repeated",
+    )
+    parser.add_argument(
+        "--systems", nargs="+", choices=SYSTEM_NAMES,
+        help="published elements to process (default: runtime.default_systems)",
+    )
     parser.add_argument(
         "--stage",
         choices=(
@@ -961,12 +976,14 @@ def main():
             "render",
             "all",
         ),
-        default="preflight",
+        default=None,
+        help="workflow stage (default: runtime.default_stage in config.json)",
     )
     parser.add_argument(
         "--dataset-root",
         type=Path,
         default=HERE.parents[1] / "data" / "mlearn",
+        help="mlearn snapshot directory (default: bundled examples/data/mlearn)",
     )
     parser.add_argument("--lammps", type=Path)
     parser.add_argument("--mpiexec", type=Path)
@@ -987,7 +1004,14 @@ def main():
         raise ValueError("Stage timeout and memory limit must be positive.")
     config_path = args.config.resolve()
     config = read_json(config_path)
-    records = selected_systems(args)
+    if args.stage is None:
+        args.stage = str(config["runtime"].get("default_stage", "preflight"))
+        if args.stage not in (
+            "preflight", "prepare", "catalogue", "build-cache", "fit", "export",
+            "validate", "properties", "nve", "benchmark", "render", "all",
+        ):
+            raise ValueError(f"Unsupported runtime.default_stage {args.stage!r}.")
+    records = selected_systems(args, config)
     workflow_base = resolve_workflow_base(config_path, config)
     workflow_base.mkdir(parents=True, exist_ok=True)
     if args.stage == "all":

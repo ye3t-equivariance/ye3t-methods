@@ -2923,6 +2923,7 @@ class YE3TDescriptorSet:
     @property
     def supports_runtime_evaluation(self):
         return (self.ace_descriptor is not None or
+                self.metadata.get("descriptor_family") == "tagged_cauchy_carriers" or
                 self.metadata.get("tagged_cauchy_image_evaluator") is not None)
 
     @property
@@ -3098,6 +3099,86 @@ class YE3TDescriptorSet:
         """
         if self.metadata.get("descriptor_family") == "fixed_content_basis_plan":
             self._require_runtime()
+        if self.metadata.get("descriptor_family") == "tagged_cauchy_carriers":
+            from ase.neighborlist import neighbor_list
+            from ye3t_ace.tagged_cauchy_carriers import (
+                _TaggedCauchyOccurrenceSource, tagged_support_chunks, tagged_support_layout,
+            )
+
+            if descriptor_evaluation is not None or require_all_sectors:
+                raise ValueError("Tagged carriers do not use an A_s matrix-unit selector")
+            if native_library is not None or execution_policy != "direct":
+                raise ValueError("Tagged carriers use their compiled source evaluator")
+            if backend not in (None, "reference"):
+                raise ValueError("Standalone tagged carrier ASE backend is reference")
+            source_config = self.metadata["tagged_cauchy_carriers_config"]
+            device = str(source_config["device"])
+            dtype = {"float32": torch.float32, "float64": torch.float64}.get(
+                str(source_config["dtype"]))
+            if dtype is None:
+                raise ValueError("Tagged carrier dtype must be float32 or float64")
+            cache = self.metadata.setdefault("_tagged_carrier_evaluators", {})
+            cache_key = (device, str(source_config["dtype"]))
+            if cache_key not in cache:
+                cache[cache_key] = _TaggedCauchyOccurrenceSource(
+                    self.metadata["tagged_cauchy_carrier_source_plan"]["schedules"],
+                    self.elements, self.cutoff,
+                    pair_cutoffs_A=source_config.get("pair_cutoffs_A"),
+                    backend="reference", dtype=dtype,
+                ).to(device)
+            unknown = sorted(set(atoms.get_chemical_symbols()) - set(self.type_map))
+            if unknown:
+                raise ValueError(f"Tagged carriers contain unknown species: {unknown}")
+            atom_types = torch.as_tensor(
+                [self.type_map[name] for name in atoms.get_chemical_symbols()],
+                dtype=torch.long, device=device,
+            )
+            center, neighbor, images = neighbor_list("ijS", atoms, self.cutoff)
+            edges = torch.as_tensor(np.stack((center, neighbor)), dtype=torch.long,
+                                    device=device)
+            shifts = torch.as_tensor(images, dtype=torch.long, device=device)
+            layout = tagged_support_layout(edges, len(atoms), shifts)
+            positions = torch.as_tensor(np.asarray(atoms.positions), dtype=dtype,
+                                        device=device)
+            cell = torch.as_tensor(np.asarray(atoms.cell.array), dtype=dtype,
+                                   device=device)
+            displacements = (positions.index_select(0, edges[1])
+                             - positions.index_select(0, edges[0])
+                             + shifts.to(dtype) @ cell)
+            if torch.any(torch.linalg.vector_norm(displacements, dim=1) <= 1e-12):
+                raise ValueError("Tagged carrier neighbor occurrences must have nonzero distance")
+            with torch.no_grad():
+                edge_values, density_values = cache[cache_key].geometry_values(
+                    displacements, atom_types, edges, len(atoms))
+                carriers = {}
+                for schedule in self.metadata["tagged_cauchy_carrier_source_plan"]["schedules"]:
+                    tag_count = int(schedule["tag_count"])
+                    values, centers, tag_edges = [], [], []
+                    for support in tagged_support_chunks(
+                            layout, int(schedule["support_tag_count"]),
+                            int(source_config["support_chunk_size"])):
+                        values.append(cache[cache_key](tag_count, edge_values, density_values,
+                                                       support, normalized=False).cpu())
+                        centers.append(support["centers"].cpu())
+                        tag_edges.append(support["tag_edges"].cpu())
+                    carriers[tag_count] = {
+                        "values": (torch.cat(values, dim=0).numpy() if values else
+                                   np.empty((0, int(schedule["output_dimension"])))),
+                        "centers": (torch.cat(centers).numpy() if centers else
+                                    np.empty(0, dtype=np.int64)),
+                        "tag_edges": (torch.cat(tag_edges).numpy() if tag_edges else
+                                      np.empty((0, int(schedule["support_tag_count"])),
+                                               dtype=np.int64)),
+                        "labels": tuple({**record["label"],
+                                         "component_slice": tuple(record["component_slice"])}
+                                        for record in schedule["inventory"]),
+                        "support_tag_count": int(schedule["support_tag_count"]),
+                    }
+            return {
+                "carriers": carriers, "edge_index": edges.cpu().numpy(),
+                "shifts": shifts.cpu().numpy(), "normalization": "raw",
+                "catalogue_hash": self.metadata["tagged_cauchy_carriers_compiled"]["self_hash"],
+            }
         if self.metadata.get("descriptor_family") == "linear_tagged_cauchy_image":
             if descriptor_evaluation is not None or require_all_sectors:
                 raise ValueError("Tagged scalar features do not use an A_s matrix-unit selector.")
@@ -3159,6 +3240,14 @@ class YE3TDescriptorSet:
     ):
         if self.metadata.get("descriptor_family") == "fixed_content_basis_plan":
             self._require_runtime()
+        if self.metadata.get("descriptor_family") == "tagged_cauchy_carriers":
+            if descriptor_evaluation is not None or require_all_sectors:
+                raise ValueError("Tagged carriers do not use an A_s matrix-unit selector")
+            if concatenate or return_batch:
+                raise ValueError("Tagged carrier supports differ by structure; use the returned tuple.")
+            return tuple(self.create(atoms, backend=backend, native_library=native_library,
+                                     execution_policy=execution_policy)
+                         for atoms in structures)
         if self.metadata.get("descriptor_family") == "linear_tagged_cauchy_image":
             if descriptor_evaluation is not None or require_all_sectors:
                 raise ValueError("Tagged scalar features do not use an A_s matrix-unit selector.")
@@ -6103,6 +6192,114 @@ class YE3TDescriptors:
         if unsupported:
             raise ValueError("Unsupported descriptor settings: " + ", ".join(unsupported))
         basis_config = cfg.get("basis")
+        if isinstance(basis_config, Mapping) and basis_config.get("type") == "tagged_cauchy_carriers":
+            from ye3t.couplings import compile as compile_coupling
+            from ye3t.couplings import tagged_cauchy_carriers_request, tagged_cauchy_carrier_schedule
+
+            allowed_basis = {"type", "species", "cutoff_A", "pair_cutoffs_A",
+                             "catalogue", "source_realization"}
+            unknown_basis = set(basis_config) - allowed_basis
+            if unknown_basis:
+                raise ValueError("Unsupported tagged carrier basis settings: " +
+                                 ", ".join(sorted(unknown_basis)))
+            representation_config = cfg.get("representation", {})
+            runtime_config = cfg.get("runtime", {})
+            if not isinstance(representation_config, Mapping) or not isinstance(runtime_config, Mapping):
+                raise TypeError("tagged carrier representation and runtime must be mappings")
+            if representation_config.get("mode", "tagged_cauchy_carriers") != "tagged_cauchy_carriers":
+                raise ValueError("tagged carrier representation mode must be tagged_cauchy_carriers")
+            if set(representation_config) - {"mode", "sector_policy"}:
+                raise ValueError("Unsupported tagged carrier representation settings")
+            if basis_config.get("source_realization", "tagged_cauchy_occurrence") != "tagged_cauchy_occurrence":
+                raise ValueError("tagged carriers require the tagged_cauchy_occurrence source")
+            elements = tuple(str(value) for value in basis_config.get("species", ()))
+            if not elements or len(set(elements)) != len(elements):
+                raise ValueError("tagged carriers require unique species")
+            cutoff = float(basis_config.get("cutoff_A", 0.0))
+            if not np.isfinite(cutoff) or cutoff <= 0:
+                raise ValueError("tagged carriers require positive cutoff_A")
+            pair_cutoffs = basis_config.get("pair_cutoffs_A")
+            if pair_cutoffs is not None:
+                expected_pairs = {left + "-" + right for left in elements for right in elements}
+                if set(pair_cutoffs) != expected_pairs:
+                    raise ValueError("pair_cutoffs_A must cover every ordered species pair")
+                if any(not np.isfinite(float(value)) or float(value) <= 0 or
+                       float(value) > cutoff for value in pair_cutoffs.values()):
+                    raise ValueError("pair_cutoffs_A values must be positive and <= cutoff_A")
+            catalogue = basis_config.get("catalogue")
+            if not isinstance(catalogue, Mapping):
+                raise ValueError("tagged carriers require a basis.catalogue mapping")
+            allowed_catalogue = {
+                "ranks", "nmax_per_rank", "lmax_per_rank", "nmax", "lmax",
+                "source_block_partitions_by_rank", "max_source_blocks", "tag_counts",
+                "kappa_policy", "tag_sectors", "max_features_per_rank",
+                "max_records_per_rank", "input_Lmax", "source_family_id",
+            }
+            unknown_catalogue = set(catalogue) - allowed_catalogue
+            if unknown_catalogue:
+                raise ValueError("Unsupported tagged carrier catalogue settings: " +
+                                 ", ".join(sorted(unknown_catalogue)))
+            if catalogue.get("source_family_id", "orthogonal_shifted_jacobi_origin_regular_v1") != (
+                    "orthogonal_shifted_jacobi_origin_regular_v1"):
+                raise ValueError("Standalone tagged carriers require the certified shifted-Jacobi source")
+            allowed_runtime = {"backend", "device", "dtype", "support_chunk_size",
+                               "compiled_cache_dir"}
+            unknown_runtime = set(runtime_config) - allowed_runtime
+            if unknown_runtime:
+                raise ValueError("Unsupported tagged carrier runtime settings: " +
+                                 ", ".join(sorted(unknown_runtime)))
+            sector_policy = representation_config.get("sector_policy", "tagged_mixed")
+            if sector_policy != "tagged_mixed":
+                raise ValueError("Standalone tagged carriers currently require sector_policy='tagged_mixed'")
+            if runtime_config.get("backend", "reference") != "reference":
+                raise ValueError("standalone tagged carrier ASE evaluation uses backend='reference'")
+            if "compiled_cache_dir" in runtime_config:
+                cache_dir = runtime_config["compiled_cache_dir"]
+            else:
+                cache_dir = default_linear_cache_directory() / "compiler" / "tagged_cauchy_carriers"
+            if cache_dir is not None:
+                cache_dir = Path(cache_dir)
+            request = tagged_cauchy_carriers_request(catalogue=catalogue, species=elements)
+            compiled = compile_coupling(request, cache_dir=cache_dir)
+            grouped_sources = {}
+            for source in compiled["sources"]:
+                tag_count = int(source["request"]["tag_count"])
+                grouped_sources.setdefault(tag_count, []).append(source)
+            schedules = tuple(
+                tagged_cauchy_carrier_schedule(grouped_sources[tag_count])
+                for tag_count in sorted(grouped_sources)
+            )
+            representation = YE3TRepresentation.tagged_cauchy_carriers()
+            carrier_config = {
+                "cutoff_A": cutoff,
+                "pair_cutoffs_A": basis_config.get("pair_cutoffs_A"),
+                "device": runtime_config.get("device", "cpu"),
+                "dtype": runtime_config.get("dtype", "float64"),
+                "support_chunk_size": runtime_config.get("support_chunk_size", 4096),
+                "compiled_cache_dir": cache_dir,
+            }
+            return YE3TDescriptorSet(
+                settings=None, site_basis_config=None, elements=elements,
+                type_map={name: index for index, name in enumerate(elements)},
+                cutoff=cutoff, representation=representation, compact_labels=(),
+                descriptor_specs=(), backend="reference", strict_backend=True,
+                validate_backend=True, descriptor_cache=None, ace_descriptor=None,
+                settings_by_L=None, metadata={
+                    "descriptor_family": "tagged_cauchy_carriers",
+                    "runtime_status": "implemented_under_validation",
+                    "materialization_status": "compiled",
+                    "tagged_cauchy_carriers_config": carrier_config,
+                    "tagged_cauchy_carriers_compiled": compiled,
+                    "tagged_cauchy_carrier_source_plan": {"schedules": schedules},
+                    "feature_count": sum(int(schedule["output_dimension"])
+                                         for schedule in schedules),
+                    "multiplet_count": sum(len(schedule["inventory"])
+                                           for schedule in schedules),
+                    "component_count": sum(int(schedule["output_dimension"])
+                                           for schedule in schedules),
+                    "runtime_capabilities": {"generic_descriptor_create": True},
+                },
+            )
         if isinstance(basis_config, Mapping) and basis_config.get("type") == "tagged_cauchy_image":
             representation_config = cfg.get("representation", {})
             if not isinstance(representation_config, Mapping) or (
@@ -6145,6 +6342,10 @@ class YE3TDescriptors:
             if not isinstance(tagged_cauchy_payload, Mapping):
                 raise TypeError("tagged_cauchy_image must be a mapping.")
             tagged_cauchy_payload = dict(tagged_cauchy_payload)
+            if "compiled_cache_dir" not in tagged_cauchy_payload:
+                tagged_cauchy_payload["compiled_cache_dir"] = (
+                    default_linear_cache_directory() / "compiler" / "tagged_cauchy_image"
+                )
             elements = tuple(str(elem) for elem in cfg.get("elements", ()))
             if not elements:
                 raise ValueError(

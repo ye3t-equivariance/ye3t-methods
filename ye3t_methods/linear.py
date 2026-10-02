@@ -9,6 +9,7 @@ import numpy as np
 import torch
 
 from ye3t_ace import YE3TDescriptors, YE3TModel, YE3TRepresentation
+from ye3t_ace.cache import default_linear_cache_directory
 from ye3t_ace.ace.linear_ace import (
     LinearACEScalarCalculator,
     LinearACEScalarModelBundle,
@@ -209,7 +210,8 @@ class Basis:
                  radial_degrees=None, tensor_order=None, angular_degree=None,
                  backend=None, motif_family="full", motif_specs=None,
                  channels=None, edge_cutoff=None, edge_basis_backend="site_basis",
-                 periodic_image_mode="unique", normalize_motif_features=True):
+                 periodic_image_mode="unique", normalize_motif_features=True,
+                 compiled_cache_dir=None, descriptor_cache_dir=None):
         self.elements = tuple(str(value) for value in elements)
         if not self.elements or len(set(self.elements)) != len(self.elements):
             raise ValueError("elements must be a nonempty unique sequence.")
@@ -218,6 +220,8 @@ class Basis:
             raise ValueError("cutoff must be finite and positive in Angstrom.")
         self.source = str(source)
         if self.source == "density":
+            if compiled_cache_dir is not None:
+                raise ValueError("Density uses descriptor_cache_dir, not compiled_cache_dir.")
             if tag_counts is not None or radial_degrees is not None or tensor_order is not None:
                 raise ValueError("Tagged source options require source='tagged_cauchy_image'.")
             rank_count = 3 if max_rank is None else int(max_rank)
@@ -227,6 +231,8 @@ class Basis:
             radial = _rank_values(nmax, ranks, "nmax")
             angular = _rank_values(lmax, ranks, "lmax")
             self.backend = "pytorch" if backend is None else str(backend)
+            cache_dir = (default_linear_cache_directory() / "compiler" / "ordinary_density"
+                         if descriptor_cache_dir is None else Path(descriptor_cache_dir))
             config = {
                 "elements": self.elements,
                 "type_map": {name: index for index, name in enumerate(self.elements)},
@@ -247,6 +253,7 @@ class Basis:
                     "lmbda": float(radial_decay),
                 },
                 "backend": self.backend,
+                "descriptor_cache_dir": cache_dir,
             }
             self._descriptor = YE3TDescriptors.ace(config)
             self._resolved = {
@@ -254,9 +261,12 @@ class Basis:
                 "cutoff_A": self.cutoff, "ranks": ranks,
                 "nmax": radial, "lmax": angular,
                 "radial_decay": float(radial_decay), "backend": self.backend,
+                "descriptor_cache_dir": str(cache_dir),
             }
             self._labels = _density_labels(self._descriptor.descriptor_specs, self.elements)
         elif self.source == "tagged_cauchy_image":
+            if descriptor_cache_dir is not None:
+                raise ValueError("Tagged Cauchy image uses compiled_cache_dir, not descriptor_cache_dir.")
             if tag_counts is None or radial_degrees is None:
                 raise ValueError("Tagged basis requires explicit tag_counts and radial_degrees.")
             if max_rank is not None:
@@ -264,6 +274,8 @@ class Basis:
             order = 4 if tensor_order is None else int(tensor_order)
             angular = 1 if angular_degree is None else int(angular_degree)
             self.backend = "auto" if backend is None else str(backend)
+            cache_dir = (default_linear_cache_directory() / "compiler" / "tagged_cauchy_image"
+                         if compiled_cache_dir is None else Path(compiled_cache_dir))
             config = {
                 "elements": self.elements,
                 "representation": YE3TRepresentation.tagged_cauchy_image(),
@@ -274,6 +286,7 @@ class Basis:
                     "angular_degree": angular,
                     "cutoff_A": self.cutoff,
                     "coefficient_materialization": "compile",
+                    "compiled_cache_dir": cache_dir,
                 },
                 "backend": self.backend,
             }
@@ -284,6 +297,7 @@ class Basis:
                 "tag_counts": tuple(int(v) for v in tag_counts),
                 "radial_degrees": tuple(int(v) for v in radial_degrees),
                 "angular_degree": angular, "backend": self.backend,
+                "compiled_cache_dir": str(cache_dir),
             }
             self.elements = tuple(self._descriptor.elements)
             compiled = self._descriptor.metadata["tagged_cauchy_image_compiled"]
@@ -292,6 +306,8 @@ class Basis:
                 compiled.payload["raw_coordinate_labels"],
             )
         elif self.source == "bar_phi":
+            if compiled_cache_dir is not None or descriptor_cache_dir is not None:
+                raise ValueError("bar_phi does not use density or tagged compiler cache settings.")
             if max_rank is not None or tag_counts is not None or radial_degrees is not None or tensor_order is not None:
                 raise ValueError("bar_phi uses explicit motif slots; density and tagged truncations do not apply.")
             self.backend = "pytorch" if backend is None else str(backend)

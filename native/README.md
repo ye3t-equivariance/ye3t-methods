@@ -16,7 +16,12 @@ With `ye3t` already installed, CMake 3.20+, and a C++17 compiler,
 installed package. The build reads runtime C++ source from installed `ye3t`;
 set `YE3T_RUNTIME_SOURCE` to a checkout if needed. Set
 `YE3T_METHODS_BUILD_NATIVE=0` during pip installation to skip the native build
-and install the Python evaluators only. For a separate CMake build:
+and install the Python evaluators only. Set
+`YE3T_METHODS_BUILD_NATIVE=ase` during pip installation, or
+`YE3T_ASE_ONLY=ON` for CMake, to build only ordinary-density and tagged ASE
+evaluation. Model loading still uses bundled yaml-cpp in that configuration.
+
+For a separate CMake build:
 
 ```sh
 cmake -S native -B ../build-ye3t-methods-native \

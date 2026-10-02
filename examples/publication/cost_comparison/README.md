@@ -34,6 +34,27 @@ python examples/publication/cost_comparison/run.py --stage preflight --systems L
 python examples/publication/cost_comparison/run.py --stage prepare --systems Li
 ```
 
+The no-argument driver reads `config.json` and preflights Si. To work on Ni,
+run `python examples/publication/cost_comparison/run.py --systems Ni`; the
+`--stage` flag selects one restartable part of the fitting workflow. The
+configuration keeps the published basis and fit settings visible:
+
+| Edit | Purpose |
+| --- | --- |
+| `runtime.default_systems`, `runtime.default_stage` | No-argument driver selection; `--systems` and `--stage` override these. |
+| `basis.tensor_orders`, `nmax_by_tensor_order`, `lmax_by_tensor_order` | Rank, radial, and angular limits for the catalogue. |
+| `basis.channel_multiplicity_partitions_by_order` | Fixed-content channel partitions; the compiler still determines valid coupling labels. |
+| `basis.tagged.tag_counts_s`, `component_schedule` | Tagged source role count and the retained physical-content schedule. |
+| `representation.target` | Scalar, even-parity, globally invariant paper target. |
+| `runtime.workflow_root`, `runtime.coupling_cache_root` | Output and coupling cache locations. |
+| `model.arms`, `model.fit_method`, `model.hyperparameter_search` | Matched fit arms and search settings. |
+| `validation.inner_seed`, `validation.inner_fold_count` | Training-only model selection split. |
+
+The `systems/*.json` files expose each element's species, crystal, lattice
+constant, and cutoff candidates. `run.py --help` lists the LAMMPS, MPI,
+resource, and stage overrides. Changing a published config produces a new
+study; it does not change the bundled models or their reference values.
+
 The `prepare` command reads the bundled mlearn snapshot and checks its hashes.
 The default output directory is a sibling `ye3t-workflows/MLIP/mlearn_linear_cost_comparison`
 directory beside the extracted source archive. Edit `runtime.workflow_root`
@@ -46,17 +67,26 @@ refitting.
 ## Choose an ASE evaluator
 
 The fitted `ye3t_tagged_127` paper artifact is a tagged-plus-ACE composite.
-Build this archive's native C++ library with a sibling `ye3t` source checkout,
-then run both editable ASE examples:
+The default local `pip install` builds the native C++ ASE library. With `ye3t`
+installed, run both editable ASE examples from the source checkout:
 
 ```bash
-cmake -S native -B ../build-ye3t-methods-native \
-  -DYE3T_RUNTIME_SOURCE=../ye3t
-cmake --build ../build-ye3t-methods-native --target ye3t_tagged_c_api --parallel
-export YE3T_TAGGED_C_API_LIBRARY="$PWD/../build-ye3t-methods-native/libye3t_tagged_c_api.so"
 python examples/publication/cost_comparison/ase_native_density.py
 python examples/publication/cost_comparison/ase_native_tagged.py
 ```
+
+Both scripts show a Li BCC cell, the promoted artifact path, the matching ZBL
+manifest, the native evaluator settings, and the retained LAMMPS step-zero
+energy. Set `runtime.native_library` to a custom compiled library path when
+needed; `None` loads the library installed by the wheel. The tagged evaluator
+accepts `runtime.execution_policy` as `direct` or `auto`. The density
+evaluator exposes `runtime.neighbor_skin_A`. If you edit the cell or model,
+set `validation.lammps_step_zero_energy_eV` to a matching reference or `None`.
+
+To build only the fast ordinary density and tagged ASE paths during install,
+use `YE3T_METHODS_BUILD_NATIVE=ase python -m pip install '.[examples]'`.
+These native model loaders still include a static bundled yaml-cpp parser;
+no separate yaml-cpp system install is needed.
 
 The example uses `YE3TTaggedCauchyCalculator.from_artifact(...,
 execution_policy="direct")` for the linear residual and

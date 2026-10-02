@@ -23,8 +23,8 @@ Select it explicitly with ``model.ase_calculator(backend="pytorch")``; the
 full backend matrix is in :doc:`evaluators`.
 ``LinearModel.read`` accepts the saved ``bar_phi`` branch and restores its
 fixed-feature evaluator; load ``.phi.pt`` only from a trusted source because it
-is a Torch artifact. For the verified operations and periodic-image checks, see
-``RELEASE_VALIDATION.md``.
+is a Torch artifact. The example exercises finite periodic geometry; there is
+no native C++ or LAMMPS evaluator for this branch.
 
 For a four-vertex depth-two tree, use
 ``examples/quickstart/phi_depth2.py``. Its edges ``(0,1)``, ``(1,2)``,

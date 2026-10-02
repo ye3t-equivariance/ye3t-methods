@@ -7,10 +7,9 @@ position derivatives, saves models, and exposes ASE calculators. The compact
 entry points are ``Basis`` and ``LinearModel``; the retained descriptor-first
 entry points are ``YE3TRepresentation``, ``YE3TDescriptors``, and ``YE3TModel``.
 
-The examples in this guide use deterministic manufactured labels to check the
-software path. They are not validated physical potentials. The precise tested
-families, runtimes, and deployment limits are in the source archive's
-``RELEASE_VALIDATION.md``.
+The quickstart examples use deterministic manufactured labels to check the
+software path. They are not validated physical potentials. The paper-model
+examples contain the promoted model artifacts and their validation inputs.
 
 .. toctree::
    :maxdepth: 2
@@ -29,4 +28,3 @@ families, runtimes, and deployment limits are in the source archive's
    labels_and_runtime
    deployment
    api_reference
-   migration_inventory

@@ -61,6 +61,11 @@ For a Python-only installation without a C++ toolchain, use
 The PyTorch evaluators remain available; `backend="native_cpu"` requires a
 native build.
 
+To build only the fast ordinary-density and tagged ASE evaluators, use
+`YE3T_METHODS_BUILD_NATIVE=ase python -m pip install --no-build-isolation .`.
+This skips the lifted native evaluator sources. It still includes statically
+linked yaml-cpp for loading YACE and tagged model artifacts.
+
 ```python
 model = LinearModel.read("tagged.ye3t.json")
 atoms.calc = model.ase_calculator(
@@ -100,6 +105,8 @@ manufactured fixtures. From its extracted `ye3t_methods-0.1.0` directory,
 run each script independently:
 
 ```bash
+python examples/evaluate_ni_descriptors.py
+python examples/quickstart/paper_ni_ase.py
 python examples/quickstart/density_fit.py
 python examples/quickstart/tagged_fit.py
 python examples/quickstart/saved_ase_export.py
@@ -113,6 +120,16 @@ python examples/quickstart/chemical_encoding.py
 python examples/quickstart/chemical_channel_selection.py
 python examples/quickstart/sklearn_fit.py  # requires the fit extra
 ```
+
+The Ni descriptor example builds an fcc cell and a displaced copy in memory.
+Its visible config sets the tagged source, tensor order, tag counts, radial and
+angular caps, and evaluator. It checks the internal tag and role Young types
+reported by the compiler. Those partitions are inspection targets; the
+currently exposed tagged constructor selects tag counts and has a fixed
+globally symmetric scalar parent.
+The Ni ASE quickstart loads the promoted tagged paper model, adds its ZBL
+reference, and checks the 32-atom energy against the retained LAMMPS result.
+It requires the native C++ library installed by the default or ASE-only build.
 
 The fitting scripts use only `examples/quickstart/fixtures` or generated
 manufactured labels, write fitted artifacts under a sibling
@@ -128,8 +145,7 @@ files, and LAMMPS input decks for Li, Mo, Cu, Ni, Si, and Ge. Verify the
 bundled bytes with
 `python examples/publication/cost_comparison/verify_models.py`. The wheel
 installs the Python APIs; the paper examples and data are source-archive
-assets. Neither distribution has been uploaded to a package index as part
-of this local release preparation.
+assets.
 
 Species are one-hot channels by default. The
 [chemical encoding guide](docs/chemical_encoding.rst) and
@@ -190,18 +206,14 @@ saved model.
 | Ordinary density `A`/coupled `B` | Energy and forces | `.pt` | Strict `.yace` only for representable PACE radial specifications; native compiled artifact path is available through the retained low-level API. |
 | Tagged physical image | Energy, forces, stress; genuinely nontrivial tag/role sectors | `.ye3t.json` | Hash-bound native tagged export; CPU C ABI when built. |
 | Explicit motif `bar_phi` | Energy, forces, stress | `.phi.pt` | ASE reference evaluator; no LAMMPS schema. |
-| Filtered role density `A_s`, lifted Cauchy, saved fixed Young descriptor sets | Retained low-level linear APIs | Existing formats where supported | The verified slot-trivial `A_s` fit is primarily a radial-channel change or expansion; compare radial-matched ACE before claiming a distinct benefit. See the release validation record for qualified operations. |
+| Filtered role density `A_s`, lifted Cauchy, saved fixed Young descriptor sets | Retained low-level linear APIs | Existing formats where supported | The verified slot-trivial `A_s` fit is primarily a radial-channel change or expansion; compare radial-matched ACE before claiming a distinct benefit. |
 
 The compact density fit does not accept stress rows. A density `.pt` or Phi
 `.phi.pt` file is a Torch artifact; load it only from a trusted source. Tagged
 JSON and lifted Cauchy JSON retain their existing versioned schema and hashes.
-The linear Python package is independent of the staged research application
-tree. `../ye3t-experimental` is preserved for later migration and is not an
-install or test prerequisite.
-
-The [release validation record](RELEASE_VALIDATION.md) states exactly which
-families, backends, artifacts, and numerical checks were executed in this
-checkout. No package index upload is part of this local release preparation.
+The [evaluator guide](docs/evaluators.rst) lists supported ASE backends and
+the [paper-model guide](docs/paper_models.rst) identifies the promoted
+artifacts and their validation inputs.
 
 ## Citation
 

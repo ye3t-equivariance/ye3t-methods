@@ -43,24 +43,25 @@ ASE evaluation of the paper models
 ----------------------------------
 
 Both the exact tagged-plus-ACE composite and the independent ACE control run
-in ASE through the C++ library bundled in this source archive. Build it with
-a sibling ``ye3t`` source checkout, then run the two editable examples:
+in ASE through the C++ library built during the default source installation.
+With ``ye3t`` already installed, run the editable examples:
 
 .. code-block:: bash
 
-   cmake -S native -B ../build-ye3t-methods-native \
-     -DYE3T_RUNTIME_SOURCE=../ye3t
-   cmake --build ../build-ye3t-methods-native --target ye3t_tagged_c_api --parallel
-   export YE3T_TAGGED_C_API_LIBRARY="$PWD/../build-ye3t-methods-native/libye3t_tagged_c_api.so"
+   python -m pip install --no-build-isolation .
    python examples/publication/cost_comparison/ase_native_density.py
    python examples/publication/cost_comparison/ase_native_tagged.py
+   python examples/quickstart/paper_ni_ase.py
 
-Each script has an editable configuration and validates the 16-atom Li
+The two Li scripts have editable configurations and validate the 16-atom Li
 step-zero energy against the retained LAMMPS log. It reports forces, stress,
 and the neighbor-list backend. The C++ adapter evaluates the fitted
 **residual**; each script combines it with
 ``YE3TZBLCalculator.from_model_manifest`` through ASE ``SumCalculator``.
 The ZBL overlay is zero on this example geometry.
+The Ni quickstart checks the 32-atom tagged model against its retained
+LAMMPS step-zero energy. A separate CMake build is described in
+:doc:`evaluators` when the pip-built library is not used.
 The ordinary ACE control is supplied as ``.yace`` and loads through
 ``YE3TYACENativeCalculator.from_artifact``. ``LinearModel.read`` reads compact
 Torch ``.pt`` bundles, not ``.yace`` files. See :doc:`evaluators` for the

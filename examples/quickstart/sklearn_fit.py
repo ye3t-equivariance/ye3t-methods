@@ -1,4 +1,4 @@
-"""Fit optional LASSO and ARD readouts to a manufactured Cu2 fixture."""
+"""Fit optional scikit-learn LASSO and ARD readouts to ASE structures."""
 
 from pathlib import Path
 
@@ -9,35 +9,37 @@ from ye3t_methods import Basis, LinearModel
 fixtures = Path(__file__).with_name("fixtures")
 output_root = Path(__file__).resolve().parents[2].parent / "ye3t-workflows" / "quickstart_linear"
 config = {
-    "metadata": {"name": "sklearn_linear_fit_quickstart", "status": "stable"},
+    "metadata": {"name": "sklearn_fit", "structures": fixtures / "cu2_training.extxyz"},
     "basis": {"elements": ["Cu"], "source": "density", "cutoff": 3.5,
-              "max_rank": 1, "nmax": 1, "lmax": 0},
-    "representation": {"carrier": "ACE_density", "target": {"permutation": "trivial", "L": 0},
-                       "coupling": {"source": "ye3t.couplings"}},
+              "max_rank": 4, "nmax": (2, 2, 2, 2), "lmax": (1, 1, 1, 1)},
+    "representation": {"parent_young": "trivial", "parent_L": 0},
     "runtime": {"basis_backend": "pytorch", "ase_backend": "pytorch",
-                "force_method": "analytic_factorized", "output_root": output_root},
+                "force_method": "autograd", "output_dir": output_root},
     "model": {"type": "linear", "lasso_params": {"alpha": 1e-9},
-              "ard_params": {}},
+              "ard_params": {}, "fit_methods": ("lasso", "ardregression")},
     "targets": {"energy": "energy", "forces": "forces"},
-    "validation": {"fixture": "manufactured Cu2",
-                   "checks": ["ASE energy", "ARD atomic readout uncertainty"]},
+    "validation": {"structure": fixtures / "cu2_structure.extxyz"},
 }
 
-structures = read(fixtures / "cu2_training.extxyz", index=":")
+structures = read(config["metadata"]["structures"], index=":")
 basis = Basis(**config["basis"], backend=config["runtime"]["basis_backend"])
-config["runtime"]["output_root"].mkdir(parents=True, exist_ok=True)
+config["runtime"]["output_dir"].mkdir(parents=True, exist_ok=True)
 
 lasso = LinearModel(basis).fit(
-    structures, fit_method="lasso", sklearn_params=config["model"]["lasso_params"],
+    structures, fit_method=config["model"]["fit_methods"][0],
+    sklearn_params=config["model"]["lasso_params"],
+    energy_key=config["targets"]["energy"], force_key=config["targets"]["forces"],
 )
-lasso_path = lasso.write(config["runtime"]["output_root"] / "cu2_lasso.pt")
+lasso_path = lasso.write(config["runtime"]["output_dir"] / "cu2_lasso.pt")
 ard = LinearModel(basis).fit(
-    structures, fit_method="ardregression", sklearn_params=config["model"]["ard_params"],
+    structures, fit_method=config["model"]["fit_methods"][1],
+    sklearn_params=config["model"]["ard_params"],
+    energy_key=config["targets"]["energy"], force_key=config["targets"]["forces"],
 )
-ard_path = ard.write(config["runtime"]["output_root"] / "cu2_ard.pt")
+ard_path = ard.write(config["runtime"]["output_dir"] / "cu2_ard.pt")
 
 restored = LinearModel.read(ard_path)
-atoms = structures[0].copy()
+atoms = read(config["validation"]["structure"])
 atoms.calc = restored.ase_calculator(
     backend=config["runtime"]["ase_backend"],
     force_method=config["runtime"]["force_method"],

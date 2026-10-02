@@ -1,30 +1,42 @@
-"""Apply a rank-three global parent coupler to supplied tensor values."""
+"""Apply an exact nontrivial Young/rotation parent coupler to tensor values.
+
+The values below are supplied tensor slots, not atomistic descriptors.
+"""
 
 import torch
 
 from ye3t import CompileYE3TCouplers, YE3TSpec
-from ye3t_ace import YE3TDescriptors
 
 
-descriptor = YE3TDescriptors.ye3t({
-    "elements": ["Si"], "type_map": {"Si": 0}, "cutoff": 4.0,
-    "ranks": [1], "basis_type": "no_charge", "k_o_max": 0, "k_max": [0],
-    "nmax": [1], "lmax": [1], "lmin": [0], "L_R": 1, "M_R_values": [0],
-    "max_labels_per_rank": 1, "max_variants_per_label": 1,
-    "site_basis": {"mode": "explicit", "rc": [4.0], "lmbda": [0.25]},
-    "backend": "pytorch", "content": (1, 1, 2),
-    "metadata": {"input_Ls": (0, 0, 1)},
+config = {
+    "metadata": {"name": "parent_coefficient"},
+    "basis": {"content": (1, 1, 2), "input_Ls": (0, 0, 1)},
     "representation": {
-        "permutation_sector": "young:(2,1)",
-        "construction_mode": "schur_weyl_exact",
-        "coupling_tree": "balanced",
+        "carrier": "Phi", "parent_young": "young:2,1", "parent_L": 1,
+        "tree_schedule": "balanced",
     },
+    "runtime": {"dtype": torch.complex128},
+    "model": None,
+    "targets": {"parent_coefficient": True},
+    "validation": {"require_certificate": True},
+}
+spec = YE3TSpec.from_dict({
+    "content": config["basis"]["content"],
+    "slot_roles": tuple(f"slot_{index}" for index in range(len(config["basis"]["content"]))),
+    "target_permutation": config["representation"]["parent_young"],
+    "target_rotation": {"L_R": config["representation"]["parent_L"]},
+    "carrier": config["representation"]["carrier"],
+    "tree_schedule": config["representation"]["tree_schedule"],
+    "validation_scope": "projectors",
+    "runtime_status": "implemented_under_validation",
+    "metadata": {"input_Ls": config["basis"]["input_Ls"]},
 })
-spec = YE3TSpec.from_dict(descriptor.metadata["ye3t_spec"])
 coupler = CompileYE3TCouplers(spec)
+if config["validation"]["require_certificate"]:
+    assert coupler.certificate.passed
 width = coupler.sparse_coefficient_tables[0]["shape"][1]
-values = torch.arange(width, dtype=torch.float64).reshape(1, width)
-result = descriptor.evaluate_global_coupler_reference(values)
+values = torch.arange(width, dtype=torch.float64).to(config["runtime"]["dtype"])
+result = coupler.apply_sparse_coefficient_table_torch(values)
 print("parent_partition, L", spec.target_permutation, spec.target_rotation.L_R)
-print("coefficient_view_shape", result.values.shape)
-print("input_source", result.metadata["geometry_carrier_realization"])
+print("coefficient_view_shape", tuple(result.shape))
+print("coefficient_values", result.tolist())

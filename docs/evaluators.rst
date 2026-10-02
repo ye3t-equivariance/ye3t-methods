@@ -124,10 +124,47 @@ For a Python-only install, set ``YE3T_METHODS_BUILD_NATIVE=0`` before running
 ``python -m pip install --no-build-isolation .``. This skips CMake and the
 native library; the PyTorch evaluators remain available.
 
+Set ``YE3T_METHODS_BUILD_NATIVE=ase`` during pip installation to build only the
+ordinary-density and tagged C++ ASE evaluators. This omits the lifted native
+evaluator sources; model loading still uses bundled static yaml-cpp.
+
 ``execution_policy`` is ``direct`` or ``auto``;
 ``auto`` calibrates schedules when the model is opened and takes longer to
 initialize. The native model and its schedules stay resident in the calculator.
 It reuses neighbor topology while atoms move within the 0.3 Å skin.
+
+Compilation caches
+------------------
+
+Building a basis can compile Clebsch--Gordan, Young subduction, and descriptor
+tables. Compact density ``Basis`` writes reusable tables through
+``descriptor_cache_dir``; compact tagged ``Basis`` uses
+``compiled_cache_dir``. Both default to a persistent directory under the
+user's YE3T application cache, so constructing the same basis in a later
+process can load validated artifacts. Set either path explicitly when a
+project needs its own cache:
+
+.. code-block:: python
+
+   from pathlib import Path
+   from ye3t_methods import Basis
+
+   basis = Basis(
+       elements=["Ni"], source="tagged_cauchy_image", cutoff=4.8,
+       tensor_order=4, tag_counts=(0, 2), radial_degrees=(0,),
+       angular_degree=1,
+       compiled_cache_dir=Path.home() / ".cache" / "ye3t" / "tagged",
+   )
+   print(basis.resolved["compiled_cache_dir"])
+
+The ordered tagged-carrier example also exposes
+``config["runtime"]["compiled_cache_dir"]``. The cache location can be
+controlled globally with ``YE3T_ACE_CACHE_DIR`` or ``YE3T_CACHE_DIR``.
+The compiler checks saved request identities and hashes before reuse.
+Construct an ASE calculator once and keep it attached to the atoms: fitted
+coefficients, compiled schedules, and native model handles remain resident
+through repeated energy, force, and stress calls. Geometry and neighbor lists
+still update when atoms move; coupling compilation does not run for each call.
 
 The native ASE adapter uses SciPy's cKDTree for eligible orthorhombic or
 nonperiodic cells. For other cells it uses ``matscipy.neighbours`` when
@@ -137,15 +174,6 @@ formula. The calculator's ``native_runtime.last_neighbor_backend`` reports the
 path actually used.
 Install it with ``python -m pip install --no-build-isolation '.[neighbors]'`` from the methods
 source checkout after installing the local ``ye3t`` dependency.
-
-A previous local matched 127-feature Ni composite (59 ACE and 68 tagged
-features) run on 256 atoms and 1,000 NVE steps recorded a 10.051 ms/step ASE
-median and 8.248 ms/step LAMMPS median (ASE
-1.22 times the LAMMPS time). Its initial energy and maximum force differences
-were 2.51e-12 eV and 3.16e-13 eV/Å. The provenance is in the separate
-``ye3t-workflows/tagged_right_tag_speed/README.md`` study; this is prior
-tagged-composite evidence, not a timing result for the new ordinary YACE ASE
-adapter or a portable performance guarantee.
 
 Paper deployment artifacts
 --------------------------

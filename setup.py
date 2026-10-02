@@ -40,6 +40,7 @@ class CMakeBuild(build_ext):
             raise RuntimeError("CMake 3.20 or newer is required to build the native evaluator.")
         args = [
             cmake, "-S", str(root / "native"), "-B", str(build_dir),
+            "-DCMAKE_BUILD_TYPE=Release",
             f"-DYE3T_RUNTIME_SOURCE={source}",
             f"-DCMAKE_LIBRARY_OUTPUT_DIRECTORY={output_dir}",
             f"-DCMAKE_RUNTIME_OUTPUT_DIRECTORY={output_dir}",
@@ -48,6 +49,7 @@ class CMakeBuild(build_ext):
         for name in ("YE3T_NATIVE_CPU", "YE3T_ENABLE_IPO", "YE3T_USE_SYSTEM_YAML_CPP"):
             if name in os.environ:
                 args.append(f"-D{name}={os.environ[name]}")
+        args.append(f"-DYE3T_ASE_ONLY={'ON' if native_setting == 'ase' else 'OFF'}")
         subprocess.check_call(args)
         subprocess.check_call([
             cmake, "--build", str(build_dir), "--target", "ye3t_tagged_c_api",
@@ -64,13 +66,13 @@ class CMakeBuild(build_ext):
 
 
 native_setting = os.environ.get("YE3T_METHODS_BUILD_NATIVE", "1").strip()
-if native_setting not in {"0", "1"}:
-    raise RuntimeError("YE3T_METHODS_BUILD_NATIVE must be 0 or 1.")
+if native_setting not in {"0", "1", "ase"}:
+    raise RuntimeError("YE3T_METHODS_BUILD_NATIVE must be 0, 1, or ase.")
 
 setup(
     ext_modules=(
         [Extension("ye3t_ace.libye3t_tagged_c_api", sources=[])]
-        if native_setting == "1" else []
+        if native_setting != "0" else []
     ),
     cmdclass={"build_ext": CMakeBuild},
 )

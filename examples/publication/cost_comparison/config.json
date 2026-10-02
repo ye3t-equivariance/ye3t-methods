@@ -85,6 +85,8 @@
     "backend": "pytorch",
     "device": "cpu",
     "dtype": "float64",
+    "default_systems": ["Si"],
+    "default_stage": "preflight",
     "cache": "auto",
     "feature_chunk_size": "auto",
     "workflow_root": "../../../../ye3t-workflows/MLIP/mlearn_linear_cost_comparison",

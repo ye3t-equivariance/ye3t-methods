@@ -32,18 +32,41 @@ is a bounded source identity, not a general rule for all one-tag sources.
 Other requested orders, contents, angular channels, and tag counts remain
 subject to compiler validation; the N=4 witness does not certify them.
 
+Ordered tagged carriers
+-----------------------
+
+``examples/tagged_carriers_ase.py`` evaluates raw zero-, one-, and two-tag
+carriers on a Ni ASE cell. Its config exposes species, cell size, cutoff,
+rank and radial/angular caps, tag counts, sector policy, and evaluator backend.
+The result has separate center, edge, and ordered edge-pair value blocks.
+These carrier values are not fitted scalar energy coordinates.
+
+``nmax_per_rank`` and ``lmax_per_rank`` are exact maps covering every requested
+rank. ``cutoff_A`` bounds the neighbor list, while ``pair_cutoffs_A`` sets the
+radial cutoff for each ordered species pair and cannot exceed ``cutoff_A``.
+The certified source is the fixed origin-regular shifted-Jacobi family. It
+has no ``radial_lambda`` or ordinary-density ``radial_decay`` parameter;
+unsupported settings are rejected rather than ignored.
+
+``tag_character=-1`` on a two-tag label denotes odd exchange of the two
+ordered tags. ``target_L`` identifies that carrier's rotation irrep. Neither
+is the global parent Young partition of an atomistic descriptor. The example
+uses ``sector_policy="tagged_mixed"`` to retain both tag-exchange types;
+``backend="reference"`` selects the current reference evaluator.
+
 Building, fitting, and inspecting
 ---------------------------------
 
-The full runnable script is on :doc:`quickstart`. Its essential basis request
-is:
+The runnable ``examples/evaluate_ni_descriptors.py`` script shows a Ni fcc
+cell, a displaced copy, one visible config, descriptor row slices, and a check
+for the nontrivial internal Young witness. Its essential basis request is:
 
 .. code-block:: python
 
    from ye3t_methods import Basis
 
    basis = Basis(
-       elements=["Ta"], source="tagged_cauchy_image", cutoff=4.8,
+       elements=["Ni"], source="tagged_cauchy_image", cutoff=4.8,
        tensor_order=4, tag_counts=(0, 2), radial_degrees=(0,),
        angular_degree=1, backend="reference",
    )
@@ -52,6 +75,10 @@ is:
 ``tag_counts`` selects raw tag-count opportunities before the exact image is
 formed. ``radial_degrees`` selects source degrees, ``angular_degree`` the
 one-neighbor angular degree, and ``tensor_order`` the fixed tensor order.
+The example's ``expected_internal_tag_young`` and
+``expected_internal_role_young`` values check compiler provenance; they do
+not select a different global parent. The tagged constructor currently fixes
+that parent to the symmetric partition ``(N)`` with ``L=0`` and even parity.
 ``max_rank`` belongs to ordinary density and is rejected here. Inspect the
 actual column count and each label's ``compiler_coordinate_provenance`` and
 ``compiler_raw_opportunities`` rather than inferring columns from the request.
@@ -73,6 +100,55 @@ argument, optional neighbor-list speedup, and the paper composite loader.
 The tagged source uses a cutoff Jacobi radial/angular realization. Its exact
 source algebra and floating evaluator are recorded in compiler artifacts; a
 compiler certificate does not establish accuracy for a physical material.
-The source-domain and deployment limits, including overlap handling and native
-CPU/Kokkos qualification, are recorded in ``RELEASE_VALIDATION.md`` and the
-retained ``examples/publication/ta_tagged_cauchy_image_linear/THEORY.md``.
+Exact overlap is outside the certified source domain. The separate
+``ye3t-lammps`` consumer defines its own CPU and Kokkos deployment scope.
+
+Certified rank-four construction
+--------------------------------
+
+For fixed tensor order and source content, the repeated source blocks follow
+the Cauchy decomposition
+
+.. math::
+
+   \operatorname{Sym}^{k}(W \otimes V_l)
+   = \bigoplus_{\kappa \vdash k} S_\kappa(W) \otimes S_\kappa(V_l).
+
+The certified two-tag placement carrier has ordered basis vectors
+``e_(i,j)`` for ``i != j`` and dimension ``N(N-1)``. Formal tensor-position
+permutations act on the left, while swapping the two tag labels acts on the
+right. The sign tag type ``(1,1)`` survives final scalar coupling only with a
+matching physical source carrier. In the retained witness, ``N=4``, ``s=2``,
+``placement_parent_lambda=(3,1)``, ``role_kappa=(2,1,1)``, and
+``angular_kappa=(2,2)``. Each input has ``l=1`` and the final ``L=0``.
+Physical-neighbor relabeling is a separate action. These labels and their
+intertwiner come from ``ye3t``; they are not assembled by the methods package.
+
+The exact physical-image map reduces selected raw rows to one commutative
+moment algebra. With ``M[alpha] = sum_j product_(q in alpha) phi_(j,q)``, its
+two-tag distinct-neighbor term is
+
+.. code-block:: text
+
+   (M[g_1] M[g_2] - M[g_1 union g_2]) product_a M[q_a]
+
+Residual density factors may still include tagged neighbors. The raw rows
+are selected before forming their exact physical image; selecting columns
+from the full image afterward would change the subspace. For this bounded
+homogeneous ``N=4``, ``l=1`` construction, the compiler checks
+``dim I_S = M [1(S intersects {0,1}) + 1(2 in S)]`` against the materialized
+image. The exact coefficient metric gives a moment monomial of occupations
+``a_g`` weight ``product_g a_g!``. Orthonormality is a statement about those
+compiler coordinates, not a fitted-data Gram matrix or a configuration-space
+``L2`` claim.
+
+The certified one-neighbor source uses a cutoff Jacobi radial function with
+factor ``x^l (1-x)^2 P_q^(4,2l+2)(2x-1)``, where ``x=r/r_c``. The current
+numerical source plan evaluates the Jacobi polynomial and derivative through
+a differentiated three-term recurrence. Exact expanded coefficients remain
+in the compiler artifact for provenance. The cutoff value and first radial
+derivative vanish, but every channel is not certified Cartesian ``C1`` at
+exact overlap. Native source parity is qualified for ``r > 1e-12`` Å;
+``r=0`` is rejected. The archived Ta fit is a residual to a ZBL reference,
+which must be restored during deployment, as in the paper ASE and LAMMPS
+examples.
