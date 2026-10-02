@@ -1,0 +1,187 @@
+{
+  "artifacts": [
+    {
+      "bytes": 8941,
+      "path": "models/ace_127/model_manifest.json",
+      "sha256": "ebbe2c5eda14c8f566f7876e88204581f1caab2e76dfeecb7554b656de005cd4"
+    },
+    {
+      "bytes": 71722,
+      "path": "models/ace_127/potential.yace",
+      "sha256": "8312ac817500bad20288188c9e10d803a33363a871510d23c776b4cedbc4df87"
+    },
+    {
+      "bytes": 2661039,
+      "path": "models/ace_127/ye3t_auto/execution_plan.json",
+      "sha256": "b0892f51e02ce6d7049ff995389db38c8b844722a3ff662ac574650d07287f7c"
+    },
+    {
+      "bytes": 44684,
+      "path": "models/ace_127/ye3t_auto/export_report.json",
+      "sha256": "a2b2d542a19b83c566c289ad5c80591806f253ef20681d446cf1cdd50c408f9a"
+    },
+    {
+      "bytes": 2535,
+      "path": "models/ace_127/ye3t_auto/manifest.json",
+      "sha256": "33658639c48f0f9dfb7a8901f6f91e1c333cfadd17e40a5e23a8b6c476bd8382"
+    },
+    {
+      "bytes": 190359,
+      "path": "models/ace_127/ye3t_auto/yace_function_map.json",
+      "sha256": "39dff2ac462a04fc3aceaa46751a0221c28112cee560f036413c60c68ab4877b"
+    },
+    {
+      "bytes": 9184,
+      "path": "models/ace_149/model_manifest.json",
+      "sha256": "1f39da6c3daf5cf3e206e9d6b10d1ffe0381dbdbf2bf34440f646574a01e586c"
+    },
+    {
+      "bytes": 118459,
+      "path": "models/ace_149/potential.yace",
+      "sha256": "da1671ec655cd5e09bb80aef1a2a6a5a40410bb7929b34c603da5fd12fd1e034"
+    },
+    {
+      "bytes": 3796800,
+      "path": "models/ace_149/ye3t_auto/execution_plan.json",
+      "sha256": "4805fd05e19af6334cced78d8c729012c6b74ee9fce6ae963617a3c67b977593"
+    },
+    {
+      "bytes": 50162,
+      "path": "models/ace_149/ye3t_auto/export_report.json",
+      "sha256": "cb52b8c65dd00a457ed1138a33a2619846c1d0b805b245ef34ef5e0850edf8ed"
+    },
+    {
+      "bytes": 2535,
+      "path": "models/ace_149/ye3t_auto/manifest.json",
+      "sha256": "290d88bea461d1ac31c095becfe4ecd88fa9fd42b05f62829addebdea1fbe782"
+    },
+    {
+      "bytes": 225515,
+      "path": "models/ace_149/ye3t_auto/yace_function_map.json",
+      "sha256": "a3e2828c0171be0ffdd8646aea0090c0e78b04b8557f302d019994910ac5e101"
+    },
+    {
+      "bytes": 8238,
+      "path": "models/ace_60/model_manifest.json",
+      "sha256": "e79206950ed0fe4c0f006b2011378bffde1f3f0eab69e50f986b384f0b872386"
+    },
+    {
+      "bytes": 32417,
+      "path": "models/ace_60/potential.yace",
+      "sha256": "6c74654ef41de151be4f2af1f2d4846b3561d1a64378a6ca493dcb07d5277ade"
+    },
+    {
+      "bytes": 930264,
+      "path": "models/ace_60/ye3t_auto/execution_plan.json",
+      "sha256": "1d59b9f0e4a42979ca1ce4220ac0b33e1fa66e7b10939c56bf94cf5bc7dbb7fe"
+    },
+    {
+      "bytes": 26269,
+      "path": "models/ace_60/ye3t_auto/export_report.json",
+      "sha256": "ca7d401949e40921d1eb9d7d3b4ff01a20303f9e379f4d7bdbb4f836b5ffe325"
+    },
+    {
+      "bytes": 2535,
+      "path": "models/ace_60/ye3t_auto/manifest.json",
+      "sha256": "0c0c0ab162d0a9dd1acd7de9dc169477fc8775861f6decbbf1c0ac9e2865757c"
+    },
+    {
+      "bytes": 87237,
+      "path": "models/ace_60/ye3t_auto/yace_function_map.json",
+      "sha256": "66fd50286ae8d9721e13e00309d7ff1d315ec1b8918f062563e356e052f866ed"
+    },
+    {
+      "bytes": 11830,
+      "path": "models/ye3t_augmented_196/model.ye3t.json",
+      "sha256": "47343455400d9bfa3d95d4fa8dfd44345bcea18978d6f296dfdec4cdb59353a5"
+    },
+    {
+      "bytes": 10230,
+      "path": "models/ye3t_augmented_196/model_manifest.json",
+      "sha256": "44acdd451264d9b4ef7e175dbbcbad57f3dfef0c69294881d8627795975aaa73"
+    },
+    {
+      "bytes": 72875,
+      "path": "models/ye3t_augmented_196/ordinary_backbone.yace",
+      "sha256": "111fe782f1667541a1330ab9223337e41fc09741973b0c782cc62f7df81d9d39"
+    },
+    {
+      "bytes": 1835901,
+      "path": "models/ye3t_augmented_196/tagged_correction.ye3t.json",
+      "sha256": "a3bb3079506c9964681cac53ecb7277285c8a31efd9ddca629c2444574509429"
+    },
+    {
+      "bytes": 11826,
+      "path": "models/ye3t_tagged_127/model.ye3t.json",
+      "sha256": "d5c780926a6202693db6bc41903aee8cd4b4b85f90606e5c0202df8f4dd4bbac"
+    },
+    {
+      "bytes": 9492,
+      "path": "models/ye3t_tagged_127/model_manifest.json",
+      "sha256": "eb19aeecfdbbf08af73ed695a2b431359d6ac5fd5014ad1edc1e1338d1a3a6af"
+    },
+    {
+      "bytes": 32127,
+      "path": "models/ye3t_tagged_127/ordinary_backbone.yace",
+      "sha256": "3d39ec21d7a1453531e9e1bc7bb9872b7a5574e7585098d6b6adf932522259fe"
+    },
+    {
+      "bytes": 1835876,
+      "path": "models/ye3t_tagged_127/tagged_correction.ye3t.json",
+      "sha256": "fb888014ca211e6415b58a7d859811e0d12e6c31760628b5eff5990844ad4350"
+    },
+    {
+      "bytes": 11826,
+      "path": "models/ye3t_tagged_149/model.ye3t.json",
+      "sha256": "62ff7910a7a84972098f8cfba5044623089d64a9494b9a30ce2ca16726b14cce"
+    },
+    {
+      "bytes": 9712,
+      "path": "models/ye3t_tagged_149/model_manifest.json",
+      "sha256": "a22bf24b6b083920a0cde471df9e203d1975232ce4e61663cbdc670b94e6b4c1"
+    },
+    {
+      "bytes": 39757,
+      "path": "models/ye3t_tagged_149/ordinary_backbone.yace",
+      "sha256": "1c2c6ff2bc6df39cac75ddbc5fdb0cbbbd4c4ee1d2d0a191b232170366482b90"
+    },
+    {
+      "bytes": 1835831,
+      "path": "models/ye3t_tagged_149/tagged_correction.ye3t.json",
+      "sha256": "58bdb4b4668fa4e1ff33e49ad56828b77c563f8eb962036faa70eb3fc30def73"
+    },
+    {
+      "bytes": 11824,
+      "path": "models/ye3t_tagged_60/model.ye3t.json",
+      "sha256": "cebb60d833eb40a6c03acfd41c347cedbaff5648d7f9fe72a35b65bc6b6fd7d8"
+    },
+    {
+      "bytes": 8739,
+      "path": "models/ye3t_tagged_60/model_manifest.json",
+      "sha256": "216b6873995182808f5fd269a1268c64c9acb4f5c002e12f9b5ab4dadd8e4f73"
+    },
+    {
+      "bytes": 5456,
+      "path": "models/ye3t_tagged_60/ordinary_backbone.yace",
+      "sha256": "67e15c442d592a56ea5e51a79019c8cf89c2dca0da2d97a64f2c3de99aa3f9f1"
+    },
+    {
+      "bytes": 1777969,
+      "path": "models/ye3t_tagged_60/tagged_correction.ye3t.json",
+      "sha256": "ac3eeaa960b256814899e970c565d5f43a9b858818a48c5169e2135e538265b6"
+    }
+  ],
+  "models": [
+    "ace_127",
+    "ace_149",
+    "ace_60",
+    "ye3t_augmented_196",
+    "ye3t_tagged_127",
+    "ye3t_tagged_149",
+    "ye3t_tagged_60"
+  ],
+  "reference_policy": "DFT target minus exact LAMMPS ZBL; deploy with hybrid/overlay",
+  "schema": "ye3t_cost_comparison_promoted_models_v3",
+  "system": "Ni",
+  "tagged_runtime_dependency": "pair_style_ye3t_plus_zbl"
+}

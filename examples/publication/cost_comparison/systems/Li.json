@@ -1,0 +1,29 @@
+{
+  "schema": "ye3t_mlearn_system_v1",
+  "system": "Li",
+  "species": ["Li"],
+  "atomic_numbers": [3],
+  "atomic_masses": [6.94],
+  "crystal": "bcc",
+  "initial_lattice_constant_A": 3.427,
+  "cutoff_candidates_A": [4.6, 5.0, 5.3],
+  "selected_cutoff_A": null,
+  "dataset_subdirectory": "Li",
+  "stability_temperature_reference": {
+    "melting_temperature_K": 453.65,
+    "nve_fraction_of_melting": 0.8,
+    "source": "NIST Technical Note 2273 (2024)",
+    "doi": "10.6028/NIST.TN.2273",
+    "url": "https://doi.org/10.6028/NIST.TN.2273"
+  },
+  "property_reference": {
+    "lattice_constant_A": 3.427,
+    "C11_GPa": 15.0,
+    "C12_GPa": 13.0,
+    "C44_GPa": 11.0,
+    "bulk_modulus_GPa": 14.0,
+    "source": "Zuo et al., J. Phys. Chem. A 124, 731-745 (2020)",
+    "doi": "10.1021/acs.jpca.9b08723",
+    "url": "https://doi.org/10.1021/acs.jpca.9b08723"
+  }
+}

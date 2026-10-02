@@ -1,0 +1,136 @@
+{
+  "schema": "ye3t_cost_comparison_tagged_content_schedule_v1",
+  "selection_policy": "complete fixed-channel contents; exact stable-free-moment image",
+  "tag_count_s": 2,
+  "role_bindings": [["edge", 0], ["edge", 1], ["density", 0]],
+  "components": [
+    {
+      "component_index": 1,
+      "tensor_order": 2,
+      "n": [1, 1],
+      "l": [0, 0],
+      "content_pattern": [2],
+      "block_sizes": [2],
+      "block_complete_channel_keys": [
+        {"radial_channel": 0, "l": 0}
+      ]
+    },
+    {
+      "component_index": 2,
+      "tensor_order": 2,
+      "n": [1, 2],
+      "l": [0, 0],
+      "content_pattern": [1, 1],
+      "block_sizes": [1, 1],
+      "block_complete_channel_keys": [
+        {"radial_channel": 0, "l": 0},
+        {"radial_channel": 1, "l": 0}
+      ]
+    },
+    {
+      "component_index": 3,
+      "tensor_order": 3,
+      "n": [1, 1, 1],
+      "l": [0, 0, 0],
+      "content_pattern": [3],
+      "block_sizes": [3],
+      "block_complete_channel_keys": [
+        {"radial_channel": 0, "l": 0}
+      ]
+    },
+    {
+      "component_index": 4,
+      "tensor_order": 3,
+      "n": [1, 1, 2],
+      "l": [2, 2, 2],
+      "content_pattern": [2, 1],
+      "block_sizes": [2, 1],
+      "block_complete_channel_keys": [
+        {"radial_channel": 0, "l": 2},
+        {"radial_channel": 1, "l": 2}
+      ]
+    },
+    {
+      "component_index": 5,
+      "tensor_order": 3,
+      "n": [2, 2, 3],
+      "l": [1, 1, 2],
+      "content_pattern": [2, 1],
+      "block_sizes": [2, 1],
+      "block_complete_channel_keys": [
+        {"radial_channel": 1, "l": 1},
+        {"radial_channel": 2, "l": 2}
+      ]
+    },
+    {
+      "component_index": 6,
+      "tensor_order": 4,
+      "n": [1, 1, 1, 1],
+      "l": [0, 0, 0, 0],
+      "content_pattern": [4],
+      "block_sizes": [4],
+      "block_complete_channel_keys": [
+        {"radial_channel": 0, "l": 0}
+      ]
+    },
+    {
+      "component_index": 7,
+      "tensor_order": 4,
+      "n": [1, 1, 1, 1],
+      "l": [1, 1, 1, 1],
+      "content_pattern": [4],
+      "block_sizes": [4],
+      "block_complete_channel_keys": [
+        {"radial_channel": 0, "l": 1}
+      ]
+    },
+    {
+      "component_index": 8,
+      "tensor_order": 4,
+      "n": [1, 1, 1, 1],
+      "l": [0, 0, 1, 1],
+      "content_pattern": [2, 2],
+      "block_sizes": [2, 2],
+      "block_complete_channel_keys": [
+        {"radial_channel": 0, "l": 0},
+        {"radial_channel": 0, "l": 1}
+      ]
+    },
+    {
+      "component_index": 9,
+      "tensor_order": 4,
+      "n": [1, 1, 1, 1],
+      "l": [0, 0, 2, 2],
+      "content_pattern": [2, 2],
+      "block_sizes": [2, 2],
+      "block_complete_channel_keys": [
+        {"radial_channel": 0, "l": 0},
+        {"radial_channel": 0, "l": 2}
+      ]
+    },
+    {
+      "component_index": 10,
+      "tensor_order": 4,
+      "n": [1, 2, 3, 3],
+      "l": [1, 1, 1, 1],
+      "content_pattern": [2, 1, 1],
+      "block_sizes": [2, 1, 1],
+      "block_complete_channel_keys": [
+        {"radial_channel": 2, "l": 1},
+        {"radial_channel": 0, "l": 1},
+        {"radial_channel": 1, "l": 1}
+      ]
+    },
+    {
+      "component_index": 11,
+      "tensor_order": 6,
+      "n": [1, 1, 1, 1, 1, 1],
+      "l": [0, 0, 0, 0, 0, 0],
+      "content_pattern": [6],
+      "block_sizes": [6],
+      "block_complete_channel_keys": [
+        {"radial_channel": 0, "l": 0}
+      ]
+    }
+  ]
+}

@@ -1,0 +1,149 @@
+{
+  "metadata": {
+    "config_schema": "ye3t_example_config_v1",
+    "name": "ta_tagged_cauchy_image_linear_ladder",
+    "status": "experimental"
+  },
+  "basis": {
+    "type": "tagged_cauchy_image",
+    "species": ["Ta"],
+    "density_normalization": "none",
+    "radial": {
+      "type": "orthogonal_shifted_jacobi_origin_regular_v1",
+      "degrees": [0, 1, 2, 3, 4, 5, 6, 7],
+      "measure": "x^2 dx",
+      "cutoff_A": 4.8,
+      "support_id": "common_normalized_cutoff_support_v1"
+    },
+    "angular": {
+      "l": 1,
+      "kind": "real_tesseral_from_exact_racah_complex_form",
+      "normalization": "compiler_owned"
+    },
+    "descriptor_catalogue": {
+      "tensor_order": 4,
+      "arms": [
+        {"name": "s0_ordinary", "selected_raw_tag_counts": [0]},
+        {"name": "s1_duplicate_control", "selected_raw_tag_counts": [1]},
+        {"name": "s2_nontrivial", "selected_raw_tag_counts": [2]},
+        {"name": "s02_joint", "selected_raw_tag_counts": [0, 2]}
+      ]
+    }
+  },
+  "representation": {
+    "carrier": "tagged_density",
+    "coupling": {
+      "source": "ye3t.couplings",
+      "backend": "linear_tagged_cauchy_image"
+    },
+    "target": {"permutation": "trivial", "L": 0, "parity": "even"}
+  },
+  "runtime": {
+    "backend": "pytorch",
+    "device": "cpu",
+    "dtype": "float64",
+    "execution_mode": "fit_export",
+    "cache": {"mode": "auto", "directory": null, "verify": "hash"},
+    "output_directory": "auto",
+    "lammps_executable": "lmp",
+    "component_timeout_seconds": "auto"
+  },
+  "model": {
+    "type": "linear",
+    "fit_method": "ridge_streaming_gram",
+    "objective": "structure_balanced_train_scaled_E1_F1",
+    "ridge_alphas": [0.0, 1e-12, 1e-10, 1e-8, 1e-6, 1e-4],
+    "ridge_selection_metric": "validation_normalized_E2_F2"
+  },
+  "targets": {
+    "dataset": {
+      "path": "../../data/snap_Ta_JCP_2014.xyz",
+      "sha256": "7007b0adda78fba252554181cfbe89a3918c4bb0bd1fcdd06ce691be9c2f4399"
+    },
+    "energy": "energy",
+    "forces": "forces",
+    "energy_weight": 1.0,
+    "force_weight": 1.0,
+    "reference_potential": {
+      "engine": "lammps_executable",
+      "units": "metal",
+      "atom_style": "atomic",
+      "pair_style": "zbl",
+      "inner_cutoff_A": 4.0,
+      "outer_cutoff_A": 4.8,
+      "atomic_numbers": {"Ta": 73},
+      "timeout_seconds": 600
+    },
+    "structure_weighting": {
+      "group_key": "config_type",
+      "group_weights": {},
+      "default_weight": 1.0,
+      "normalize_mean": true
+    }
+  },
+  "validation": {
+    "split": {
+      "mode": "group_adapted_manifest",
+      "expected_seed": 1701,
+      "manifests_by_size": {
+        "32": {
+          "path": "../ta_lifted_linear_lammps/assets/splits/seed1701_train032.json",
+          "manifest_sha256": "43d9513dff3495658fa5099698d1ed4bbe513157bc6d18652cd9a712b9ecc46d",
+          "index_sha256": "6bca16938cd90fd98e2b957f09d8dbfb30c52e9d90b31f407b2a9f17be0a3f3a",
+          "subset_sha256": "28b1e955a0c607c47d49afea419bd012162ae2261c520aee2f7b9d5ad92c9c06"
+        },
+        "64": {
+          "path": "../ta_lifted_linear_lammps/assets/splits/seed1701_train064.json",
+          "manifest_sha256": "55fc859be51927d2083b546ab5e5e27404892dd75ab6e180c93a90ff480183b7",
+          "index_sha256": "04e47f3058428ced990a0dddd94c9fc2dafeaac93a2568338dded9f685c7acb5",
+          "subset_sha256": "8043f3d4b33950c50fb3ecb8ebec9f3b5f174b16c00bb3873680f1495e0ef0e9"
+        },
+        "128": {
+          "path": "../ta_lifted_linear_lammps/assets/splits/seed1701_train128.json",
+          "manifest_sha256": "19c7a1b29a93fcc7bd60b5788ab07f657294737a2b108d84b9a27758c02aff1b",
+          "index_sha256": "67610314186bcd3f9333433c39b7013f31bc6d87fb9df15aa7a1d9112e307067",
+          "subset_sha256": "e1d3d22d25d383f6a7d66b01c8579c08426a665782d037a350a6a9c30eecc260"
+        },
+        "192": {
+          "path": "../ta_lifted_linear_lammps/assets/splits/seed1701_train192.json",
+          "manifest_sha256": "6fb7c2e7040932b180593640e1f0568770b5aa69e5bcf89321a58ac5fd0d6463",
+          "index_sha256": "5a9bd380ab73212df34bbd23a2fe262ae273aee7e4d36ac15e87bbf28340f5b9",
+          "subset_sha256": "c471d3b1e00a88e403e1e1bf9ccb549196d5c8f8fc3161ad92416f9a4a50e534"
+        },
+        "291": {
+          "path": "../ta_lifted_linear_lammps/assets/splits/seed1701_train291.json",
+          "manifest_sha256": "08d563842e1b0343fd806207b115b367db37ea33bf6dc2ea5f4f19a5d5278aa1",
+          "index_sha256": "9ffdada30f9500869562132f4e912945ed97942fd6776fbf3b5b24e86c10e926",
+          "subset_sha256": "6f161bf653df9cf3192c1db8c7351e3c604b5e196871029a4c57b3cc9dfb91e9"
+        }
+      },
+      "train_partition": "train",
+      "validation_partition": "validation",
+      "expected_validation_size": 36,
+      "historical_test_partition": "test",
+      "expected_historical_test_size": 36
+    },
+    "selection_scales": {
+      "energy_eV_per_atom": 0.01,
+      "force_eV_per_A": 0.1
+    },
+    "checks": [
+      "exact_selected_physical_image",
+      "target_free_geometry_cache",
+      "zbl_residual_target_binding",
+      "bundle_round_trip",
+      "lammps_cpu_mpi_parity_before_promotion"
+    ]
+  },
+  "extensions": {
+    "scope": {
+      "claim": "bounded_N4_homogeneous_l1_learning_ladder",
+      "not_yet_claimed": [
+        "general_tensor_order_tagged_basis",
+        "publication_accuracy_advantage",
+        "molecular_dynamics_stability",
+        "kokkos_performance"
+      ]
+    }
+  }
+}

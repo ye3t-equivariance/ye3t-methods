@@ -1,0 +1,28 @@
+{
+  "schema": "ye3t_mlearn_system_v1",
+  "system": "Ge",
+  "species": ["Ge"],
+  "atomic_numbers": [32],
+  "atomic_masses": [72.63],
+  "crystal": "diamond",
+  "initial_lattice_constant_A": 5.763,
+  "cutoff_candidates_A": [4.6, 5.0, 5.3],
+  "selected_cutoff_A": null,
+  "dataset_subdirectory": "Ge",
+  "stability_temperature_reference": {
+    "melting_temperature_K": 1211.4,
+    "nve_fraction_of_melting": 0.8,
+    "source": "Particle Data Group atomic and nuclear properties table",
+    "url": "https://pdg.lbl.gov/2014/AtomicNuclearProperties/HTML/germanium_Ge.html"
+  },
+  "property_reference": {
+    "lattice_constant_A": 5.763,
+    "C11_GPa": 116.0,
+    "C12_GPa": 48.0,
+    "C44_GPa": 58.0,
+    "bulk_modulus_GPa": 71.0,
+    "source": "Zuo et al., J. Phys. Chem. A 124, 731-745 (2020)",
+    "doi": "10.1021/acs.jpca.9b08723",
+    "url": "https://doi.org/10.1021/acs.jpca.9b08723"
+  }
+}

@@ -1,0 +1,36 @@
+[build-system]
+requires = ["setuptools>=77,<82"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "ye3t-methods"
+version = "0.1.0"
+description = "Linear atomistic methods built on the YE3T representation compiler"
+readme = "README.md"
+requires-python = ">=3.11"
+license = "BSD-3-Clause"
+license-files = ["LICENSE"]
+authors = [{name = "YE3T contributors"}]
+dependencies = ["ye3t>=0.1.0", "numpy", "torch", "PyYAML", "ase", "sympy"]
+
+[project.optional-dependencies]
+fit = ["scikit-learn"]
+neighbors = ["matscipy"]
+examples = ["psutil", "matplotlib"]
+dev = ["pytest", "build", "wheel", "sympy"]
+
+[tool.setuptools.packages.find]
+where = ["."]
+include = ["ye3t_methods*", "ye3t_ace*"]
+
+[tool.setuptools.package-data]
+ye3t_ace = ["py.typed"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+addopts = "-q"
+markers = [
+    "fast: stable CPU release checks",
+    "gpu: requires CUDA hardware and the native extension",
+    "deployment: requires a compatible LAMMPS consumer",
+]

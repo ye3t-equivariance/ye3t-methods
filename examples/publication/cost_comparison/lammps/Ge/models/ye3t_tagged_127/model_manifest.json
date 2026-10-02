@@ -1,0 +1,355 @@
+{
+  "artifacts": [
+    {
+      "bytes": 11826,
+      "path": "model.ye3t.json",
+      "sha256": "d583b092ecea72a1e0503f0c2692766ecccdb64a355a1cac93048b41f5683ac0"
+    },
+    {
+      "bytes": 32052,
+      "path": "ordinary_backbone.yace",
+      "sha256": "be65d9ebc3afb1bfe5f5564cd3e1a560901b451c3f90f19c58956350c3ced066"
+    },
+    {
+      "bytes": 1835863,
+      "path": "tagged_correction.ye3t.json",
+      "sha256": "a25d0b01f2779fab654da5b6fbf2493c9a09b4f585ecba2a1638cdbdf1057bc5"
+    }
+  ],
+  "model": {
+    "family": "tagged_ye3t",
+    "feature_count": 127,
+    "feature_indices": [
+      0,
+      1,
+      2,
+      3,
+      4,
+      5,
+      6,
+      7,
+      8,
+      9,
+      10,
+      11,
+      12,
+      13,
+      14,
+      15,
+      16,
+      17,
+      18,
+      19,
+      20,
+      21,
+      22,
+      23,
+      24,
+      25,
+      26,
+      27,
+      28,
+      29,
+      30,
+      31,
+      32,
+      33,
+      34,
+      35,
+      36,
+      37,
+      38,
+      39,
+      40,
+      41,
+      42,
+      43,
+      44,
+      45,
+      46,
+      47,
+      48,
+      49,
+      50,
+      51,
+      52,
+      53,
+      54,
+      55,
+      56,
+      57,
+      58,
+      149,
+      150,
+      151,
+      152,
+      153,
+      154,
+      155,
+      156,
+      157,
+      158,
+      159,
+      160,
+      161,
+      162,
+      163,
+      164,
+      165,
+      166,
+      167,
+      168,
+      169,
+      170,
+      171,
+      172,
+      173,
+      174,
+      175,
+      176,
+      177,
+      178,
+      179,
+      180,
+      181,
+      182,
+      183,
+      184,
+      186,
+      187,
+      188,
+      189,
+      190,
+      191,
+      192,
+      193,
+      194,
+      195,
+      196,
+      197,
+      198,
+      199,
+      200,
+      201,
+      202,
+      203,
+      204,
+      205,
+      206,
+      207,
+      208,
+      209,
+      210,
+      211,
+      212,
+      213,
+      214,
+      215,
+      216,
+      217
+    ],
+    "inactive_tagged_indices": [
+      36
+    ],
+    "name": "ye3t_tagged_127",
+    "ordinary_feature_count": 59,
+    "requested_feature_count": 127,
+    "tagged_components": [
+      1,
+      2,
+      3,
+      4,
+      5,
+      6,
+      7,
+      8,
+      9,
+      10,
+      11
+    ],
+    "tagged_feature_count": 68
+  },
+  "model_id": "ye3t_tagged_127",
+  "radial": {
+    "candidate": 2,
+    "cutoff_A": 5.076161693688304,
+    "cutoff_width_A": 0.01,
+    "metrics": {
+      "ace_127": {
+        "energy_rmse_mean_eV_per_atom": 0.005402130158552514,
+        "energy_rmse_std_eV_per_atom": 0.0008694643342571948,
+        "fit_json": "radial_screen/force_candidate_02/optimization/ace_127.json",
+        "fit_npz": "radial_screen/force_candidate_02/optimization/ace_127.npz",
+        "fold_metrics": [
+          {
+            "energy_rmse_eV_per_atom": 0.005614331013521756,
+            "energy_sse": 0.0004097692654820989,
+            "energy_sse_roundoff_bound": 1.3242955964726195e-08,
+            "force_rmse_eV_per_A": 0.1301527756320697,
+            "force_sse": 39.43572637101581,
+            "force_sse_roundoff_bound": 6.714138258007118e-08
+          },
+          {
+            "energy_rmse_eV_per_atom": 0.004681461632966501,
+            "energy_sse": 0.0002849090792721859,
+            "energy_sse_roundoff_bound": 1.3420798028656407e-08,
+            "force_rmse_eV_per_A": 0.13918646948137914,
+            "force_sse": 46.49489588805813,
+            "force_sse_roundoff_bound": 7.468110224428282e-08
+          },
+          {
+            "energy_rmse_eV_per_atom": 0.006322795126978021,
+            "energy_sse": 0.0004797328586128441,
+            "energy_sse_roundoff_bound": 1.2330538780238802e-08,
+            "force_rmse_eV_per_A": 0.1250306061342556,
+            "force_sse": 33.95412116549019,
+            "force_sse_roundoff_bound": 6.272093112717581e-08
+          },
+          {
+            "energy_rmse_eV_per_atom": 0.00606978871199754,
+            "energy_sse": 0.0003684233500829276,
+            "energy_sse_roundoff_bound": 9.995420766104039e-09,
+            "force_rmse_eV_per_A": 0.13188677183176634,
+            "force_sse": 33.2401644364146,
+            "force_sse_roundoff_bound": 6.946428919837714e-08
+          },
+          {
+            "energy_rmse_eV_per_atom": 0.004322274307298752,
+            "energy_sse": 0.0001681384966878141,
+            "energy_sse_roundoff_bound": 8.93329316241871e-09,
+            "force_rmse_eV_per_A": 0.11775754390116748,
+            "force_sse": 23.83709649134723,
+            "force_sse_roundoff_bound": 4.2459185937437944e-08
+          }
+        ],
+        "force_rmse_mean_eV_per_A": 0.12880283339612764,
+        "force_rmse_std_eV_per_A": 0.007990322853439886,
+        "ga_generations": 4,
+        "objective": 1.9620024581590265,
+        "selected_hyperparameters": {
+          "alpha": 1e-10,
+          "energy_weight": 11.949027115402204,
+          "force_weight": 1.0,
+          "generation": 2,
+          "group_weights": {
+            "AIMD-NVT": 1.0658091990785097,
+            "Elastic": 1.5098468128691096,
+            "Surface": 0.5273258564317576,
+            "Vacancy": 1.1784430038011624
+          },
+          "stage": "ga",
+          "tagged_penalty": 1.0
+        },
+        "status": "passed",
+        "stop_reason": null,
+        "trial_count": 144
+      },
+      "ye3t_tagged_127": {
+        "energy_rmse_mean_eV_per_atom": 0.005197784959253821,
+        "energy_rmse_std_eV_per_atom": 0.0008892933573857837,
+        "fit_json": "radial_screen/force_candidate_02/optimization/ye3t_tagged_127.json",
+        "fit_npz": "radial_screen/force_candidate_02/optimization/ye3t_tagged_127.npz",
+        "fold_metrics": [
+          {
+            "energy_rmse_eV_per_atom": 0.005672408377913239,
+            "energy_sse": 0.00041829081847566396,
+            "energy_sse_roundoff_bound": 1.3240477416111627e-08,
+            "force_rmse_eV_per_A": 0.10917576544411399,
+            "force_sse": 27.74824158599748,
+            "force_sse_roundoff_bound": 6.79195585356858e-08
+          },
+          {
+            "energy_rmse_eV_per_atom": 0.0062911222349958966,
+            "energy_sse": 0.000514516846683577,
+            "energy_sse_roundoff_bound": 1.3425906386641982e-08,
+            "force_rmse_eV_per_A": 0.11285257780530991,
+            "force_sse": 30.56569036152846,
+            "force_sse_roundoff_bound": 7.405758431412765e-08
+          },
+          {
+            "energy_rmse_eV_per_atom": 0.005212054567338816,
+            "energy_sse": 0.00032598615375500906,
+            "energy_sse_roundoff_bound": 1.2329442179429273e-08,
+            "force_rmse_eV_per_A": 0.10229406051994985,
+            "force_sse": 22.727970503955707,
+            "force_sse_roundoff_bound": 6.308026467732154e-08
+          },
+          {
+            "energy_rmse_eV_per_atom": 0.004902041853612021,
+            "energy_sse": 0.00024030014334563976,
+            "energy_sse_roundoff_bound": 9.996589342258257e-09,
+            "force_rmse_eV_per_A": 0.09958810897323248,
+            "force_sse": 18.95289945877992,
+            "force_sse_roundoff_bound": 7.025544753811817e-08
+          },
+          {
+            "energy_rmse_eV_per_atom": 0.0039112977624091326,
+            "energy_sse": 0.00013768425167604015,
+            "energy_sse_roundoff_bound": 8.931619511056125e-09,
+            "force_rmse_eV_per_A": 0.10036435373296344,
+            "force_sse": 17.31549301690468,
+            "force_sse_roundoff_bound": 4.2884807616607935e-08
+          }
+        ],
+        "force_rmse_mean_eV_per_A": 0.10485497329511392,
+        "force_rmse_std_eV_per_A": 0.005854372741281568,
+        "ga_generations": 5,
+        "objective": 1.3786948631177907,
+        "selected_hyperparameters": {
+          "alpha": 1e-10,
+          "energy_weight": 6.632820425448016,
+          "force_weight": 1.0,
+          "generation": 3,
+          "group_weights": {
+            "AIMD-NVT": 1.0059203118866946,
+            "Elastic": 1.4392726127012818,
+            "Surface": 0.7792693061653722,
+            "Vacancy": 0.8863511046103965
+          },
+          "stage": "ga",
+          "tagged_penalty": 0.23831262263357567
+        },
+        "status": "passed",
+        "stop_reason": null,
+        "trial_count": 168
+      }
+    },
+    "normalized_metric_ratios": {
+      "ace_127.energy_rmse_mean_eV_per_atom": 1.0,
+      "ace_127.force_rmse_mean_eV_per_A": 1.0,
+      "ye3t_tagged_127.energy_rmse_mean_eV_per_atom": 1.0515539746778253,
+      "ye3t_tagged_127.force_rmse_mean_eV_per_A": 1.000455356212527
+    },
+    "paired_normalized_score": 1.013002332722588,
+    "radial_lambda": 0.9562495537620892
+  },
+  "reference_potential": {
+    "atom_style": "atomic",
+    "atomic_numbers": {
+      "Ge": 32
+    },
+    "engine": "lammps_executable",
+    "executable": "lmp",
+    "inner_cutoff_A": 1.4510643826302052,
+    "outer_cutoff_A": 1.8656542062388353,
+    "pair_coeff": [
+      "1 1 zbl 32 32"
+    ],
+    "pair_style": "zbl",
+    "schema": "ye3t_lammps_reference_potential_v2",
+    "semantic_sha256": "a12c72911b8379ed1ef624c39cb87e0f8fc7efb9e812043c84a1523a74e66e78",
+    "standalone_pair_coeff": [
+      "1 1 32 32"
+    ],
+    "target_operation": "ab_initio_minus_reference",
+    "timeout_seconds": 900,
+    "type_order": [
+      "Ge"
+    ],
+    "units": "metal"
+  },
+  "schema": "ye3t_cost_comparison_promoted_model_v4",
+  "source_fit": "finalist/fits/ye3t_tagged_127.npz",
+  "source_fit_sha256": "adf78c60ba272cf2908a20a318dd2c71c6c38f8cfc5cef7e157eee4e5b7a5115",
+  "system": "Ge"
+}

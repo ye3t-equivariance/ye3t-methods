@@ -1,0 +1,50 @@
+{
+  "models": [
+    {
+      "descriptor_count": 127,
+      "family": "ace",
+      "id": "ace_127",
+      "label": "ace_127",
+      "model_directory": "models/ace_127",
+      "ordinary_descriptor_count": 127,
+      "pair_coefficients": [
+        "pair_coeff * * pace models/ace_127/potential.yace Ni",
+        "pair_coeff * * zbl 28 28"
+      ],
+      "pair_style": "pair_style hybrid/overlay pace product zbl 1.2596748174007975 1.6195819080867397",
+      "tagged_descriptor_count": 0
+    },
+    {
+      "descriptor_count": 127,
+      "family": "tagged_ye3t",
+      "id": "ye3t_tagged_127",
+      "label": "ye3t_tagged_127",
+      "model_directory": "models/ye3t_tagged_127",
+      "ordinary_descriptor_count": 59,
+      "pair_coefficients": [
+        "pair_coeff * * ye3t models/ye3t_tagged_127/model.ye3t.json Ni",
+        "pair_coeff * * zbl 28 28"
+      ],
+      "pair_style": "pair_style hybrid/overlay ye3t model_family tagged_cauchy block_policy direct zbl 1.2596748174007975 1.6195819080867397",
+      "runtime_dependency": "pair_style_ye3t_plus_zbl",
+      "tagged_descriptor_count": 68
+    },
+    {
+      "descriptor_count": 196,
+      "family": "tagged_ye3t_augmented",
+      "id": "ye3t_augmented_196",
+      "label": "ye3t_augmented_196",
+      "model_directory": "models/ye3t_augmented_196",
+      "ordinary_descriptor_count": 128,
+      "pair_coefficients": [
+        "pair_coeff * * ye3t models/ye3t_augmented_196/model.ye3t.json Ni",
+        "pair_coeff * * zbl 28 28"
+      ],
+      "pair_style": "pair_style hybrid/overlay ye3t model_family tagged_cauchy block_policy direct zbl 1.2596748174007975 1.6195819080867397",
+      "runtime_dependency": "pair_style_ye3t_plus_zbl",
+      "tagged_descriptor_count": 68
+    }
+  ],
+  "schema": "ye3t_lammps_linear_model_matrix_self_contained_v1",
+  "system": "Ni"
+}

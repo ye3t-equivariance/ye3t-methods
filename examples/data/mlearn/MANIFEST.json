@@ -1,0 +1,32 @@
+{
+  "Cu": {
+    "frame_count": 293,
+    "path": "cu_all.xyz",
+    "sha256": "a907867f18f2509fb7f0120d1ae9db2bbc69998bdc0c254e4d483b344f165125"
+  },
+  "Ge": {
+    "frame_count": 253,
+    "path": "ge_all.xyz",
+    "sha256": "45776df12c188e7db19566a1cde86b4c8b6d506c20c111e4625da10c7adec27d"
+  },
+  "Li": {
+    "frame_count": 270,
+    "path": "li_all.xyz",
+    "sha256": "e0abad08002cbbcdf3f9cc26e913d65c1e4b754fbce4b527243b7e8d48cee2af"
+  },
+  "Mo": {
+    "frame_count": 217,
+    "path": "mo_all.xyz",
+    "sha256": "4aeaf552e079454dd606d2ee0805b46b503dd71e86e9bd618358da04969732c5"
+  },
+  "Ni": {
+    "frame_count": 294,
+    "path": "ni_all.xyz",
+    "sha256": "f713984c2dc1b1988ed71d7dabb5d8f77d7d611b4a96deb4da3d61443e92f93f"
+  },
+  "Si": {
+    "frame_count": 239,
+    "path": "si_all.xyz",
+    "sha256": "a898d2db16f757e7ae6ffffae36a4b4b767413ffca4602f4f60dd3ffb76efcfb"
+  }
+}

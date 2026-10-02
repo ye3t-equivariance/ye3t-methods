@@ -1,0 +1,28 @@
+{
+  "schema": "ye3t_mlearn_system_v1",
+  "system": "Mo",
+  "species": ["Mo"],
+  "atomic_numbers": [42],
+  "atomic_masses": [95.95],
+  "crystal": "bcc",
+  "initial_lattice_constant_A": 3.168,
+  "cutoff_candidates_A": [4.6, 5.0, 5.3],
+  "selected_cutoff_A": null,
+  "dataset_subdirectory": "Mo",
+  "stability_temperature_reference": {
+    "melting_temperature_K": 2896.0,
+    "nve_fraction_of_melting": 0.8,
+    "source": "NIST-JANAF Thermochemical Tables, Fourth Edition",
+    "url": "https://janaf.nist.gov/pdf/JANAF-FourthEd-1998-Molybdenum.pdf"
+  },
+  "property_reference": {
+    "lattice_constant_A": 3.168,
+    "C11_GPa": 472.0,
+    "C12_GPa": 158.0,
+    "C44_GPa": 106.0,
+    "bulk_modulus_GPa": 263.0,
+    "source": "Zuo et al., J. Phys. Chem. A 124, 731-745 (2020)",
+    "doi": "10.1021/acs.jpca.9b08723",
+    "url": "https://doi.org/10.1021/acs.jpca.9b08723"
+  }
+}

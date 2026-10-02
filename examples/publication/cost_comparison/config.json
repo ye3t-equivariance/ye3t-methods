@@ -1,0 +1,172 @@
+{
+  "metadata": {
+    "config_schema": "ye3t_example_config_v1",
+    "name": "mlearn_linear_ye3t_cost_comparison",
+    "status": "experimental_publication_workflow"
+  },
+  "basis": {
+    "type": "ordinary_tagged_and_lifted_linear",
+    "tensor_orders": [1, 2, 3, 4, 6, 8],
+    "nmax_by_tensor_order": {
+      "1": 4,
+      "2": 3,
+      "3": 3,
+      "4": 3,
+      "6": 2,
+      "8": 2
+    },
+    "lmax_by_tensor_order": {
+      "1": 0,
+      "2": 4,
+      "3": 4,
+      "4": 3,
+      "6": 3,
+      "8": 3
+    },
+    "channel_multiplicity_partitions_by_order": {
+      "1": [[1]],
+      "2": [[2], [1, 1]],
+      "3": [[3], [2, 1]],
+      "4": [[4], [3, 1], [2, 2], [2, 1, 1]],
+      "6": [[6], [5, 1], [4, 2], [3, 3]],
+      "8": [[8], [7, 1], [6, 2], [4, 4]]
+    },
+    "target_descriptor_counts": [60, 70, 120, 127, 150],
+    "compiler": {
+      "coefficient_materialization": "exact",
+      "constructor_backend": "python",
+      "coordinate_contract": "pace_compatible_exact",
+      "maximum_exact_symbolic_bytes": 268435456
+    },
+    "content_selection": {
+      "prefer_repeated_channels": true,
+      "preserve_complete_fixed_content_multiplicities": true,
+      "tie_break": "lower_tensor_order_then_lexicographic_content"
+    },
+    "radial": {
+      "ordinary_type": "PACE_ChebExpCos",
+      "pace_lambda": 0.5,
+      "pace_cutoff_width_A": 0.01,
+      "matched_control_cutoff_A": 5.0,
+      "lifted_source_policy": "orthogonalized_matched_parent_source",
+      "cutoff_policy": "training_only_latin_hypercube",
+      "optimization": {
+        "candidate_count": 8,
+        "candidate_seed": 5521,
+        "cutoff_A_bounds": [4.6, 5.3],
+        "pace_lambda_bounds": [0.25, 1.0],
+        "representative_training_fraction": 0.25,
+        "near_best_relative_tolerance": 0.01
+      }
+    },
+    "angular": {
+      "ordinary_kind": "complex",
+      "ordinary_normalization": "pace_y00_one"
+    },
+    "tagged": {
+      "tag_counts_s": [2],
+      "component_schedule": "tagged_components.json",
+      "self_interaction_policy": "density_projected_publication_scope",
+      "intermediate_kappa_policy": "all_valid",
+      "intermediate_Lambda_policy": "all_valid",
+      "coordinate_policy": "exact_independent_physical_image"
+    }
+  },
+  "representation": {
+    "ordinary_global_young_sector": "(N)",
+    "tagged_coupling_source": "ye3t.couplings",
+    "target": {
+      "L": 0,
+      "parity": "even",
+      "permutation": "globally_trivial"
+    }
+  },
+  "runtime": {
+    "backend": "pytorch",
+    "device": "cpu",
+    "dtype": "float64",
+    "cache": "auto",
+    "feature_chunk_size": "auto",
+    "workflow_root": "../../../../ye3t-workflows/MLIP/mlearn_linear_cost_comparison",
+    "coupling_cache_root": "../../../../ye3t-workflows/MLIP/mlearn_linear_cost_comparison/cache/couplings",
+    "one_heavy_process": true
+  },
+  "model": {
+    "type": "linear",
+    "fit_method": "ridge_streaming_gram",
+    "hyperparameter_search": {
+      "lhs_candidates": 48,
+      "maximum_ga_generations": 8,
+      "ga_population": 24,
+      "ga_elite": 12,
+      "ga_stale_generations": 2,
+      "log10_ridge_alpha_bounds": [-10.0, -2.0],
+      "log10_energy_weight_bounds": [-1.5, 1.5],
+      "log10_tagged_relative_penalty_bounds": [-1.5, 1.5],
+      "log10_group_weight_half_width": 0.75
+    },
+    "selection_metric": "validation_structure_balanced_normalized_E1_F1",
+    "feature_activity_screen": {
+      "policy": "training_only_standard_deviation",
+      "absolute_standard_deviation_floor": 1e-14,
+      "relative_to_maximum_standard_deviation": 1e-12
+    },
+    "energy_weight": 1.0,
+    "force_weight": 1.0,
+    "fit_stress": false,
+    "svd_rcond": 1e-12,
+    "arms": [
+      "pace_small",
+      "pace_count_matched",
+      "tagged_count_matched",
+      "tagged_full",
+      "lifted_count_matched_source_matched"
+    ]
+  },
+  "targets": {
+    "dataset_family": "mlearn",
+    "energy_key": "energy",
+    "force_key": "forces",
+    "group_key": "config_type",
+    "reference_potential": {
+      "type": "lammps_zbl_training_residual",
+      "parameters": {
+        "inner_outer_ratios_to_minimum_training_distance": [
+          [0.7, 0.9],
+          [0.8, 1.05],
+          [0.9, 1.2]
+        ],
+        "deployment": "pair_style hybrid/overlay",
+        "selection": "paired_ace_tagged_training_fold_objective"
+      }
+    }
+  },
+  "validation": {
+    "outer_split": "published_train_test",
+    "inner_split": "five_group_stratified_folds_inside_published_training",
+    "inner_fold_count": 5,
+    "inner_seed": 1701,
+    "checks": [
+      "bundle_round_trip",
+      "lammps_energy_force_virial_parity",
+      "lammps_force_finite_difference",
+      "lammps_virial_finite_difference",
+      "mpi_1_vs_4",
+      "equation_of_state",
+      "cubic_elastic_response",
+      "born_stability",
+      "nve_10000_steps"
+    ],
+    "nve_steps": 10000,
+    "trajectory_stride": 100
+  },
+  "extensions": {
+    "publication": {
+      "retain_failed_arms": true,
+      "render_pdf": true,
+      "render_png_dpi": 300,
+      "write_plot_source_data": true,
+      "timing_requires_uncontended_host": true
+    }
+  }
+}

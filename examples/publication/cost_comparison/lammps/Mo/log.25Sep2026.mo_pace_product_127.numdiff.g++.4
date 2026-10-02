@@ -1,0 +1,92 @@
+LAMMPS (22 Jul 2025 - Update 4)
+OMP_NUM_THREADS environment is not set. Defaulting to 1 thread.
+  using 1 OpenMP thread(s) per MPI task
+# Numerical differentiation for ace_127
+variable force_delta index 0.0001
+variable virial_delta index 3.0000000000000001e-05
+units metal
+atom_style atomic
+boundary p p p
+atom_modify map yes sort 0 0.0
+newton on
+lattice bcc 3.1680000000000001
+Lattice spacing in x,y,z = 3.168 3.168 3.168
+region cell block 0 2 0 2 0 2 units lattice
+create_box 1 cell
+Created orthogonal box = (0 0 0) to (6.336 6.336 6.336)
+  1 by 2 by 2 MPI processor grid
+create_atoms 1 box
+Created 16 atoms
+  using lattice units in orthogonal box = (0 0 0) to (6.336 6.336 6.336)
+  create_atoms CPU = 0.000 seconds
+mass 1 95.950000000000003
+reset_atoms id sort yes
+Resetting atom IDs ...
+WARNING: Communication cutoff is 0.0. No ghost atoms will be generated. Energies and forces may be wrong and atoms may get lost. (src/comm_brick.cpp:212)
+group displaced id 1
+1 atoms in group displaced
+displace_atoms displaced move 0.08 -0.05 0.04 units box
+Displacing atoms ...
+neighbor 0.3 bin
+neigh_modify every 1 delay 0 check no
+pair_style hybrid/overlay pace product zbl 1.318026516090159 1.6946055206873472
+ACE version: 2025.12.4p1
+Product evaluator is used
+pair_coeff * * pace models/ace_127/potential.yace Mo
+Loading models/ace_127/potential.yace
+Total number of basis functions
+	Mo: 4 (r=1) 123 (r>1)
+Mapping LAMMPS atom type #1(Mo) -> ACE species type #0
+pair_coeff * * zbl 42 42
+group probe id 1
+1 atoms in group probe
+fix numerical_force probe numdiff 1 ${force_delta}
+fix numerical_force probe numdiff 1 0.0001
+compute analytic_pressure all pressure NULL pair
+fix numerical_virial all numdiff/virial 1 ${virial_delta}
+fix numerical_virial all numdiff/virial 1 3.0000000000000001e-05
+variable dfx atom f_numerical_force[1]-fx
+variable dfy atom f_numerical_force[2]-fy
+variable dfz atom f_numerical_force[3]-fz
+variable dfmag atom sqrt(v_dfx*v_dfx+v_dfy*v_dfy+v_dfz*v_dfz)
+compute force_error probe reduce max v_dfmag
+variable dv1 equal f_numerical_virial[1]-c_analytic_pressure[1]
+variable dv2 equal f_numerical_virial[2]-c_analytic_pressure[2]
+variable dv3 equal f_numerical_virial[3]-c_analytic_pressure[3]
+variable dv4 equal f_numerical_virial[4]-c_analytic_pressure[6]
+variable dv5 equal f_numerical_virial[5]-c_analytic_pressure[5]
+variable dv6 equal f_numerical_virial[6]-c_analytic_pressure[4]
+variable virial_error equal sqrt(v_dv1*v_dv1+v_dv2*v_dv2+v_dv3*v_dv3+v_dv4*v_dv4+v_dv5*v_dv5+v_dv6*v_dv6)
+thermo 1
+thermo_style custom step pe c_force_error v_virial_error
+thermo_modify format float %.17g
+run 0 post no
+WARNING: No fixes with time integration, atoms won't move
+For more information see https://docs.lammps.org/err0028 (src/verlet.cpp:60)
+Neighbor list info ...
+  update: every = 1 steps, delay = 0 steps, check = no
+  max neighbors/atom: 2000, page size: 100000
+  master list distance cutoff = 4.9380492
+  ghost atom cutoff = 4.9380492
+  binsize = 2.4690246, bins = 3 3 3
+  2 neighbor lists, perpetual/occasional/extra = 2 0 0
+  (1) pair pace, perpetual
+      attributes: full, newton on, cut 4.938049165633363
+      pair build: full/bin/atomonly
+      stencil: full/bin/3d
+      bin: standard
+  (2) pair zbl, perpetual, half/full from (1)
+      attributes: half, newton on
+      pair build: halffull/newton
+      stencil: none
+      bin: none
+Per MPI rank memory allocation (min/avg/max) = 4.96 | 4.96 | 4.96 Mbytes
+   Step         PotEng     c_force_error  v_virial_error
+         0  -173.57358187140085 5.4569314601404098e-09 0.0067856129689650123
+Loop time of 1.0955e-06 on 4 procs for 0 steps with 16 atoms
+
+print "YE3T_NUMDIFF_FORCE_MAX_ABS=$(c_force_error:%.17g)"
+YE3T_NUMDIFF_FORCE_MAX_ABS=5.4569314601404098e-09
+print "YE3T_NUMDIFF_VIRIAL_L2=$(v_virial_error:%.17g)"
+YE3T_NUMDIFF_VIRIAL_L2=0.0067856129689650097
+Total wall time: 0:00:00

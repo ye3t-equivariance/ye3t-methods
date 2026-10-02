@@ -1,0 +1,82 @@
+{
+  "canonical_encoding": "ye3t_sorted_json_indent2_lf_v1",
+  "capabilities": {
+    "required": [
+      "block_symmetric_power_adjoint_v1",
+      "block_symmetric_power_forward_v1",
+      "energy_v1",
+      "evaluator_candidate_vector_v1",
+      "explicit_ctilde_forward_adjoint_v1",
+      "force_v1",
+      "linear_readout_v1",
+      "ordinary_density_v1",
+      "pace_cheb_exp_cos_uniform_cubic_hermite_v1",
+      "pace_complex_magnetic_y00_1",
+      "pace_linear_embedding_v1",
+      "symmetric_power_adjoint_v1",
+      "symmetric_power_forward_v1",
+      "virial_v1",
+      "yace_candidate_readout_v1",
+      "ye3t_execution_plan_v2"
+    ]
+  },
+  "compiler": {
+    "api": "ye3t.couplings.execution_plan_from_repeated_angular_blocks",
+    "coefficient_hash": "41d7c449c9f94fc805bf08ae9f9fda3a0db4c370f7378fe4c44f10e140e30651",
+    "convention_id": "o3:complex_condon_shortley_young_orthogonal_v1",
+    "execution_plan_schema": "ye3t_execution_plan_v2",
+    "plan_hash": "7cb26ebef802adced9182bab02c4aa101606f38c74195c1f6f3ecbb3a08691e7",
+    "ye3t": {
+      "version": "0.1.0"
+    },
+    "ye3t_ace": {
+      "version": "0.1.0"
+    }
+  },
+  "conventions": {
+    "analysis_orientation": "conjugate_transpose",
+    "angular_source_basis": "pace_complex_magnetic_y00_1",
+    "angular_transform": {
+      "kind": "none",
+      "payload": null
+    },
+    "atomic_base_normalization": "none",
+    "byte_order": "little",
+    "factor_normalization": "none",
+    "linear_feature_transform": {
+      "kind": "none",
+      "payload": null
+    },
+    "radial_basis": "pace_cheb_exp_cos_uniform_cubic_hermite_v1",
+    "scalar_type": "float64"
+  },
+  "dispatch": {
+    "fallback_policy": "forbid_unlisted",
+    "requested_route": "ye3t_evaluator_candidate_vector_v1"
+  },
+  "inputs": {
+    "per_atom": []
+  },
+  "payloads": {
+    "execution_plan": {
+      "path": "execution_plan.json",
+      "schema": "ye3t_execution_plan_v2",
+      "sha256": "0b1b9b3ff84bcf3c12955b20c3b95c18a58672eb29f4ebee40ff4976157d040e"
+    },
+    "yace_function_map": {
+      "path": "yace_function_map.json",
+      "schema": "ye3t_yace_function_map_v3",
+      "sha256": "01029a0f8b451a976ede0ed17516c26bfb0fdb0229cfb2b6356833d42d156381"
+    }
+  },
+  "schema": "ye3t_lammps_sidecar_v3",
+  "semantic_ledger": "task55_semantic_ledger_v1",
+  "source_yace": {
+    "compatibility_profile": "lammps_pace_linear_v1",
+    "lammps_units": "metal",
+    "ordered_elements": [
+      "Cu"
+    ],
+    "sha256": "3f23ee94260ee0d649cb80c648a4db15ca03f1ccb375e87818285803884f218b"
+  }
+}

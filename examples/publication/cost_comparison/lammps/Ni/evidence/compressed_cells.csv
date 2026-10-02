@@ -1,0 +1,4 @@
+system,model,lattice_scale,energy_eV_per_atom,pressure_bar,finite,compression_positive
+Ni,ace_127,0.75,8896.06651176224,33441212275.925022,True,True
+Ni,ye3t_tagged_127,0.75,-4335.63671579188,-17390805517.023407,True,False
+Ni,ye3t_augmented_196,0.75,-875.208862650748,-2642272934.275517,True,False

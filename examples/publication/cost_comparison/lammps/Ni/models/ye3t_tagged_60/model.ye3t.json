@@ -1,0 +1,526 @@
+{
+  "metadata": {
+    "feature_count": 60,
+    "fit_is_joint": true,
+    "model": "ye3t_tagged_60",
+    "ordinary_feature_count": 15,
+    "pair_style_dependency": "ye3t_only",
+    "schema": "ye3t_mlearn_cost_comparison_finalist_v1",
+    "system": "Ni",
+    "tagged_feature_count": 45
+  },
+  "ordinary_component": {
+    "path": "ordinary_backbone.yace",
+    "sha256": "67e15c442d592a56ea5e51a79019c8cf89c2dca0da2d97a64f2c3de99aa3f9f1"
+  },
+  "schema": "ye3t_tagged_cauchy_composite_v1",
+  "sector_inventory": {
+    "catalogue_manifest_sha256": "17f624408b6976211a2ec0a4a7daad681e421ee04c9d485e4f38ca161ebbf7e6",
+    "components": [
+      {
+        "block_sizes": [
+          2
+        ],
+        "compiler_artifact_sha256": "064129a7e12faa236dc275f5d5113a9dd34bc6141ffeed912e90482e400ea825",
+        "compiler_descriptor_sector_counts": [
+          {
+            "count": 6,
+            "sector": {
+              "block_Lambdas": [
+                0
+              ],
+              "block_kappas": [
+                [
+                  2
+                ]
+              ]
+            }
+          }
+        ],
+        "component_index": 1,
+        "independent_physical_image_coordinate_count": 1,
+        "joint_nontrivial_permutation_rotation_label_count": 0,
+        "l": [
+          0,
+          0
+        ],
+        "n": [
+          1,
+          1
+        ],
+        "tensor_order_N": 2
+      },
+      {
+        "block_sizes": [
+          1,
+          1
+        ],
+        "compiler_artifact_sha256": "87ee1744d2db6b7674318ef0a3af3f4d009cf96ac4c6e79061384922d6a36895",
+        "compiler_descriptor_sector_counts": [
+          {
+            "count": 9,
+            "sector": {
+              "block_Lambdas": [
+                0,
+                0
+              ],
+              "block_kappas": [
+                [
+                  1
+                ],
+                [
+                  1
+                ]
+              ]
+            }
+          }
+        ],
+        "component_index": 2,
+        "independent_physical_image_coordinate_count": 1,
+        "joint_nontrivial_permutation_rotation_label_count": 0,
+        "l": [
+          0,
+          0
+        ],
+        "n": [
+          1,
+          2
+        ],
+        "tensor_order_N": 2
+      },
+      {
+        "block_sizes": [
+          3
+        ],
+        "compiler_artifact_sha256": "d0b250a74992c2541b6534581966adf508cd092f2eee58739ad1f9fa03a207d4",
+        "compiler_descriptor_sector_counts": [
+          {
+            "count": 10,
+            "sector": {
+              "block_Lambdas": [
+                0
+              ],
+              "block_kappas": [
+                [
+                  3
+                ]
+              ]
+            }
+          }
+        ],
+        "component_index": 3,
+        "independent_physical_image_coordinate_count": 2,
+        "joint_nontrivial_permutation_rotation_label_count": 0,
+        "l": [
+          0,
+          0,
+          0
+        ],
+        "n": [
+          1,
+          1,
+          1
+        ],
+        "tensor_order_N": 3
+      },
+      {
+        "block_sizes": [
+          2,
+          1
+        ],
+        "compiler_artifact_sha256": "a571efdf8ea00f796fae3f8f399eac43b582a8f71242f8d6e7b7887d76f3af6e",
+        "compiler_descriptor_sector_counts": [
+          {
+            "count": 18,
+            "sector": {
+              "block_Lambdas": [
+                2,
+                2
+              ],
+              "block_kappas": [
+                [
+                  2
+                ],
+                [
+                  1
+                ]
+              ]
+            }
+          }
+        ],
+        "component_index": 4,
+        "independent_physical_image_coordinate_count": 3,
+        "joint_nontrivial_permutation_rotation_label_count": 0,
+        "l": [
+          2,
+          2,
+          2
+        ],
+        "n": [
+          1,
+          1,
+          2
+        ],
+        "tensor_order_N": 3
+      },
+      {
+        "block_sizes": [
+          2,
+          1
+        ],
+        "compiler_artifact_sha256": "986af9cdd9dac6da3f827c712570f62048fac59528e1a8129c6bc6f24c9cd765",
+        "compiler_descriptor_sector_counts": [
+          {
+            "count": 18,
+            "sector": {
+              "block_Lambdas": [
+                2,
+                2
+              ],
+              "block_kappas": [
+                [
+                  2
+                ],
+                [
+                  1
+                ]
+              ]
+            }
+          }
+        ],
+        "component_index": 5,
+        "independent_physical_image_coordinate_count": 3,
+        "joint_nontrivial_permutation_rotation_label_count": 0,
+        "l": [
+          1,
+          1,
+          2
+        ],
+        "n": [
+          2,
+          2,
+          3
+        ],
+        "tensor_order_N": 3
+      },
+      {
+        "block_sizes": [
+          4
+        ],
+        "compiler_artifact_sha256": "ca91b2d4d2ebfa7b364b802623347921dc5250a6b5daef586d35bc3cb83397a6",
+        "compiler_descriptor_sector_counts": [
+          {
+            "count": 15,
+            "sector": {
+              "block_Lambdas": [
+                0
+              ],
+              "block_kappas": [
+                [
+                  4
+                ]
+              ]
+            }
+          }
+        ],
+        "component_index": 6,
+        "independent_physical_image_coordinate_count": 4,
+        "joint_nontrivial_permutation_rotation_label_count": 0,
+        "l": [
+          0,
+          0,
+          0,
+          0
+        ],
+        "n": [
+          1,
+          1,
+          1,
+          1
+        ],
+        "tensor_order_N": 4
+      },
+      {
+        "block_sizes": [
+          4
+        ],
+        "compiler_artifact_sha256": "b06b47fe4816ef484035fcd2f08699888d6ea3811d937fa6b0a32db8c509b634",
+        "compiler_descriptor_sector_counts": [
+          {
+            "count": 6,
+            "sector": {
+              "block_Lambdas": [
+                0
+              ],
+              "block_kappas": [
+                [
+                  2,
+                  2
+                ]
+              ]
+            }
+          },
+          {
+            "count": 15,
+            "sector": {
+              "block_Lambdas": [
+                0
+              ],
+              "block_kappas": [
+                [
+                  4
+                ]
+              ]
+            }
+          }
+        ],
+        "component_index": 7,
+        "independent_physical_image_coordinate_count": 6,
+        "joint_nontrivial_permutation_rotation_label_count": 0,
+        "l": [
+          1,
+          1,
+          1,
+          1
+        ],
+        "n": [
+          1,
+          1,
+          1,
+          1
+        ],
+        "tensor_order_N": 4
+      },
+      {
+        "block_sizes": [
+          2,
+          2
+        ],
+        "compiler_artifact_sha256": "b47d301ae1535092ad60dcb6810ca0312bcb91c0266b66a4df29be94660f89ba",
+        "compiler_descriptor_sector_counts": [
+          {
+            "count": 36,
+            "sector": {
+              "block_Lambdas": [
+                0,
+                0
+              ],
+              "block_kappas": [
+                [
+                  2
+                ],
+                [
+                  2
+                ]
+              ]
+            }
+          }
+        ],
+        "component_index": 8,
+        "independent_physical_image_coordinate_count": 8,
+        "joint_nontrivial_permutation_rotation_label_count": 0,
+        "l": [
+          0,
+          0,
+          1,
+          1
+        ],
+        "n": [
+          1,
+          1,
+          1,
+          1
+        ],
+        "tensor_order_N": 4
+      },
+      {
+        "block_sizes": [
+          2,
+          2
+        ],
+        "compiler_artifact_sha256": "16aee32a6eb11d006f9740d0e257cbce42f9e10ffa56473d93a23aba65422f2c",
+        "compiler_descriptor_sector_counts": [
+          {
+            "count": 36,
+            "sector": {
+              "block_Lambdas": [
+                0,
+                0
+              ],
+              "block_kappas": [
+                [
+                  2
+                ],
+                [
+                  2
+                ]
+              ]
+            }
+          }
+        ],
+        "component_index": 9,
+        "independent_physical_image_coordinate_count": 8,
+        "joint_nontrivial_permutation_rotation_label_count": 0,
+        "l": [
+          0,
+          0,
+          2,
+          2
+        ],
+        "n": [
+          1,
+          1,
+          1,
+          1
+        ],
+        "tensor_order_N": 4
+      },
+      {
+        "block_sizes": [
+          2,
+          1,
+          1
+        ],
+        "compiler_artifact_sha256": "f8a067d11b6aea7d0cb8eff10d79e8c9d64f9bb9002e5bfef3372582a71bcb46",
+        "compiler_descriptor_sector_counts": [
+          {
+            "count": 54,
+            "sector": {
+              "block_Lambdas": [
+                0,
+                1,
+                1
+              ],
+              "block_kappas": [
+                [
+                  2
+                ],
+                [
+                  1
+                ],
+                [
+                  1
+                ]
+              ]
+            }
+          },
+          {
+            "count": 27,
+            "sector": {
+              "block_Lambdas": [
+                1,
+                1,
+                1
+              ],
+              "block_kappas": [
+                [
+                  1,
+                  1
+                ],
+                [
+                  1
+                ],
+                [
+                  1
+                ]
+              ]
+            }
+          },
+          {
+            "count": 54,
+            "sector": {
+              "block_Lambdas": [
+                2,
+                1,
+                1
+              ],
+              "block_kappas": [
+                [
+                  2
+                ],
+                [
+                  1
+                ],
+                [
+                  1
+                ]
+              ]
+            }
+          }
+        ],
+        "component_index": 10,
+        "independent_physical_image_coordinate_count": 24,
+        "joint_nontrivial_permutation_rotation_label_count": 27,
+        "l": [
+          1,
+          1,
+          1,
+          1
+        ],
+        "n": [
+          1,
+          2,
+          3,
+          3
+        ],
+        "tensor_order_N": 4
+      },
+      {
+        "block_sizes": [
+          6
+        ],
+        "compiler_artifact_sha256": "a5ceeed43cf96835e9a56ecf83c9df19bdab125fd259d0ab27680b61a5025e6b",
+        "compiler_descriptor_sector_counts": [
+          {
+            "count": 28,
+            "sector": {
+              "block_Lambdas": [
+                0
+              ],
+              "block_kappas": [
+                [
+                  6
+                ]
+              ]
+            }
+          }
+        ],
+        "component_index": 11,
+        "independent_physical_image_coordinate_count": 9,
+        "joint_nontrivial_permutation_rotation_label_count": 0,
+        "l": [
+          0,
+          0,
+          0,
+          0,
+          0,
+          0
+        ],
+        "n": [
+          1,
+          1,
+          1,
+          1,
+          1,
+          1
+        ],
+        "tensor_order_N": 6
+      }
+    ],
+    "coordinate_policy": "exact_stable_free_moment_image",
+    "joint_nontrivial_permutation_rotation_component_indices": [
+      10
+    ],
+    "schema": "ye3t_tagged_sector_inventory_v1",
+    "tag_count_s": 2,
+    "total_independent_physical_image_coordinate_count": 69
+  },
+  "self_hash": "8211ffe75f956ca9eb1525b73384508b253a063907e901d48ec28f0a3a4e245a",
+  "species_order": [
+    "Ni"
+  ],
+  "tagged_component": {
+    "path": "tagged_correction.ye3t.json",
+    "sha256": "ac3eeaa960b256814899e970c565d5f43a9b858818a48c5169e2135e538265b6"
+  }
+}

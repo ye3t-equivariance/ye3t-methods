@@ -1,0 +1,98 @@
+{
+  "close_range_passed": false,
+  "close_range_source": "retained_csv",
+  "models": [
+    "ace_127",
+    "ye3t_tagged_127",
+    "ye3t_augmented_196"
+  ],
+  "nve": [
+    {
+      "energy_drift_eV_per_atom_per_ps": -8.673089367906733e-07,
+      "finite": true,
+      "maximum_energy_excursion_eV_per_atom": 7.69156491831069e-06,
+      "maximum_temperature_K": 1638.1681316251345,
+      "mean_temperature_K": 1350.6509571319093,
+      "minimum_distance_A": 2.0210644058639002,
+      "model": "ace_127",
+      "nve_steps": 10000,
+      "nvt_steps": 2000,
+      "passed": true,
+      "samples": 101,
+      "system": "Ni",
+      "target_temperature_K": 1382.4,
+      "temperature_reference": {
+        "melting_temperature_K": 1728.0,
+        "nve_fraction_of_melting": 0.8,
+        "source": "NIST-JANAF Thermochemical Tables, Fourth Edition",
+        "url": "https://janaf.nist.gov/tables/Ni-001.html"
+      },
+      "tolerances": {
+        "absolute_energy_drift_eV_per_atom_per_ps": 0.001,
+        "maximum_energy_excursion_eV_per_atom": 0.05,
+        "minimum_distance_A": 0.6
+      },
+      "trajectory": "trajectory.ace_127.lammpstrj",
+      "trajectory_stride": 100
+    },
+    {
+      "energy_drift_eV_per_atom_per_ps": -3.704805578884484e-07,
+      "finite": true,
+      "maximum_energy_excursion_eV_per_atom": 9.236392479294864e-06,
+      "maximum_temperature_K": 1846.0959133408587,
+      "mean_temperature_K": 1513.3145469815806,
+      "minimum_distance_A": 2.011934489764406,
+      "model": "ye3t_tagged_127",
+      "nve_steps": 10000,
+      "nvt_steps": 2000,
+      "passed": true,
+      "samples": 101,
+      "system": "Ni",
+      "target_temperature_K": 1382.4,
+      "temperature_reference": {
+        "melting_temperature_K": 1728.0,
+        "nve_fraction_of_melting": 0.8,
+        "source": "NIST-JANAF Thermochemical Tables, Fourth Edition",
+        "url": "https://janaf.nist.gov/tables/Ni-001.html"
+      },
+      "tolerances": {
+        "absolute_energy_drift_eV_per_atom_per_ps": 0.001,
+        "maximum_energy_excursion_eV_per_atom": 0.05,
+        "minimum_distance_A": 0.6
+      },
+      "trajectory": "trajectory.ye3t_tagged_127.lammpstrj",
+      "trajectory_stride": 100
+    },
+    {
+      "energy_drift_eV_per_atom_per_ps": 9.334233401451902e-07,
+      "finite": true,
+      "maximum_energy_excursion_eV_per_atom": 1.1076094541095927e-05,
+      "maximum_temperature_K": 1843.6066913591037,
+      "mean_temperature_K": 1508.822830172037,
+      "minimum_distance_A": 1.9975603326558122,
+      "model": "ye3t_augmented_196",
+      "nve_steps": 10000,
+      "nvt_steps": 2000,
+      "passed": true,
+      "samples": 101,
+      "system": "Ni",
+      "target_temperature_K": 1382.4,
+      "temperature_reference": {
+        "melting_temperature_K": 1728.0,
+        "nve_fraction_of_melting": 0.8,
+        "source": "NIST-JANAF Thermochemical Tables, Fourth Edition",
+        "url": "https://janaf.nist.gov/tables/Ni-001.html"
+      },
+      "tolerances": {
+        "absolute_energy_drift_eV_per_atom_per_ps": 0.001,
+        "maximum_energy_excursion_eV_per_atom": 0.05,
+        "minimum_distance_A": 0.6
+      },
+      "trajectory": "trajectory.ye3t_augmented_196.lammpstrj",
+      "trajectory_stride": 100
+    }
+  ],
+  "passed": false,
+  "schema": "ye3t_mlearn_stability_qualification_v1",
+  "system": "Ni"
+}

@@ -1,0 +1,23 @@
+cff-version: 1.2.0
+message: "If you use ye3t-methods, please cite this software package and the YE3T paper listed below."
+title: "ye3t-methods"
+version: "0.1.0"
+license: "BSD-3-Clause"
+authors:
+  - name: "YE3T contributors"
+abstract: "Fixed-feature linear atomistic methods using the YE3T representation compiler."
+references:
+  - type: article
+    authors:
+      - family-names: Goff
+        given-names: James M.
+      - family-names: Thompson
+        given-names: Aidan P.
+    title: "The Young-E(3) Tensor Product Decomposition for Rotation and Permutation Equivariant Cluster Expansions"
+    year: 2026
+    month: 9
+    status: preprint
+    identifiers:
+      - type: other
+        value: "arXiv:2609.31895"
+    url: "https://arxiv.org/abs/2609.31895"

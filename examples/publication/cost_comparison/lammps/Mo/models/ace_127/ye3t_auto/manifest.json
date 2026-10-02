@@ -1,0 +1,82 @@
+{
+  "canonical_encoding": "ye3t_sorted_json_indent2_lf_v1",
+  "capabilities": {
+    "required": [
+      "block_symmetric_power_adjoint_v1",
+      "block_symmetric_power_forward_v1",
+      "energy_v1",
+      "evaluator_candidate_vector_v1",
+      "explicit_ctilde_forward_adjoint_v1",
+      "force_v1",
+      "linear_readout_v1",
+      "ordinary_density_v1",
+      "pace_cheb_exp_cos_uniform_cubic_hermite_v1",
+      "pace_complex_magnetic_y00_1",
+      "pace_linear_embedding_v1",
+      "symmetric_power_adjoint_v1",
+      "symmetric_power_forward_v1",
+      "virial_v1",
+      "yace_candidate_readout_v1",
+      "ye3t_execution_plan_v2"
+    ]
+  },
+  "compiler": {
+    "api": "ye3t.couplings.execution_plan_from_repeated_angular_blocks",
+    "coefficient_hash": "ec39daae07d09e6815177b0a63b1ac1d511263edabf7e3437db4f72f4565ec57",
+    "convention_id": "o3:complex_condon_shortley_young_orthogonal_v1",
+    "execution_plan_schema": "ye3t_execution_plan_v2",
+    "plan_hash": "34b05308438cd4f7075ecdf955f55675ce4fe5c5261479fc8b64e46bcf3090b2",
+    "ye3t": {
+      "version": "0.1.0"
+    },
+    "ye3t_ace": {
+      "version": "0.1.0"
+    }
+  },
+  "conventions": {
+    "analysis_orientation": "conjugate_transpose",
+    "angular_source_basis": "pace_complex_magnetic_y00_1",
+    "angular_transform": {
+      "kind": "none",
+      "payload": null
+    },
+    "atomic_base_normalization": "none",
+    "byte_order": "little",
+    "factor_normalization": "none",
+    "linear_feature_transform": {
+      "kind": "none",
+      "payload": null
+    },
+    "radial_basis": "pace_cheb_exp_cos_uniform_cubic_hermite_v1",
+    "scalar_type": "float64"
+  },
+  "dispatch": {
+    "fallback_policy": "forbid_unlisted",
+    "requested_route": "ye3t_evaluator_candidate_vector_v1"
+  },
+  "inputs": {
+    "per_atom": []
+  },
+  "payloads": {
+    "execution_plan": {
+      "path": "execution_plan.json",
+      "schema": "ye3t_execution_plan_v2",
+      "sha256": "28df3e0acb0952ef95620e8e247e44f59e5f3436163417412dd19b4b2b06ba44"
+    },
+    "yace_function_map": {
+      "path": "yace_function_map.json",
+      "schema": "ye3t_yace_function_map_v3",
+      "sha256": "d99aa9e619e8e452b92a02da7bd1cee03f2e9118cb02acb0ecd6cc9f3ae2ec3a"
+    }
+  },
+  "schema": "ye3t_lammps_sidecar_v3",
+  "semantic_ledger": "task55_semantic_ledger_v1",
+  "source_yace": {
+    "compatibility_profile": "lammps_pace_linear_v1",
+    "lammps_units": "metal",
+    "ordered_elements": [
+      "Mo"
+    ],
+    "sha256": "49e466ec9e8df7994922dfe326f7b0c72f2645892bfd1db23e3293e9b246d14e"
+  }
+}

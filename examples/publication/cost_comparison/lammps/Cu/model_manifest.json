@@ -1,0 +1,62 @@
+{
+  "artifacts": [
+    {
+      "bytes": 8940,
+      "path": "models/ace_127/model_manifest.json",
+      "sha256": "c110292b7e6225332609d82c0bd6af5820187b6c9c1eb90a98620e6658954aeb"
+    },
+    {
+      "bytes": 71712,
+      "path": "models/ace_127/potential.yace",
+      "sha256": "3f23ee94260ee0d649cb80c648a4db15ca03f1ccb375e87818285803884f218b"
+    },
+    {
+      "bytes": 2661396,
+      "path": "models/ace_127/ye3t_auto/execution_plan.json",
+      "sha256": "0b1b9b3ff84bcf3c12955b20c3b95c18a58672eb29f4ebee40ff4976157d040e"
+    },
+    {
+      "bytes": 44684,
+      "path": "models/ace_127/ye3t_auto/export_report.json",
+      "sha256": "c8e508c211f5dc02f008d8a785cab8dc5a2ff189943b205a0d2b87a4cab15bd3"
+    },
+    {
+      "bytes": 2535,
+      "path": "models/ace_127/ye3t_auto/manifest.json",
+      "sha256": "624a022b5e8f548cb5dafd9cb702ce68e0f7a517c29a9c32e2116c1491afdb16"
+    },
+    {
+      "bytes": 190359,
+      "path": "models/ace_127/ye3t_auto/yace_function_map.json",
+      "sha256": "01029a0f8b451a976ede0ed17516c26bfb0fdb0229cfb2b6356833d42d156381"
+    },
+    {
+      "bytes": 11826,
+      "path": "models/ye3t_tagged_127/model.ye3t.json",
+      "sha256": "b77ece4b85fe6e3002bd9253d89f62fc923830556149a1c352cd3e0240b4f6e5"
+    },
+    {
+      "bytes": 9491,
+      "path": "models/ye3t_tagged_127/model_manifest.json",
+      "sha256": "2d4da17db7f8ce963075889c48dc981b4a292ab5847427eb3c9ec0634d5b8b16"
+    },
+    {
+      "bytes": 32209,
+      "path": "models/ye3t_tagged_127/ordinary_backbone.yace",
+      "sha256": "465f2d8acfb533dda8b847b80dae9d7c0b59b7c0ef1e4452a4c6111f2d17e49c"
+    },
+    {
+      "bytes": 1835891,
+      "path": "models/ye3t_tagged_127/tagged_correction.ye3t.json",
+      "sha256": "abd7e735c2a738015efd2fc78a574584281c3ee41050d50c17a00ac9c249bafb"
+    }
+  ],
+  "models": [
+    "ace_127",
+    "ye3t_tagged_127"
+  ],
+  "reference_policy": "DFT target minus exact LAMMPS ZBL; deploy with hybrid/overlay",
+  "schema": "ye3t_cost_comparison_promoted_models_v3",
+  "system": "Cu",
+  "tagged_runtime_dependency": "pair_style_ye3t_plus_zbl"
+}

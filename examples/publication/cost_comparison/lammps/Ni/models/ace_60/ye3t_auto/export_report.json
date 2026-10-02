@@ -1,0 +1,577 @@
+{
+  "catalogue_application_sha256": "36fa8f86516e03160530656f91bdfb8dac5ca94875c2beae38e6f2172fd49d53",
+  "catalogue_profile_id": "ni_generated_linear_ace_150",
+  "descriptor_bindings": [
+    {
+      "catalogue_feature_id": "ace_N01_2c1f2bfb1e5a172ae56a",
+      "central_type": 0,
+      "descriptor_index": 0,
+      "feature_hash": "23835cdfb24236bb3736a7cd7b69bc930be247eb184b2114e87f0743bfbdc080",
+      "function_index": 0
+    },
+    {
+      "catalogue_feature_id": "ace_N02_ddfe27c296234a1d7771",
+      "central_type": 0,
+      "descriptor_index": 1,
+      "feature_hash": "5d9e32d34404fb382fb66bfaa0b5063f126db1ee1afdec6643c24d74969c0572",
+      "function_index": 1
+    },
+    {
+      "catalogue_feature_id": "ace_N03_9c9e15e4b1d926c79994",
+      "central_type": 0,
+      "descriptor_index": 2,
+      "feature_hash": "3dba08e87a74c3784645dbd365c14bbb33f8b62a8153b4c5ec97a85f0e4fe397",
+      "function_index": 2
+    },
+    {
+      "catalogue_feature_id": "ace_N04_3670433f2dfc8a5f4999",
+      "central_type": 0,
+      "descriptor_index": 3,
+      "feature_hash": "c5460904adff180975a5d9cac2f9e8f6bd7f3d5c189cd5aa5699a432f0ec102a",
+      "function_index": 3
+    },
+    {
+      "catalogue_feature_id": "ace_N06_fcdf75e7e423d12deb73",
+      "central_type": 0,
+      "descriptor_index": 4,
+      "feature_hash": "a204d72f54a22cefbf49c90e252c041dddabdad01247c9f78d1fd120490eb3b6",
+      "function_index": 4
+    },
+    {
+      "catalogue_feature_id": "ace_N08_bbc7d3a4c556ce9e192a",
+      "central_type": 0,
+      "descriptor_index": 5,
+      "feature_hash": "6fb9bd1c96c08073b507db40d6fabb3fbd3876cca27eb20002ab8a973955fcb1",
+      "function_index": 5
+    },
+    {
+      "catalogue_feature_id": "ace_N01_284b6df52a7834f8ff1c",
+      "central_type": 0,
+      "descriptor_index": 6,
+      "feature_hash": "bef426a9e8d86a2748a010e1e3cf1d3156de8959ef7ec19410afeb0977c333f7",
+      "function_index": 6
+    },
+    {
+      "catalogue_feature_id": "ace_N02_00cfdffb078adcc024be",
+      "central_type": 0,
+      "descriptor_index": 7,
+      "feature_hash": "6212347e3a78075da6f3fa2dfaa93bf75ddb509cfd9c89a6ec3c7a9cf39b1017",
+      "function_index": 7
+    },
+    {
+      "catalogue_feature_id": "ace_N03_21299a966708d3e4bc5c",
+      "central_type": 0,
+      "descriptor_index": 8,
+      "feature_hash": "36e01339958abd2ea22e878a9f568016da7e1c63bffa87eab6fd90e8428ef11f",
+      "function_index": 8
+    },
+    {
+      "catalogue_feature_id": "ace_N04_7dcacf61569e9fec4d9a",
+      "central_type": 0,
+      "descriptor_index": 9,
+      "feature_hash": "9c900f4c0652cdb1213afcdf8c096d68ca573d11dcf8359dc8019914f627d1e9",
+      "function_index": 9
+    },
+    {
+      "catalogue_feature_id": "ace_N06_096384f1dad063fe4d84",
+      "central_type": 0,
+      "descriptor_index": 10,
+      "feature_hash": "623bef780eab5744352f29cb319a8eee8b0138581aafa7667e987543da11d81a",
+      "function_index": 10
+    },
+    {
+      "catalogue_feature_id": "ace_N08_262dc496713c3d999f24",
+      "central_type": 0,
+      "descriptor_index": 11,
+      "feature_hash": "6f9173eaf83729f4d43ef0bc17af9832db118902319d769d1a5571907c8d0c68",
+      "function_index": 11
+    },
+    {
+      "catalogue_feature_id": "ace_N01_e6ac1821c39ba1c94dd6",
+      "central_type": 0,
+      "descriptor_index": 12,
+      "feature_hash": "512d926c6b22bf0ee2fd474513006fe093b3e775422bc39222184c08ebc35a27",
+      "function_index": 12
+    },
+    {
+      "catalogue_feature_id": "ace_N02_3aa4a5268935d9a3a80a",
+      "central_type": 0,
+      "descriptor_index": 13,
+      "feature_hash": "95d8b3521fbac91a3329de005c2b17af3a8bd56865776bd97329467ee4f5ec3d",
+      "function_index": 13
+    },
+    {
+      "catalogue_feature_id": "ace_N03_9bef96ddc149fd8d754e",
+      "central_type": 0,
+      "descriptor_index": 14,
+      "feature_hash": "6080c9f8b1d9b892448b58e2e4ab9f0ccf3171670681d1d607430e5712af4d33",
+      "function_index": 14
+    },
+    {
+      "catalogue_feature_id": "ace_N04_f1f6288a878f2e6608d1",
+      "central_type": 0,
+      "descriptor_index": 15,
+      "feature_hash": "5a5daff09b91c604fd188202bec1ed0df42fd9c3d97b69d7ad58a478e0b22a66",
+      "function_index": 15
+    },
+    {
+      "catalogue_feature_id": "ace_N06_ea45c26c46982265a140",
+      "central_type": 0,
+      "descriptor_index": 16,
+      "feature_hash": "1b19206b6a28b1258a917dbd243511f8e5acc96bc65548f5fe7ddc7f71772a46",
+      "function_index": 16
+    },
+    {
+      "catalogue_feature_id": "ace_N08_e72b720d7b7058d4a7a1",
+      "central_type": 0,
+      "descriptor_index": 17,
+      "feature_hash": "560ac58908a5ec1f65632cf0cbaf5225331f41dd6f344206069ee2a4f2cc303c",
+      "function_index": 17
+    },
+    {
+      "catalogue_feature_id": "ace_N01_0bb54b8212cc388f114f",
+      "central_type": 0,
+      "descriptor_index": 18,
+      "feature_hash": "39b20e11c17e4088fbd249bd34c3bc468288318cc15ea3105febf71f87f6d0cb",
+      "function_index": 18
+    },
+    {
+      "catalogue_feature_id": "ace_N02_9ed0fb2cd2a3ed4711af",
+      "central_type": 0,
+      "descriptor_index": 19,
+      "feature_hash": "a488f7af67f8fdb4a930245536b624c72ed4cab602fe2e3fc4ef8cf3db39191d",
+      "function_index": 19
+    },
+    {
+      "catalogue_feature_id": "ace_N04_a51a8013a25d2adfc6ed",
+      "central_type": 0,
+      "descriptor_index": 20,
+      "feature_hash": "f89f5180356f5775e6291dac4914706a997a30650c00a650433e2c418535cdb1",
+      "function_index": 20
+    },
+    {
+      "catalogue_feature_id": "ace_N06_8b5e3e0b4ef84fefaa84",
+      "central_type": 0,
+      "descriptor_index": 21,
+      "feature_hash": "0288830d50c69a82c9fd3d4945f601ac66d9427a17f9d05e10cf348139e94a44",
+      "function_index": 21
+    },
+    {
+      "catalogue_feature_id": "ace_N08_396c92c3d66ba2c31033",
+      "central_type": 0,
+      "descriptor_index": 22,
+      "feature_hash": "e0fb454b07c29861a91bc231b9c96a9deedaef9f63283f4eff6f86053449bed0",
+      "function_index": 22
+    },
+    {
+      "catalogue_feature_id": "ace_N02_8b84b47dc3bbf9f4ad9a",
+      "central_type": 0,
+      "descriptor_index": 23,
+      "feature_hash": "ff308ef2f4ce115fcb606f9f60727f7254f2c828c4bc45c88fd9c7314d20fd27",
+      "function_index": 23
+    },
+    {
+      "catalogue_feature_id": "ace_N04_fbe4cb482c4b4edf7789",
+      "central_type": 0,
+      "descriptor_index": 24,
+      "feature_hash": "eb371e7fe53d7e1f541759c7c760a5e98e0501528940299de328f17ac1f23212",
+      "function_index": 24
+    },
+    {
+      "catalogue_feature_id": "ace_N06_49b1e4fd33970d536d28",
+      "central_type": 0,
+      "descriptor_index": 25,
+      "feature_hash": "610414f7a75dce28288677e5753ddd648620aa605836435fde2837b0ce523d98",
+      "function_index": 25
+    },
+    {
+      "catalogue_feature_id": "ace_N06_060b0c2cf2c1121e14c1",
+      "central_type": 0,
+      "descriptor_index": 26,
+      "feature_hash": "86c5c5ecd2cff9d3ed4e72c6bdc36df17210b644a94fc1237a2106f2727ef8dc",
+      "function_index": 26
+    },
+    {
+      "catalogue_feature_id": "ace_N08_fcaa7846d16c6ee63ca2",
+      "central_type": 0,
+      "descriptor_index": 27,
+      "feature_hash": "5280a583d970572de5ee7cfa75aa02c1bbe9fdc4bd864b6f7b51121ae913a283",
+      "function_index": 27
+    },
+    {
+      "catalogue_feature_id": "ace_N02_1dedf027ac2f4e9c4fa8",
+      "central_type": 0,
+      "descriptor_index": 28,
+      "feature_hash": "49fc7b7079de0d943d6523e3c2f66814c6879b55e7c8afda7aa2635a63ee8b37",
+      "function_index": 28
+    },
+    {
+      "catalogue_feature_id": "ace_N04_aec5143ed42f9286c812",
+      "central_type": 0,
+      "descriptor_index": 29,
+      "feature_hash": "9a751dfb83a023e0fc9d56a2fa23a95ed7ac36ba2b6de0805e674331ecc5f140",
+      "function_index": 29
+    },
+    {
+      "catalogue_feature_id": "ace_N06_05367147c1c4a2e869aa",
+      "central_type": 0,
+      "descriptor_index": 30,
+      "feature_hash": "c391f8f235f6082e497c703eadb5c9bacb62bfa10f509c7a4e5afa9b45cc7626",
+      "function_index": 30
+    },
+    {
+      "catalogue_feature_id": "ace_N06_1bf108a199a4ba7bbf70",
+      "central_type": 0,
+      "descriptor_index": 31,
+      "feature_hash": "55485d055fa6feca7fc4966973eadcda092734cd0f92a752758711f93f6ed13c",
+      "function_index": 31
+    },
+    {
+      "catalogue_feature_id": "ace_N08_9b1b0477082db0f285c6",
+      "central_type": 0,
+      "descriptor_index": 32,
+      "feature_hash": "142440ceb6c29389d5747ab8727bc00c983e4e150ea6726556643900c25ecda3",
+      "function_index": 32
+    },
+    {
+      "catalogue_feature_id": "ace_N02_efe7844030ed591f8701",
+      "central_type": 0,
+      "descriptor_index": 33,
+      "feature_hash": "52e5ac31c39786634d8fa6819dd03fd4fd2f86ecaa3d13eb670ffc559155e3bf",
+      "function_index": 33
+    },
+    {
+      "catalogue_feature_id": "ace_N03_29a1850396813512814f",
+      "central_type": 0,
+      "descriptor_index": 34,
+      "feature_hash": "9cadb95942a39387f62f6a97a15d9af415256cef9f115451c358024eb9c318c7",
+      "function_index": 34
+    },
+    {
+      "catalogue_feature_id": "ace_N04_7f91d19714728060f351",
+      "central_type": 0,
+      "descriptor_index": 35,
+      "feature_hash": "a4e2b98e1a7b2009d573447ac1095ac2a30a96031aacbf4524ed89a16b814eae",
+      "function_index": 35
+    },
+    {
+      "catalogue_feature_id": "ace_N06_b3948913dae3012a2e63",
+      "central_type": 0,
+      "descriptor_index": 36,
+      "feature_hash": "a0c5e4e126ce1b411c73f0bf68901da02c95351129ae2177246484f2cfafd81d",
+      "function_index": 36
+    },
+    {
+      "catalogue_feature_id": "ace_N08_4e55ed19dcb8af1d747a",
+      "central_type": 0,
+      "descriptor_index": 37,
+      "feature_hash": "b0c846860ac51dfba1e38c9817a8fad18f1154d92e2df26dd0eb06f3d7d6a871",
+      "function_index": 37
+    },
+    {
+      "catalogue_feature_id": "ace_N02_a856679c6a6f9abcfda2",
+      "central_type": 0,
+      "descriptor_index": 38,
+      "feature_hash": "775fda19956282575260b0d8973f8fce7e03795332fdb79982dbd79a99abbd65",
+      "function_index": 38
+    },
+    {
+      "catalogue_feature_id": "ace_N03_35f98586fe5481348086",
+      "central_type": 0,
+      "descriptor_index": 39,
+      "feature_hash": "c2baa6565055d25b05bacd37c9d7077c94634b44e8603598b2e06f873503d7fc",
+      "function_index": 39
+    },
+    {
+      "catalogue_feature_id": "ace_N04_6c072fb196b046f9ee38",
+      "central_type": 0,
+      "descriptor_index": 40,
+      "feature_hash": "d96f3553c0f7d2438468977e89ae2372a9afcd1cb399b0d1b37925897a4543ac",
+      "function_index": 40
+    },
+    {
+      "catalogue_feature_id": "ace_N06_78786c048c8fa1e923f5",
+      "central_type": 0,
+      "descriptor_index": 41,
+      "feature_hash": "92f0ccf87c81187083de76fd20c343260fd86d809feae49bd22afc038551dde2",
+      "function_index": 41
+    },
+    {
+      "catalogue_feature_id": "ace_N08_4aa15b74652290102426",
+      "central_type": 0,
+      "descriptor_index": 42,
+      "feature_hash": "5a284bba29a0bf4ace6d696a5f6a3d94ad5cea883d2b19a047a659cedfccff7a",
+      "function_index": 42
+    },
+    {
+      "catalogue_feature_id": "ace_N02_a94ea34117e8ddbc4a8d",
+      "central_type": 0,
+      "descriptor_index": 43,
+      "feature_hash": "a72f44aa303cb1dca6607640799ee64b684e707c785170a54d877cfc77d10940",
+      "function_index": 43
+    },
+    {
+      "catalogue_feature_id": "ace_N03_7aaf87e4d1c5a2a9870d",
+      "central_type": 0,
+      "descriptor_index": 44,
+      "feature_hash": "1a97779b6bab821aeab86dddc53e08a57540d605ecffd34385ced1c9967b8e65",
+      "function_index": 44
+    },
+    {
+      "catalogue_feature_id": "ace_N04_74e797504e1dd8d27746",
+      "central_type": 0,
+      "descriptor_index": 45,
+      "feature_hash": "714f97b147fd65b7564878a5a9c2c0d39274fbddbd56a098ed37c4bc884b75de",
+      "function_index": 45
+    },
+    {
+      "catalogue_feature_id": "ace_N06_5a6591fbd2fd310380e8",
+      "central_type": 0,
+      "descriptor_index": 46,
+      "feature_hash": "ec6a849dbad292a99ae92021dbbe948d235ec62ae600b8c4af6d73732554619f",
+      "function_index": 46
+    },
+    {
+      "catalogue_feature_id": "ace_N08_ae75a125e1a39ff63e77",
+      "central_type": 0,
+      "descriptor_index": 47,
+      "feature_hash": "a367944490690595ff5669ef82f3a5d828369f3def0d2b24938440f5286046a9",
+      "function_index": 47
+    },
+    {
+      "catalogue_feature_id": "ace_N02_c81491aeeed8a0e02a30",
+      "central_type": 0,
+      "descriptor_index": 48,
+      "feature_hash": "6c6b5d836e29d6de0eeb7c1b518d72be0870e10e1c76da1164c716b1565b241c",
+      "function_index": 48
+    },
+    {
+      "catalogue_feature_id": "ace_N04_a8de357f3d75c81fcfbd",
+      "central_type": 0,
+      "descriptor_index": 49,
+      "feature_hash": "e6de869cc6159b322934007578dd43af5b511b1ceaeda3a09283008d1462d78a",
+      "function_index": 49
+    },
+    {
+      "catalogue_feature_id": "ace_N04_b5ebd3617f4115afe497",
+      "central_type": 0,
+      "descriptor_index": 50,
+      "feature_hash": "46f3578f1824dfa46c521776d86ecb74fe85c6dd8ee3e9a8f96e813de17aea07",
+      "function_index": 50
+    },
+    {
+      "catalogue_feature_id": "ace_N06_948e7974bc4f0d448bc4",
+      "central_type": 0,
+      "descriptor_index": 51,
+      "feature_hash": "8842e76d4b995a8a02da049ad31a13279aac7c5c855659dffa80143101dcf461",
+      "function_index": 51
+    },
+    {
+      "catalogue_feature_id": "ace_N02_aeb744aa66017ed1406f",
+      "central_type": 0,
+      "descriptor_index": 52,
+      "feature_hash": "838339d5fc10f731f7ea25c92eb894c0e5e54493444bab6621a492f0ae1ece28",
+      "function_index": 52
+    },
+    {
+      "catalogue_feature_id": "ace_N04_2e71340868ee08af016d",
+      "central_type": 0,
+      "descriptor_index": 53,
+      "feature_hash": "22751d4f142aebee55842473915524d18dd2e50df7a45fd63305778e36d677d8",
+      "function_index": 53
+    },
+    {
+      "catalogue_feature_id": "ace_N04_955ae363a60c1556593d",
+      "central_type": 0,
+      "descriptor_index": 54,
+      "feature_hash": "7a073d09d0396fc2e9c59e226bea60aed90c517abaa7a32fa73502de7ed1279b",
+      "function_index": 54
+    },
+    {
+      "catalogue_feature_id": "ace_N06_42866d916d8ecafac2d9",
+      "central_type": 0,
+      "descriptor_index": 55,
+      "feature_hash": "2f80f7807f5165f8880306604d3e57662eacf8c1afa3c483105b8b71ccb8ed06",
+      "function_index": 55
+    },
+    {
+      "catalogue_feature_id": "ace_N02_7a0bc16634f9fc666d66",
+      "central_type": 0,
+      "descriptor_index": 56,
+      "feature_hash": "a3ca3fb8ca976edce61aee861bb089651101dac302c47ebe45f7f3cdbe0d807e",
+      "function_index": 56
+    },
+    {
+      "catalogue_feature_id": "ace_N04_7b6c1bde25f5e9e9267a",
+      "central_type": 0,
+      "descriptor_index": 57,
+      "feature_hash": "780406165aea70d0bc2522bcbdfdf409a11a99a9f013953a98f1ac288982d315",
+      "function_index": 57
+    },
+    {
+      "catalogue_feature_id": "ace_N04_5c941196529eb3461488",
+      "central_type": 0,
+      "descriptor_index": 58,
+      "feature_hash": "89046a84c09a72a313e18083928bb2706e29a5fff98fedc2b00917a9ae1cbe07",
+      "function_index": 58
+    },
+    {
+      "catalogue_feature_id": "ace_N02_b4d8f34f7064d6e9e7aa",
+      "central_type": 0,
+      "descriptor_index": 59,
+      "feature_hash": "874c3431680a55bb6a448f99879b51c2f7c1d90f5d69e9ed6c6961d961a3b336",
+      "function_index": 59
+    }
+  ],
+  "direct_candidate_count": 60,
+  "function_count": 60,
+  "maximum_plan_bytes": 134217728,
+  "optimized_candidate_count": 46,
+  "plan_hash": "755767b7a88dd2e4ef194cdc941c6eb85fedfabc5ce7741bf951b12ad13e255a",
+  "polynomial_tolerances": {
+    "absolute": 5e-11,
+    "relative": 1e-12
+  },
+  "provenance": {
+    "model": "ace_60",
+    "schema": "ye3t_cost_comparison_symmetric_auto_plan_v1",
+    "source_yace_sha256": "6c74654ef41de151be4f2af1f2d4846b3561d1a64378a6ca493dcb07d5277ade",
+    "system": "Ni"
+  },
+  "schemas": {
+    "execution_plan": "ye3t_execution_plan_v2",
+    "function_map": "ye3t_yace_function_map_v3",
+    "manifest": "ye3t_lammps_sidecar_v3"
+  },
+  "skipped_candidates": [
+    {
+      "catalogue_feature_id": "ace_N01_2c1f2bfb1e5a172ae56a",
+      "central_type": 0,
+      "descriptor_index": 0,
+      "feature_hash": "23835cdfb24236bb3736a7cd7b69bc930be247eb184b2114e87f0743bfbdc080",
+      "function_index": 0,
+      "reason": "no_repeated_complete_channel_block"
+    },
+    {
+      "catalogue_feature_id": "ace_N01_284b6df52a7834f8ff1c",
+      "central_type": 0,
+      "descriptor_index": 6,
+      "feature_hash": "bef426a9e8d86a2748a010e1e3cf1d3156de8959ef7ec19410afeb0977c333f7",
+      "function_index": 6,
+      "reason": "no_repeated_complete_channel_block"
+    },
+    {
+      "catalogue_feature_id": "ace_N01_e6ac1821c39ba1c94dd6",
+      "central_type": 0,
+      "descriptor_index": 12,
+      "feature_hash": "512d926c6b22bf0ee2fd474513006fe093b3e775422bc39222184c08ebc35a27",
+      "function_index": 12,
+      "reason": "no_repeated_complete_channel_block"
+    },
+    {
+      "catalogue_feature_id": "ace_N01_0bb54b8212cc388f114f",
+      "central_type": 0,
+      "descriptor_index": 18,
+      "feature_hash": "39b20e11c17e4088fbd249bd34c3bc468288318cc15ea3105febf71f87f6d0cb",
+      "function_index": 18,
+      "reason": "no_repeated_complete_channel_block"
+    },
+    {
+      "catalogue_feature_id": "ace_N06_49b1e4fd33970d536d28",
+      "central_type": 0,
+      "descriptor_index": 25,
+      "detail": "exact symmetric-power coefficient materialization exceeds the configured resource limit; use coefficient_materialization='auto' or 'certified_numeric': {\"estimated_exact_symbolic_workspace_bytes\": 180633600, \"estimated_symbolic_bytes_per_occupancy_pair\": 4096, \"exceeds_exact_symbolic_limit\": true, \"input_L\": 2, \"maximum_exact_symbolic_bytes\": 134217728, \"maximum_weight_dimension\": 18, \"occupancy_dimension\": 210, \"policy\": \"exact\", \"power\": 6, \"schema\": \"ye3t_symmetric_power_materialization_resource_v1\", \"selected_backend\": \"exact_symbolic_independent_occupancy\"}",
+      "feature_hash": "610414f7a75dce28288677e5753ddd648620aa605836435fde2837b0ce523d98",
+      "function_index": 25,
+      "reason": "resource_guard_direct_only"
+    },
+    {
+      "catalogue_feature_id": "ace_N06_060b0c2cf2c1121e14c1",
+      "central_type": 0,
+      "descriptor_index": 26,
+      "detail": "exact symmetric-power coefficient materialization exceeds the configured resource limit; use coefficient_materialization='auto' or 'certified_numeric': {\"estimated_exact_symbolic_workspace_bytes\": 180633600, \"estimated_symbolic_bytes_per_occupancy_pair\": 4096, \"exceeds_exact_symbolic_limit\": true, \"input_L\": 2, \"maximum_exact_symbolic_bytes\": 134217728, \"maximum_weight_dimension\": 18, \"occupancy_dimension\": 210, \"policy\": \"exact\", \"power\": 6, \"schema\": \"ye3t_symmetric_power_materialization_resource_v1\", \"selected_backend\": \"exact_symbolic_independent_occupancy\"}",
+      "feature_hash": "86c5c5ecd2cff9d3ed4e72c6bdc36df17210b644a94fc1237a2106f2727ef8dc",
+      "function_index": 26,
+      "reason": "resource_guard_direct_only"
+    },
+    {
+      "catalogue_feature_id": "ace_N06_05367147c1c4a2e869aa",
+      "central_type": 0,
+      "descriptor_index": 30,
+      "detail": "exact symmetric-power coefficient materialization exceeds the configured resource limit; use coefficient_materialization='auto' or 'certified_numeric': {\"estimated_exact_symbolic_workspace_bytes\": 180633600, \"estimated_symbolic_bytes_per_occupancy_pair\": 4096, \"exceeds_exact_symbolic_limit\": true, \"input_L\": 2, \"maximum_exact_symbolic_bytes\": 134217728, \"maximum_weight_dimension\": 18, \"occupancy_dimension\": 210, \"policy\": \"exact\", \"power\": 6, \"schema\": \"ye3t_symmetric_power_materialization_resource_v1\", \"selected_backend\": \"exact_symbolic_independent_occupancy\"}",
+      "feature_hash": "c391f8f235f6082e497c703eadb5c9bacb62bfa10f509c7a4e5afa9b45cc7626",
+      "function_index": 30,
+      "reason": "resource_guard_direct_only"
+    },
+    {
+      "catalogue_feature_id": "ace_N06_1bf108a199a4ba7bbf70",
+      "central_type": 0,
+      "descriptor_index": 31,
+      "detail": "exact symmetric-power coefficient materialization exceeds the configured resource limit; use coefficient_materialization='auto' or 'certified_numeric': {\"estimated_exact_symbolic_workspace_bytes\": 180633600, \"estimated_symbolic_bytes_per_occupancy_pair\": 4096, \"exceeds_exact_symbolic_limit\": true, \"input_L\": 2, \"maximum_exact_symbolic_bytes\": 134217728, \"maximum_weight_dimension\": 18, \"occupancy_dimension\": 210, \"policy\": \"exact\", \"power\": 6, \"schema\": \"ye3t_symmetric_power_materialization_resource_v1\", \"selected_backend\": \"exact_symbolic_independent_occupancy\"}",
+      "feature_hash": "55485d055fa6feca7fc4966973eadcda092734cd0f92a752758711f93f6ed13c",
+      "function_index": 31,
+      "reason": "resource_guard_direct_only"
+    },
+    {
+      "catalogue_feature_id": "ace_N04_a8de357f3d75c81fcfbd",
+      "central_type": 0,
+      "descriptor_index": 49,
+      "detail": "exact symmetric-power coefficient materialization exceeds the configured resource limit; use coefficient_materialization='auto' or 'certified_numeric': {\"estimated_exact_symbolic_workspace_bytes\": 180633600, \"estimated_symbolic_bytes_per_occupancy_pair\": 4096, \"exceeds_exact_symbolic_limit\": true, \"input_L\": 3, \"maximum_exact_symbolic_bytes\": 134217728, \"maximum_weight_dimension\": 18, \"occupancy_dimension\": 210, \"policy\": \"exact\", \"power\": 4, \"schema\": \"ye3t_symmetric_power_materialization_resource_v1\", \"selected_backend\": \"exact_symbolic_independent_occupancy\"}",
+      "feature_hash": "e6de869cc6159b322934007578dd43af5b511b1ceaeda3a09283008d1462d78a",
+      "function_index": 49,
+      "reason": "resource_guard_direct_only"
+    },
+    {
+      "catalogue_feature_id": "ace_N04_b5ebd3617f4115afe497",
+      "central_type": 0,
+      "descriptor_index": 50,
+      "detail": "exact symmetric-power coefficient materialization exceeds the configured resource limit; use coefficient_materialization='auto' or 'certified_numeric': {\"estimated_exact_symbolic_workspace_bytes\": 180633600, \"estimated_symbolic_bytes_per_occupancy_pair\": 4096, \"exceeds_exact_symbolic_limit\": true, \"input_L\": 3, \"maximum_exact_symbolic_bytes\": 134217728, \"maximum_weight_dimension\": 18, \"occupancy_dimension\": 210, \"policy\": \"exact\", \"power\": 4, \"schema\": \"ye3t_symmetric_power_materialization_resource_v1\", \"selected_backend\": \"exact_symbolic_independent_occupancy\"}",
+      "feature_hash": "46f3578f1824dfa46c521776d86ecb74fe85c6dd8ee3e9a8f96e813de17aea07",
+      "function_index": 50,
+      "reason": "resource_guard_direct_only"
+    },
+    {
+      "catalogue_feature_id": "ace_N04_2e71340868ee08af016d",
+      "central_type": 0,
+      "descriptor_index": 53,
+      "detail": "exact symmetric-power coefficient materialization exceeds the configured resource limit; use coefficient_materialization='auto' or 'certified_numeric': {\"estimated_exact_symbolic_workspace_bytes\": 180633600, \"estimated_symbolic_bytes_per_occupancy_pair\": 4096, \"exceeds_exact_symbolic_limit\": true, \"input_L\": 3, \"maximum_exact_symbolic_bytes\": 134217728, \"maximum_weight_dimension\": 18, \"occupancy_dimension\": 210, \"policy\": \"exact\", \"power\": 4, \"schema\": \"ye3t_symmetric_power_materialization_resource_v1\", \"selected_backend\": \"exact_symbolic_independent_occupancy\"}",
+      "feature_hash": "22751d4f142aebee55842473915524d18dd2e50df7a45fd63305778e36d677d8",
+      "function_index": 53,
+      "reason": "resource_guard_direct_only"
+    },
+    {
+      "catalogue_feature_id": "ace_N04_955ae363a60c1556593d",
+      "central_type": 0,
+      "descriptor_index": 54,
+      "detail": "exact symmetric-power coefficient materialization exceeds the configured resource limit; use coefficient_materialization='auto' or 'certified_numeric': {\"estimated_exact_symbolic_workspace_bytes\": 180633600, \"estimated_symbolic_bytes_per_occupancy_pair\": 4096, \"exceeds_exact_symbolic_limit\": true, \"input_L\": 3, \"maximum_exact_symbolic_bytes\": 134217728, \"maximum_weight_dimension\": 18, \"occupancy_dimension\": 210, \"policy\": \"exact\", \"power\": 4, \"schema\": \"ye3t_symmetric_power_materialization_resource_v1\", \"selected_backend\": \"exact_symbolic_independent_occupancy\"}",
+      "feature_hash": "7a073d09d0396fc2e9c59e226bea60aed90c517abaa7a32fa73502de7ed1279b",
+      "function_index": 54,
+      "reason": "resource_guard_direct_only"
+    },
+    {
+      "catalogue_feature_id": "ace_N04_7b6c1bde25f5e9e9267a",
+      "central_type": 0,
+      "descriptor_index": 57,
+      "detail": "exact symmetric-power coefficient materialization exceeds the configured resource limit; use coefficient_materialization='auto' or 'certified_numeric': {\"estimated_exact_symbolic_workspace_bytes\": 180633600, \"estimated_symbolic_bytes_per_occupancy_pair\": 4096, \"exceeds_exact_symbolic_limit\": true, \"input_L\": 3, \"maximum_exact_symbolic_bytes\": 134217728, \"maximum_weight_dimension\": 18, \"occupancy_dimension\": 210, \"policy\": \"exact\", \"power\": 4, \"schema\": \"ye3t_symmetric_power_materialization_resource_v1\", \"selected_backend\": \"exact_symbolic_independent_occupancy\"}",
+      "feature_hash": "780406165aea70d0bc2522bcbdfdf409a11a99a9f013953a98f1ac288982d315",
+      "function_index": 57,
+      "reason": "resource_guard_direct_only"
+    },
+    {
+      "catalogue_feature_id": "ace_N04_5c941196529eb3461488",
+      "central_type": 0,
+      "descriptor_index": 58,
+      "detail": "exact symmetric-power coefficient materialization exceeds the configured resource limit; use coefficient_materialization='auto' or 'certified_numeric': {\"estimated_exact_symbolic_workspace_bytes\": 180633600, \"estimated_symbolic_bytes_per_occupancy_pair\": 4096, \"exceeds_exact_symbolic_limit\": true, \"input_L\": 3, \"maximum_exact_symbolic_bytes\": 134217728, \"maximum_weight_dimension\": 18, \"occupancy_dimension\": 210, \"policy\": \"exact\", \"power\": 4, \"schema\": \"ye3t_symmetric_power_materialization_resource_v1\", \"selected_backend\": \"exact_symbolic_independent_occupancy\"}",
+      "feature_hash": "89046a84c09a72a313e18083928bb2706e29a5fff98fedc2b00917a9ae1cbe07",
+      "function_index": 58,
+      "reason": "resource_guard_direct_only"
+    }
+  ],
+  "source_yace_sha256": "6c74654ef41de151be4f2af1f2d4846b3561d1a64378a6ca493dcb07d5277ade",
+  "validation": {
+    "candidate_count": 106,
+    "function_count": 60,
+    "optimized_candidate_count": 46,
+    "plan_hash": "755767b7a88dd2e4ef194cdc941c6eb85fedfabc5ce7741bf951b12ad13e255a"
+  }
+}

@@ -1,0 +1,33 @@
+# 2000-step NVT preparation plus 10000-step NVE stability gate.
+units metal
+atom_style atomic
+boundary p p p
+atom_modify map yes sort 0 0.0
+newton on
+lattice bcc 3.1680000000000001
+region cell block 0 2 0 2 0 2 units lattice
+create_box 1 cell
+create_atoms 1 box
+mass 1 95.950000000000003
+reset_atoms id sort yes
+displace_atoms all random 0.01 0.01 0.01 78320 units box
+velocity all create 2316.8000000000002 86239 mom yes rot no dist gaussian
+neighbor 0.3 bin
+neigh_modify every 1 delay 0 check yes
+pair_style hybrid/overlay ye3t model_family tagged_cauchy block_policy direct zbl 1.318026516090159 1.6946055206873472
+pair_coeff * * ye3t models/ye3t_tagged_127/model.ye3t.json Mo
+pair_coeff * * zbl 42 42
+timestep 0.0005
+thermo 100
+thermo_style custom step temp pe ke etotal press
+thermo_modify format float %.17g
+fix thermostat all nvt temp 2316.8000000000002 2316.8000000000002 0.05
+run 2000
+unfix thermostat
+reset_timestep 0
+fix integrate all nve
+dump trajectory all custom 100 trajectory.ye3t_tagged_127.lammpstrj id type x y z vx vy vz fx fy fz
+dump_modify trajectory sort id
+print "YE3T_NVE_BEGIN"
+run 10000
+print "YE3T_NVE_END"

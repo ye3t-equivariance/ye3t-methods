@@ -1,0 +1,92 @@
+LAMMPS (22 Jul 2025 - Update 4)
+OMP_NUM_THREADS environment is not set. Defaulting to 1 thread.
+  using 1 OpenMP thread(s) per MPI task
+# Numerical differentiation for ye3t_tagged_127
+variable force_delta index 0.0001
+variable virial_delta index 3.0000000000000001e-05
+units metal
+atom_style atomic
+boundary p p p
+atom_modify map yes sort 0 0.0
+newton on
+lattice diamond 5.7629999999999999
+Lattice spacing in x,y,z = 5.763 5.763 5.763
+region cell block 0 2 0 2 0 2 units lattice
+create_box 1 cell
+Created orthogonal box = (0 0 0) to (11.526 11.526 11.526)
+  1 by 2 by 2 MPI processor grid
+create_atoms 1 box
+Created 64 atoms
+  using lattice units in orthogonal box = (0 0 0) to (11.526 11.526 11.526)
+  create_atoms CPU = 0.000 seconds
+mass 1 72.629999999999995
+reset_atoms id sort yes
+Resetting atom IDs ...
+WARNING: Communication cutoff is 0.0. No ghost atoms will be generated. Energies and forces may be wrong and atoms may get lost. (src/comm_brick.cpp:212)
+group displaced id 1
+1 atoms in group displaced
+displace_atoms displaced move 0.08 -0.05 0.04 units box
+Displacing atoms ...
+neighbor 0.3 bin
+neigh_modify every 1 delay 0 check no
+pair_style hybrid/overlay ye3t model_family tagged_cauchy block_policy direct zbl 1.4510643826302052 1.8656542062388353
+YE3T configuration: model_family tagged_cauchy, source_realization model_default, chunksize 4096, block_policy direct, plan none, auto_replay none
+pair_coeff * * ye3t models/ye3t_tagged_127/model.ye3t.json Ge
+YE3T CPU dispatch: PACE-compatible spline/half-complex source with split-real harmonics, exact signed-m expansion/collapse, tiled split-real symmetric-power forward/adjoint, source_model de577d2c5471eadc40e56cf0164b7778fa30335f0fd27585f7b2aacaaf6df9c7, direct_logical_plan fda11e94769696d06239ceedf51b882ef4dd6dea6c656f85cd678d04e007e574
+YE3T CPU source schedule: complete environments in 8/16-center batches, soft cache target 1048576 bytes (992 edges), no source-table replay; chunksize is an outer packing limit, not a memory limit
+YE3T self-contained composite: ordinary model be65d9ebc3afb1bfe5f5564cd3e1a560901b451c3f90f19c58956350c3ced066, tagged model a25d0b01f2779fab654da5b6fbf2493c9a09b4f585ecba2a1638cdbdf1057bc5, manifest de577d2c5471eadc40e56cf0164b7778fa30335f0fd27585f7b2aacaaf6df9c7, ordinary evaluator compiled_direct, tagged evaluator compiled_direct
+YE3T tagged-Cauchy CPU dispatch: real-arithmetic exact moment reduction, evaluator compiled_direct, portfolio 00931a8bde0f75be318a63cf21c6de9280bb7482fa26112ec04083f4e3c5eb8f, tag_count 2, feature_count 69, model_self_hash fda11e94769696d06239ceedf51b882ef4dd6dea6c656f85cd678d04e007e574
+Loaded YE3T tagged-Cauchy potential models/ye3t_tagged_127/model.ye3t.json
+pair_coeff * * zbl 32 32
+group probe id 1
+1 atoms in group probe
+fix numerical_force probe numdiff 1 ${force_delta}
+fix numerical_force probe numdiff 1 0.0001
+compute analytic_pressure all pressure NULL pair
+fix numerical_virial all numdiff/virial 1 ${virial_delta}
+fix numerical_virial all numdiff/virial 1 3.0000000000000001e-05
+variable dfx atom f_numerical_force[1]-fx
+variable dfy atom f_numerical_force[2]-fy
+variable dfz atom f_numerical_force[3]-fz
+variable dfmag atom sqrt(v_dfx*v_dfx+v_dfy*v_dfy+v_dfz*v_dfz)
+compute force_error probe reduce max v_dfmag
+variable dv1 equal f_numerical_virial[1]-c_analytic_pressure[1]
+variable dv2 equal f_numerical_virial[2]-c_analytic_pressure[2]
+variable dv3 equal f_numerical_virial[3]-c_analytic_pressure[3]
+variable dv4 equal f_numerical_virial[4]-c_analytic_pressure[6]
+variable dv5 equal f_numerical_virial[5]-c_analytic_pressure[5]
+variable dv6 equal f_numerical_virial[6]-c_analytic_pressure[4]
+variable virial_error equal sqrt(v_dv1*v_dv1+v_dv2*v_dv2+v_dv3*v_dv3+v_dv4*v_dv4+v_dv5*v_dv5+v_dv6*v_dv6)
+thermo 1
+thermo_style custom step pe c_force_error v_virial_error
+thermo_modify format float %.17g
+run 0 post no
+WARNING: No fixes with time integration, atoms won't move
+For more information see https://docs.lammps.org/err0028 (src/verlet.cpp:60)
+Neighbor list info ...
+  update: every = 1 steps, delay = 0 steps, check = no
+  max neighbors/atom: 2000, page size: 100000
+  master list distance cutoff = 5.3761617
+  ghost atom cutoff = 5.3761617
+  binsize = 2.6880808, bins = 5 5 5
+  2 neighbor lists, perpetual/occasional/extra = 2 0 0
+  (1) pair ye3t, perpetual
+      attributes: full, newton on, cut 5.376161693688304
+      pair build: full/bin/atomonly
+      stencil: full/bin/3d
+      bin: standard
+  (2) pair zbl, perpetual, half/full from (1)
+      attributes: half, newton on
+      pair build: halffull/newton
+      stencil: none
+      bin: none
+Per MPI rank memory allocation (min/avg/max) = 10.52 | 10.54 | 10.55 Mbytes
+   Step         PotEng     c_force_error  v_virial_error
+         0  -287.49604255678025 4.8999048926838707e-08 0.00085212251708408776
+Loop time of 2.976e-06 on 4 procs for 0 steps with 64 atoms
+
+print "YE3T_NUMDIFF_FORCE_MAX_ABS=$(c_force_error:%.17g)"
+YE3T_NUMDIFF_FORCE_MAX_ABS=4.8999048926838707e-08
+print "YE3T_NUMDIFF_VIRIAL_L2=$(v_virial_error:%.17g)"
+YE3T_NUMDIFF_VIRIAL_L2=0.00085212251708408797
+Total wall time: 0:00:00

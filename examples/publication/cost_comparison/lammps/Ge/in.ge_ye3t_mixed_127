@@ -1,0 +1,32 @@
+# YE3T mlearn cost-comparison finalist: ye3t_tagged_127
+variable dump_path index dump.ye3t_tagged_127
+units metal
+atom_style atomic
+boundary p p p
+atom_modify map yes sort 0 0.0
+newton on
+lattice diamond 5.7629999999999999
+region cell block 0 2 0 2 0 2 units lattice
+create_box 1 cell
+create_atoms 1 box
+mass 1 72.629999999999995
+reset_atoms id sort yes
+group displaced id 1
+displace_atoms displaced move 0.08 -0.05 0.04 units box
+neighbor 0.3 bin
+neigh_modify every 1 delay 0 check yes
+pair_style hybrid/overlay ye3t model_family tagged_cauchy block_policy auto zbl 1.4510643826302052 1.8656542062388353
+pair_coeff * * ye3t models/ye3t_tagged_127/model.ye3t.json Ge
+pair_coeff * * zbl 32 32
+compute atom_energy all pe/atom
+compute atom_stress all stress/atom NULL pair
+compute pair_pressure all pressure NULL pair
+thermo 1
+thermo_style custom step atoms vol pe c_pair_pressure[1] c_pair_pressure[2] &
+  c_pair_pressure[3] c_pair_pressure[4] c_pair_pressure[5] c_pair_pressure[6]
+thermo_modify format float %.17g
+run 0 post no
+write_dump all custom ${dump_path} id type x y z c_atom_energy &
+  c_atom_stress[1] c_atom_stress[2] c_atom_stress[3] &
+  c_atom_stress[4] c_atom_stress[5] c_atom_stress[6] fx fy fz &
+  modify sort id format float %.17g

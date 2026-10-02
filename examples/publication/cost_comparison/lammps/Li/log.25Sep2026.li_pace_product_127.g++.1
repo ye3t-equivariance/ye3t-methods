@@ -1,0 +1,73 @@
+LAMMPS (22 Jul 2025 - Update 4)
+OMP_NUM_THREADS environment is not set. Defaulting to 1 thread.
+  using 1 OpenMP thread(s) per MPI task
+# YE3T mlearn cost-comparison finalist: ace_127
+variable dump_path index dump.ace_127
+units metal
+atom_style atomic
+boundary p p p
+atom_modify map yes sort 0 0.0
+newton on
+lattice bcc 3.427
+Lattice spacing in x,y,z = 3.427 3.427 3.427
+region cell block 0 2 0 2 0 2 units lattice
+create_box 1 cell
+Created orthogonal box = (0 0 0) to (6.854 6.854 6.854)
+  1 by 1 by 1 MPI processor grid
+create_atoms 1 box
+Created 16 atoms
+  using lattice units in orthogonal box = (0 0 0) to (6.854 6.854 6.854)
+  create_atoms CPU = 0.000 seconds
+mass 1 6.9400000000000004
+reset_atoms id sort yes
+Resetting atom IDs ...
+WARNING: Communication cutoff is 0.0. No ghost atoms will be generated. Energies and forces may be wrong and atoms may get lost. (src/comm_brick.cpp:212)
+group displaced id 1
+1 atoms in group displaced
+displace_atoms displaced move 0.08 -0.05 0.04 units box
+Displacing atoms ...
+neighbor 0.3 bin
+neigh_modify every 1 delay 0 check yes
+pair_style hybrid/overlay pace product zbl 1.6007008523823156 2.1009198687517894
+ACE version: 2025.12.4p1
+Product evaluator is used
+pair_coeff * * pace models/ace_127/potential.yace Li
+Loading models/ace_127/potential.yace
+Total number of basis functions
+	Li: 4 (r=1) 123 (r>1)
+Mapping LAMMPS atom type #1(Li) -> ACE species type #0
+pair_coeff * * zbl 3 3
+compute atom_energy all pe/atom
+compute atom_stress all stress/atom NULL pair
+compute pair_pressure all pressure NULL pair
+thermo 1
+thermo_style custom step atoms vol pe c_pair_pressure[1] c_pair_pressure[2]   c_pair_pressure[3] c_pair_pressure[4] c_pair_pressure[5] c_pair_pressure[6]
+thermo_modify format float %.17g
+run 0 post no
+WARNING: No fixes with time integration, atoms won't move
+For more information see https://docs.lammps.org/err0028 (src/verlet.cpp:60)
+Neighbor list info ...
+  update: every = 1 steps, delay = 0 steps, check = yes
+  max neighbors/atom: 2000, page size: 100000
+  master list distance cutoff = 5.5050358
+  ghost atom cutoff = 5.5050358
+  binsize = 2.7525179, bins = 3 3 3
+  2 neighbor lists, perpetual/occasional/extra = 2 0 0
+  (1) pair pace, perpetual
+      attributes: full, newton on, cut 5.505035841991572
+      pair build: full/bin/atomonly
+      stencil: full/bin/3d
+      bin: standard
+  (2) pair zbl, perpetual, half/full from (1)
+      attributes: half, newton on
+      pair build: halffull/newton
+      stencil: none
+      bin: none
+Per MPI rank memory allocation (min/avg/max) = 6.196 | 6.196 | 6.196 Mbytes
+   Step        Atoms        Volume         PotEng     c_pair_pressure[1] c_pair_pressure[2] c_pair_pressure[3] c_pair_pressure[4] c_pair_pressure[5] c_pair_pressure[6]
+         0          16  321.98252386400003 -30.377535972109417 1011.6280613313102 1040.4911472921099 1047.215479817459 -30.064085101420908 24.108114276031774 -15.221509661365442
+Loop time of 3.89e-07 on 1 procs for 0 steps with 16 atoms
+
+write_dump all custom ${dump_path} id type x y z c_atom_energy   c_atom_stress[1] c_atom_stress[2] c_atom_stress[3]   c_atom_stress[4] c_atom_stress[5] c_atom_stress[6] fx fy fz   modify sort id format float %.17g
+write_dump all custom dump.ace_127 id type x y z c_atom_energy   c_atom_stress[1] c_atom_stress[2] c_atom_stress[3]   c_atom_stress[4] c_atom_stress[5] c_atom_stress[6] fx fy fz   modify sort id format float %.17g
+Total wall time: 0:00:00

@@ -1,0 +1,479 @@
+elements:
+- Ni
+E0:
+- -10.048779640661373
+embeddings:
+  0:
+    ndensity: 1
+    FS_parameters:
+    - 1.0
+    - 1.0
+    npoti: FinnisSinclair
+    rho_core_cutoff: 100000.0
+    drho_core_cutoff: 250.0
+bonds:
+  ? - 0
+    - 0
+  : nradmax: 4
+    lmax: 4
+    nradbasemax: 4
+    radbasename: ChebExpCos
+    radparameters:
+    - 0.7928781217554153
+    radcoefficients:
+    - - - 1.0
+        - 0.0
+        - 0.0
+        - 0.0
+      - - 1.0
+        - 0.0
+        - 0.0
+        - 0.0
+      - - 1.0
+        - 0.0
+        - 0.0
+        - 0.0
+      - - 1.0
+        - 0.0
+        - 0.0
+        - 0.0
+      - - 1.0
+        - 0.0
+        - 0.0
+        - 0.0
+    - - - 0.0
+        - 1.0
+        - 0.0
+        - 0.0
+      - - 0.0
+        - 1.0
+        - 0.0
+        - 0.0
+      - - 0.0
+        - 1.0
+        - 0.0
+        - 0.0
+      - - 0.0
+        - 1.0
+        - 0.0
+        - 0.0
+      - - 0.0
+        - 1.0
+        - 0.0
+        - 0.0
+    - - - 0.0
+        - 0.0
+        - 1.0
+        - 0.0
+      - - 0.0
+        - 0.0
+        - 1.0
+        - 0.0
+      - - 0.0
+        - 0.0
+        - 1.0
+        - 0.0
+      - - 0.0
+        - 0.0
+        - 1.0
+        - 0.0
+      - - 0.0
+        - 0.0
+        - 1.0
+        - 0.0
+    - - - 0.0
+        - 0.0
+        - 0.0
+        - 1.0
+      - - 0.0
+        - 0.0
+        - 0.0
+        - 1.0
+      - - 0.0
+        - 0.0
+        - 0.0
+        - 1.0
+      - - 0.0
+        - 0.0
+        - 0.0
+        - 1.0
+      - - 0.0
+        - 0.0
+        - 0.0
+        - 1.0
+    prehc: 0.0
+    lambdahc: 0.7928781217554153
+    rcut: 4.638049165633364
+    dcut: 0.01
+    rcut_in: 0.0
+    dcut_in: 0.0
+    inner_cutoff_type: distance
+functions:
+  0:
+  - mu0: 0
+    rank: 1
+    ndensity: 1
+    num_ms_combs: 1
+    mus:
+    - 0
+    ns:
+    - 1
+    ls:
+    - 0
+    ms_combs:
+    - 0
+    ctildes:
+    - 3.057965158779118
+  - mu0: 0
+    rank: 2
+    ndensity: 1
+    num_ms_combs: 1
+    mus:
+    - 0
+    - 0
+    ns:
+    - 1
+    - 1
+    ls:
+    - 0
+    - 0
+    ms_combs:
+    - 0
+    - 0
+    ctildes:
+    - -6.1361218531003
+  - mu0: 0
+    rank: 3
+    ndensity: 1
+    num_ms_combs: 1
+    mus:
+    - 0
+    - 0
+    - 0
+    ns:
+    - 1
+    - 1
+    - 1
+    ls:
+    - 0
+    - 0
+    - 0
+    ms_combs:
+    - 0
+    - 0
+    - 0
+    ctildes:
+    - 0.30002673405932095
+  - mu0: 0
+    rank: 4
+    ndensity: 1
+    num_ms_combs: 1
+    mus:
+    - 0
+    - 0
+    - 0
+    - 0
+    ns:
+    - 1
+    - 1
+    - 1
+    - 1
+    ls:
+    - 0
+    - 0
+    - 0
+    - 0
+    ms_combs:
+    - 0
+    - 0
+    - 0
+    - 0
+    ctildes:
+    - -0.01920882232313615
+  - mu0: 0
+    rank: 6
+    ndensity: 1
+    num_ms_combs: 1
+    mus:
+    - 0
+    - 0
+    - 0
+    - 0
+    - 0
+    - 0
+    ns:
+    - 1
+    - 1
+    - 1
+    - 1
+    - 1
+    - 1
+    ls:
+    - 0
+    - 0
+    - 0
+    - 0
+    - 0
+    - 0
+    ms_combs:
+    - 0
+    - 0
+    - 0
+    - 0
+    - 0
+    - 0
+    ctildes:
+    - 2.449751893672909e-05
+  - mu0: 0
+    rank: 8
+    ndensity: 1
+    num_ms_combs: 1
+    mus:
+    - 0
+    - 0
+    - 0
+    - 0
+    - 0
+    - 0
+    - 0
+    - 0
+    ns:
+    - 1
+    - 1
+    - 1
+    - 1
+    - 1
+    - 1
+    - 1
+    - 1
+    ls:
+    - 0
+    - 0
+    - 0
+    - 0
+    - 0
+    - 0
+    - 0
+    - 0
+    ms_combs:
+    - 0
+    - 0
+    - 0
+    - 0
+    - 0
+    - 0
+    - 0
+    - 0
+    ctildes:
+    - -5.275491803740476e-07
+  - mu0: 0
+    rank: 1
+    ndensity: 1
+    num_ms_combs: 1
+    mus:
+    - 0
+    ns:
+    - 2
+    ls:
+    - 0
+    ms_combs:
+    - 0
+    ctildes:
+    - 15.091904381281957
+  - mu0: 0
+    rank: 2
+    ndensity: 1
+    num_ms_combs: 1
+    mus:
+    - 0
+    - 0
+    ns:
+    - 2
+    - 2
+    ls:
+    - 0
+    - 0
+    ms_combs:
+    - 0
+    - 0
+    ctildes:
+    - -29.12014826291488
+  - mu0: 0
+    rank: 3
+    ndensity: 1
+    num_ms_combs: 1
+    mus:
+    - 0
+    - 0
+    - 0
+    ns:
+    - 2
+    - 2
+    - 2
+    ls:
+    - 0
+    - 0
+    - 0
+    ms_combs:
+    - 0
+    - 0
+    - 0
+    ctildes:
+    - 10.950756956326025
+  - mu0: 0
+    rank: 4
+    ndensity: 1
+    num_ms_combs: 1
+    mus:
+    - 0
+    - 0
+    - 0
+    - 0
+    ns:
+    - 2
+    - 2
+    - 2
+    - 2
+    ls:
+    - 0
+    - 0
+    - 0
+    - 0
+    ms_combs:
+    - 0
+    - 0
+    - 0
+    - 0
+    ctildes:
+    - -2.4595844398236846
+  - mu0: 0
+    rank: 6
+    ndensity: 1
+    num_ms_combs: 1
+    mus:
+    - 0
+    - 0
+    - 0
+    - 0
+    - 0
+    - 0
+    ns:
+    - 2
+    - 2
+    - 2
+    - 2
+    - 2
+    - 2
+    ls:
+    - 0
+    - 0
+    - 0
+    - 0
+    - 0
+    - 0
+    ms_combs:
+    - 0
+    - 0
+    - 0
+    - 0
+    - 0
+    - 0
+    ctildes:
+    - 0.08644131968946127
+  - mu0: 0
+    rank: 8
+    ndensity: 1
+    num_ms_combs: 1
+    mus:
+    - 0
+    - 0
+    - 0
+    - 0
+    - 0
+    - 0
+    - 0
+    - 0
+    ns:
+    - 2
+    - 2
+    - 2
+    - 2
+    - 2
+    - 2
+    - 2
+    - 2
+    ls:
+    - 0
+    - 0
+    - 0
+    - 0
+    - 0
+    - 0
+    - 0
+    - 0
+    ms_combs:
+    - 0
+    - 0
+    - 0
+    - 0
+    - 0
+    - 0
+    - 0
+    - 0
+    ctildes:
+    - -0.002129348060339342
+  - mu0: 0
+    rank: 1
+    ndensity: 1
+    num_ms_combs: 1
+    mus:
+    - 0
+    ns:
+    - 3
+    ls:
+    - 0
+    ms_combs:
+    - 0
+    ctildes:
+    - 1.8258901517950035
+  - mu0: 0
+    rank: 2
+    ndensity: 1
+    num_ms_combs: 1
+    mus:
+    - 0
+    - 0
+    ns:
+    - 3
+    - 3
+    ls:
+    - 0
+    - 0
+    ms_combs:
+    - 0
+    - 0
+    ctildes:
+    - 0.2179111064706351
+  - mu0: 0
+    rank: 3
+    ndensity: 1
+    num_ms_combs: 1
+    mus:
+    - 0
+    - 0
+    - 0
+    ns:
+    - 3
+    - 3
+    - 3
+    ls:
+    - 0
+    - 0
+    - 0
+    ms_combs:
+    - 0
+    - 0
+    - 0
+    ctildes:
+    - 0.04509096249393074
+deltaSplineBins: 0.001

@@ -1,0 +1,74 @@
+LAMMPS (22 Jul 2025 - Update 4)
+OMP_NUM_THREADS environment is not set. Defaulting to 1 thread.
+  using 1 OpenMP thread(s) per MPI task
+# YE3T mlearn cost-comparison finalist: ye3t_symmetric_60
+variable dump_path index dump.ye3t_symmetric_60
+units metal
+atom_style atomic
+boundary p p p
+atom_modify map yes sort 0 0.0
+newton on
+lattice fcc 3.508
+Lattice spacing in x,y,z = 3.508 3.508 3.508
+region cell block 0 2 0 2 0 2 units lattice
+create_box 1 cell
+Created orthogonal box = (0 0 0) to (7.016 7.016 7.016)
+  1 by 1 by 1 MPI processor grid
+create_atoms 1 box
+Created 32 atoms
+  using lattice units in orthogonal box = (0 0 0) to (7.016 7.016 7.016)
+  create_atoms CPU = 0.000 seconds
+mass 1 58.693399999999997
+reset_atoms id sort yes
+Resetting atom IDs ...
+WARNING: Communication cutoff is 0.0. No ghost atoms will be generated. Energies and forces may be wrong and atoms may get lost. (src/comm_brick.cpp:212)
+group displaced id 1
+1 atoms in group displaced
+displace_atoms displaced move 0.08 -0.05 0.04 units box
+Displacing atoms ...
+neighbor 0.3 bin
+neigh_modify every 1 delay 0 check yes
+pair_style hybrid/overlay ye3t plan models/ace_60/ye3t_auto/manifest.json block_policy auto zbl 1.2596748174007975 1.6195819080867397
+YE3T configuration: model_family yace, source_realization model_default, chunksize 4096, block_policy auto, plan models/ace_60/ye3t_auto/manifest.json, auto_replay none
+pair_coeff * * ye3t models/ace_60/potential.yace Ni
+YE3T CPU dispatch: PACE-compatible spline/half-complex source with split-real harmonics, exact signed-m expansion/collapse, tiled split-real symmetric-power forward/adjoint, source_model 6c74654ef41de151be4f2af1f2d4846b3561d1a64378a6ca493dcb07d5277ade, direct_logical_plan 2d8d07fb4b2fcbe74ebe005720df468fcf22fc23ecfad8b2333e30d77da81303
+YE3T CPU source schedule: complete environments in 8/16-center batches, soft cache target 1048576 bytes (761 edges), no source-table replay; chunksize is an outer packing limit, not a memory limit
+Loaded YE3T YACE potential models/ace_60/potential.yace
+	Ni: 0 selected block routes and 0 selected coupled-product DAGs from 46 compiled candidate routes, 106 total candidates across 46/60 candidate/catalogue functions, 0 scalar-power routes, 0 symmetric-power blocks, 0 scalar bases, 0 scalar nodes, estimated operations 1512 -> 1512, planner candidate_vector_coordinate_descent_v4_marginal (cpu_structural_split_real_tile8_v1, selected, heuristic, 2 scores), plan 755767b7a88dd2e4ef194cdc941c6eb85fedfabc5ce7741bf951b12ad13e255a
+	Ni: evaluator portfolio abbbd94e3f35d5566342cace05a6dace121d59e776a204d29aa94421f1141d25
+	Ni: 61 full channels, 39 source channels, 209 shared monomials, 163 cached powers, 208 binary product-DAG nodes (balanced-frequent-first), rank <= 8
+pair_coeff * * zbl 28 28
+compute atom_energy all pe/atom
+compute atom_stress all stress/atom NULL pair
+compute pair_pressure all pressure NULL pair
+thermo 1
+thermo_style custom step atoms vol pe c_pair_pressure[1] c_pair_pressure[2]   c_pair_pressure[3] c_pair_pressure[4] c_pair_pressure[5] c_pair_pressure[6]
+thermo_modify format float %.17g
+run 0 post no
+WARNING: No fixes with time integration, atoms won't move
+For more information see https://docs.lammps.org/err0028 (src/verlet.cpp:60)
+Neighbor list info ...
+  update: every = 1 steps, delay = 0 steps, check = yes
+  max neighbors/atom: 2000, page size: 100000
+  master list distance cutoff = 4.9380492
+  ghost atom cutoff = 4.9380492
+  binsize = 2.4690246, bins = 3 3 3
+  2 neighbor lists, perpetual/occasional/extra = 2 0 0
+  (1) pair ye3t, perpetual
+      attributes: full, newton on, cut 4.938049165633363
+      pair build: full/bin/atomonly
+      stencil: full/bin/3d
+      bin: standard
+  (2) pair zbl, perpetual, half/full from (1)
+      attributes: half, newton on
+      pair build: halffull/newton
+      stencil: none
+      bin: none
+Per MPI rank memory allocation (min/avg/max) = 10.76 | 10.76 | 10.76 Mbytes
+   Step        Atoms        Volume         PotEng     c_pair_pressure[1] c_pair_pressure[2] c_pair_pressure[3] c_pair_pressure[4] c_pair_pressure[5] c_pair_pressure[6]
+         0          32  345.35738009599999 -184.97651021876595 25039.546919645902 25038.731214827621 25037.523167749256 -600.20223326007272 479.06903602289003 -296.45964388237144
+Loop time of 5.41e-07 on 1 procs for 0 steps with 32 atoms
+
+write_dump all custom ${dump_path} id type x y z c_atom_energy   c_atom_stress[1] c_atom_stress[2] c_atom_stress[3]   c_atom_stress[4] c_atom_stress[5] c_atom_stress[6] fx fy fz   modify sort id format float %.17g
+write_dump all custom dump.ye3t_symmetric_60 id type x y z c_atom_energy   c_atom_stress[1] c_atom_stress[2] c_atom_stress[3]   c_atom_stress[4] c_atom_stress[5] c_atom_stress[6] fx fy fz   modify sort id format float %.17g
+Total wall time: 0:00:00

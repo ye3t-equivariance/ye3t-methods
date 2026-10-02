@@ -1,0 +1,13 @@
+include README.md
+include RELEASE_VALIDATION.md
+include LICENSE
+include CITATION.cff
+include pyproject.toml
+graft examples
+graft docs
+graft tests
+global-exclude *.py[cod]
+global-exclude __pycache__/*
+global-exclude .DS_Store
+prune dist
+prune build

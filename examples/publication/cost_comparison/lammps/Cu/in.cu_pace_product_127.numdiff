@@ -1,0 +1,43 @@
+# Numerical differentiation for ace_127
+variable force_delta index 0.0001
+variable virial_delta index 3.0000000000000001e-05
+units metal
+atom_style atomic
+boundary p p p
+atom_modify map yes sort 0 0.0
+newton on
+lattice fcc 3.621
+region cell block 0 2 0 2 0 2 units lattice
+create_box 1 cell
+create_atoms 1 box
+mass 1 63.545999999999999
+reset_atoms id sort yes
+group displaced id 1
+displace_atoms displaced move 0.08 -0.05 0.04 units box
+neighbor 0.3 bin
+neigh_modify every 1 delay 0 check no
+pair_style hybrid/overlay pace product zbl 1.2826759996174664 1.6491548566510283
+pair_coeff * * pace models/ace_127/potential.yace Cu
+pair_coeff * * zbl 29 29
+group probe id 1
+fix numerical_force probe numdiff 1 ${force_delta}
+compute analytic_pressure all pressure NULL pair
+fix numerical_virial all numdiff/virial 1 ${virial_delta}
+variable dfx atom f_numerical_force[1]-fx
+variable dfy atom f_numerical_force[2]-fy
+variable dfz atom f_numerical_force[3]-fz
+variable dfmag atom sqrt(v_dfx*v_dfx+v_dfy*v_dfy+v_dfz*v_dfz)
+compute force_error probe reduce max v_dfmag
+variable dv1 equal f_numerical_virial[1]-c_analytic_pressure[1]
+variable dv2 equal f_numerical_virial[2]-c_analytic_pressure[2]
+variable dv3 equal f_numerical_virial[3]-c_analytic_pressure[3]
+variable dv4 equal f_numerical_virial[4]-c_analytic_pressure[6]
+variable dv5 equal f_numerical_virial[5]-c_analytic_pressure[5]
+variable dv6 equal f_numerical_virial[6]-c_analytic_pressure[4]
+variable virial_error equal sqrt(v_dv1*v_dv1+v_dv2*v_dv2+v_dv3*v_dv3+v_dv4*v_dv4+v_dv5*v_dv5+v_dv6*v_dv6)
+thermo 1
+thermo_style custom step pe c_force_error v_virial_error
+thermo_modify format float %.17g
+run 0 post no
+print "YE3T_NUMDIFF_FORCE_MAX_ABS=$(c_force_error:%.17g)"
+print "YE3T_NUMDIFF_VIRIAL_L2=$(v_virial_error:%.17g)"
