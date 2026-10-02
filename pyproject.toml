@@ -9,7 +9,7 @@ description = "Linear atomistic methods built on the YE3T representation compile
 readme = "README.md"
 requires-python = ">=3.11"
 license = "BSD-3-Clause"
-license-files = ["LICENSE"]
+license-files = ["LICENSE", "native/LICENSE", "native/third_party/yaml-cpp/LICENSE"]
 authors = [{name = "YE3T contributors"}]
 dependencies = ["ye3t>=0.1.0", "numpy", "torch", "PyYAML", "ase", "sympy"]
 

@@ -277,3 +277,16 @@ exact commands/results are included in the external artifact inventory. The
 quickstart Cu2/Ta3/H3 data are deterministic manufactured labels, not physical
 potential validation. Experimental application training and test execution
 were intentionally outside this release.
+
+## Bundled yaml-cpp build
+
+The native source archive now includes upstream yaml-cpp 0.8.0 under
+`native/third_party/yaml-cpp` with its MIT license. The default build links it
+statically. A CMake build with `CMAKE_PREFIX_PATH=/nonexistent` passed, and
+both Li paper ASE examples retained their prior energies. A platform wheel
+built from the source archive installed and ran both examples using its
+packaged library, without an explicit library path. `readelf` found no
+`libyaml-cpp` dependency or build-machine RPATH in that installed library.
+The source archive and wheel both retain the MIT license notice.
+With `YE3T_METHODS_BUILD_NATIVE=0`, pip also produced a pure Python wheel
+without a shared library; that setting skips the C++ build.

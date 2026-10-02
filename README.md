@@ -17,7 +17,7 @@ setuptools, and wheel first, then install `ye3t` without build isolation so its
 build can import the installed PyTorch:
 
 ```bash
-python -m pip install torch 'setuptools>=77,<82' wheel
+python -m pip install torch 'setuptools>=77,<82' wheel cmake
 python -m pip install --no-build-isolation ../ye3t
 python -m pip install --no-build-isolation '.[examples]'
 ```
@@ -38,9 +38,10 @@ ASE remains available for neighbor construction without matscipy.
 
 The tagged and ordinary density ASE evaluators use the CPU C++ library in
 `native/`. Installing from source with `--no-build-isolation` builds and
-installs the library automatically when `ye3t`, CMake 3.20+, a C++17 compiler,
-and `yaml-cpp` development files are already installed. The ASE adapters find
-the packaged library automatically. For a separate CMake build, run:
+installs the library automatically when `ye3t`, CMake 3.20+, and a C++17
+compiler are installed. The build uses its bundled yaml-cpp 0.8.0 source;
+the ASE adapters find the packaged library automatically. For a separate
+CMake build, run:
 
 ```bash
 cmake -S native -B ../build-ye3t-methods-native \
@@ -49,10 +50,16 @@ cmake --build ../build-ye3t-methods-native --target ye3t_tagged_c_api --parallel
 export YE3T_TAGGED_C_API_LIBRARY="$PWD/../build-ye3t-methods-native/libye3t_tagged_c_api.so"
 ```
 
-The build needs a C++17 compiler, CMake 3.20 or newer, and `yaml-cpp`
-development files. For host-specific optimization, configure with
+The build needs a C++17 compiler and CMake 3.20 or newer. To use an installed
+yaml-cpp instead, configure with `-DYE3T_USE_SYSTEM_YAML_CPP=ON` and set
+`CMAKE_PREFIX_PATH` if needed. For host-specific optimization, configure with
 `-DYE3T_NATIVE_CPU=ON`; `-DYE3T_ENABLE_IPO=ON` enables supported
 interprocedural optimization.
+
+For a Python-only installation without a C++ toolchain, use
+`YE3T_METHODS_BUILD_NATIVE=0 python -m pip install --no-build-isolation .`.
+The PyTorch evaluators remain available; `backend="native_cpu"` requires a
+native build.
 
 ```python
 model = LinearModel.read("tagged.ye3t.json")
@@ -78,7 +85,8 @@ option and the distinct settings for descriptor construction and evaluation.
 The density default radial basis may not pass strict YACE export; choose a
 PACE-compatible basis when fitting for C++ evaluation. The native source is
 included under `native/` with the GNU General Public License in that directory.
-Source-built wheels include the compiled library for their build platform.
+Native source-built wheels include the compiled library for their build
+platform; the Python-only option produces a pure wheel.
 
 Alternatively, with a compatible `ye3t` distribution available to pip,
 install the local wheel:

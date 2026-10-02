@@ -45,7 +45,7 @@ class CMakeBuild(build_ext):
             f"-DCMAKE_RUNTIME_OUTPUT_DIRECTORY={output_dir}",
             f"-DCMAKE_PREFIX_PATH={sys.prefix}",
         ]
-        for name in ("YE3T_NATIVE_CPU", "YE3T_ENABLE_IPO"):
+        for name in ("YE3T_NATIVE_CPU", "YE3T_ENABLE_IPO", "YE3T_USE_SYSTEM_YAML_CPP"):
             if name in os.environ:
                 args.append(f"-D{name}={os.environ[name]}")
         subprocess.check_call(args)
@@ -53,9 +53,24 @@ class CMakeBuild(build_ext):
             cmake, "--build", str(build_dir), "--target", "ye3t_tagged_c_api",
             "--config", "Release", "--parallel", "2",
         ])
+        if sys.platform.startswith("linux"):
+            library = output_dir / "libye3t_tagged_c_api.so"
+            patchelf = shutil.which("patchelf")
+            if patchelf is None:
+                local_patchelf = Path(sys.prefix) / "bin" / "patchelf"
+                patchelf = str(local_patchelf) if local_patchelf.is_file() else None
+            if patchelf is not None and library.is_file():
+                subprocess.check_call([patchelf, "--remove-rpath", str(library)])
 
+
+native_setting = os.environ.get("YE3T_METHODS_BUILD_NATIVE", "1").strip()
+if native_setting not in {"0", "1"}:
+    raise RuntimeError("YE3T_METHODS_BUILD_NATIVE must be 0 or 1.")
 
 setup(
-    ext_modules=[Extension("ye3t_ace.libye3t_tagged_c_api", sources=[])],
+    ext_modules=(
+        [Extension("ye3t_ace.libye3t_tagged_c_api", sources=[])]
+        if native_setting == "1" else []
+    ),
     cmdclass={"build_ext": CMakeBuild},
 )
