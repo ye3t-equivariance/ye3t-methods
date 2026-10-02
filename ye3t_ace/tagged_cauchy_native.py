@@ -25,8 +25,8 @@ class _TaggedCauchyNativeRuntime:
             candidate = ctypes.util.find_library("ye3t_tagged_c_api")
         if not candidate:
             raise RuntimeError(
-                "The native tagged CPU library is unavailable. Build "
-                "ye3t-lammps with ML_YE3T_BUILD_TAGGED_C_API=ON and pass "
+                "The native tagged CPU library is unavailable. Build the "
+                "bundled native/ CMake target and pass "
                 "native_library=... or set YE3T_TAGGED_C_API_LIBRARY."
             )
         self.library = ctypes.CDLL(str(candidate))

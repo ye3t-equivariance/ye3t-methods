@@ -4,8 +4,9 @@ Choosing a linear evaluator
 ``Basis(backend=...)`` controls descriptor construction and fitting.
 ``LinearModel.ase_calculator(backend=...)`` selects evaluation of a saved or
 fitted model. These are separate choices. The ordinary ACE low-level
-``source_backend`` setting selects a one-neighbor source kernel; it does not
-turn the whole ordinary ASE calculator into the standalone C++ runtime.
+``source_backend`` setting selects a one-neighbor source kernel. Full C++
+ordinary ASE evaluation uses ``backend="native_cpu"`` and requires the
+model to pass strict YACE export.
 
 .. list-table:: Supported compact ASE choices
    :header-rows: 1
@@ -16,15 +17,17 @@ turn the whole ordinary ASE calculator into the standalone C++ runtime.
      - Notes
    * - ``density``
      - ``pytorch`` by default
-     - ``pytorch`` by default
-     - Torch ASE energy, forces, and stress. Choose ``force_method="analytic_factorized"``
-       for the explicit analytic force path; the default is ``autograd``.
+     - ``pytorch`` by default; ``native_cpu`` for strict YACE-compatible models
+     - Torch ASE energy, forces, and stress by default. Choose
+       ``force_method="analytic_factorized"`` for the explicit analytic force
+       path; the default is ``autograd``. ``native_cpu`` calls the separate C++
+       YACE evaluator and rejects models that cannot be lowered to strict YACE.
    * - ``tagged_cauchy_image``
      - ``auto`` by default; ``reference`` or ``native`` explicitly
      - ``reference`` by default; ``native_polynomial`` or ``native_cpu`` explicitly
      - ``reference`` uses the Torch reference evaluator. ``native_polynomial``
        accelerates only the polynomial contraction. ``native_cpu`` uses the
-       separate ``ye3t-lammps`` C++ library for the model evaluation.
+       optional C++ library built from this package's ``native/`` source.
    * - ``bar_phi``
      - ``pytorch`` only
      - ``pytorch`` or its ``reference`` alias
@@ -32,12 +35,10 @@ turn the whole ordinary ASE calculator into the standalone C++ runtime.
 
 The ordinary low-level contraction selector also accepts ``auto``, ``triton``,
 and ``openequivariance``. Those names select internal contraction paths where
-supported; this release qualifies the ordinary compact ASE path with
-``pytorch``. Passing ``backend="native"`` to the ordinary calculator is an
-alias for ``pytorch`` in the core contraction selector, not a request for a
-standalone C++ calculator. ``backend="native_cpu"`` is the tagged ASE option,
-not an ordinary density option. Strict requests for unsupported low-level
-paths can fail rather than silently using Torch.
+supported. Use ``native_cpu`` explicitly for the standalone C++ evaluator;
+``backend="native"`` is only a core contraction alias and may still run through
+Torch. Strict requests for unsupported low-level paths fail rather than
+silently using Torch.
 
 Ordinary and Phi examples
 -------------------------
@@ -59,6 +60,22 @@ The runnable :doc:`quickstart` scripts keep the evaluator in their editable
 changes evaluation, not fitted coefficients or descriptor labels. An explicit
 ``bar_phi`` model uses ``model.ase_calculator(backend="pytorch")``.
 
+To use C++ for a compatible ordinary model, build the shared library below
+and select ``native_cpu``:
+
+.. code-block:: python
+
+   model = LinearModel.read("ordinary.pt")
+   model.export_lammps("ordinary.yace")  # checks strict YACE compatibility
+   atoms.calc = model.ase_calculator(backend="native_cpu")
+   energy, forces = atoms.get_potential_energy(), atoms.get_forces()
+
+The compact density default radial basis may not pass strict YACE export.
+Choose a PACE-compatible radial specification when fitting a model intended
+for the C++ evaluator. Unsupported models raise an export error; they are not
+silently evaluated by Torch. The ``native_cpu`` route does not apply to
+``bar_phi``.
+
 Tagged reference and native CPU
 -------------------------------
 
@@ -74,14 +91,30 @@ constructing the ASE calculator:
    reference_forces = atoms.get_forces()
 
    atoms.calc = model.ase_calculator(
-       backend="native_cpu", native_library="./libye3t_tagged_c_api.so",
-       execution_policy="direct",
+       backend="native_cpu", execution_policy="direct",
    )
    native_forces = atoms.get_forces()
 
-Build the optional C ABI library from ``ye3t-lammps`` with
-``ML_YE3T_BUILD_TAGGED_C_API=ON``. Pass its path with ``native_library`` or set
-``YE3T_TAGGED_C_API_LIBRARY``. ``execution_policy`` is ``direct`` or ``auto``;
+Build the optional C ABI library used by both tagged and ordinary density
+models from this package's ``native/`` source directory. Run these commands
+from the ``ye3t-methods`` source root with a sibling ``ye3t`` source checkout,
+a C++17 compiler, CMake 3.20 or newer, and ``yaml-cpp`` development files:
+
+.. code-block:: bash
+
+   cmake -S native -B ../build-ye3t-methods-native \
+     -DCMAKE_BUILD_TYPE=Release \
+     -DYE3T_RUNTIME_SOURCE="$PWD/../ye3t"
+   cmake --build ../build-ye3t-methods-native --target ye3t_tagged_c_api --parallel
+   export YE3T_TAGGED_C_API_LIBRARY="$PWD/../build-ye3t-methods-native/libye3t_tagged_c_api.so"
+
+The examples above use ``YE3T_TAGGED_C_API_LIBRARY``. To override it for a
+calculator, pass ``native_library="../build-ye3t-methods-native/libye3t_tagged_c_api.so"``
+when running from this source root. The native library is built separately from
+the Python wheel. Pass ``-DYE3T_NATIVE_CPU=ON`` at CMake configuration to
+optimize for the build host, and ``-DYE3T_ENABLE_IPO=ON`` when interprocedural
+optimization is supported. The optional native source has its own GPL-2.0-or-later
+license in ``native/LICENSE``. ``execution_policy`` is ``direct`` or ``auto``;
 ``auto`` calibrates schedules when the model is opened and takes longer to
 initialize. The native model and its schedules stay resident in the calculator.
 It reuses neighbor topology while atoms move within the 0.3 Å skin.
@@ -95,6 +128,15 @@ path actually used.
 Install it with ``python -m pip install '.[neighbors]'`` from the methods
 source checkout after installing the local ``ye3t`` dependency.
 
+A previous local matched 127-feature Ni composite (59 ACE and 68 tagged
+features) run on 256 atoms and 1,000 NVE steps recorded a 10.051 ms/step ASE
+median and 8.248 ms/step LAMMPS median (ASE
+1.22 times the LAMMPS time). Its initial energy and maximum force differences
+were 2.51e-12 eV and 3.16e-13 eV/Å. The provenance is in the separate
+``ye3t-workflows/tagged_right_tag_speed/README.md`` study; this is prior
+tagged-composite evidence, not a timing result for the new ordinary YACE ASE
+adapter or a portable performance guarantee.
+
 Paper deployment artifacts
 --------------------------
 
@@ -107,7 +149,6 @@ and a tagged correction. Load it directly with the native ASE adapter:
 
    atoms.calc = YE3TTaggedCauchyCalculator.from_artifact(
        "lammps/Li/models/ye3t_tagged_127/model.ye3t.json",
-       native_library="./libye3t_tagged_c_api.so",
        execution_policy="direct",
    )
 
@@ -122,7 +163,6 @@ the two ASE calculators:
 
    linear = YE3TTaggedCauchyCalculator.from_artifact(
        "lammps/Li/models/ye3t_tagged_127/model.ye3t.json",
-       native_library="./libye3t_tagged_c_api.so",
    )
    zbl = YE3TZBLCalculator.from_model_manifest(
        "lammps/Li/models/ye3t_tagged_127/model_manifest.json"
@@ -135,9 +175,22 @@ reference contributes zero on that cell. On four close-contact Li pairs,
 the ASE ZBL energy and force differences from LAMMPS were at most
 ``5.6e-17`` eV and ``8.9e-16`` eV/Å, respectively.
 
-The paper's ACE control is shipped as ``.yace`` for LAMMPS/PACE.
-``LinearModel.read`` accepts ordinary ``.pt`` bundles, not ``.yace``. It also
-does not read the paper's composite tagged schema as a compact tagged model.
-The archived paper files therefore do not currently provide a single PyTorch
-ASE calculator for both exact published models. Newly fitted compact density,
-tagged, and Phi models do retain the Torch-backed ASE routes above.
+The paper's ACE control is shipped as ``.yace`` for LAMMPS/PACE. Evaluate that
+same saved artifact directly in ASE with the C++ library:
+
+.. code-block:: python
+
+   from ye3t_ace.yace_native import YE3TYACENativeCalculator
+
+   atoms.calc = YE3TYACENativeCalculator.from_artifact(
+       "lammps/Li/models/ace_127/potential.yace",
+   )
+
+For the complete paper potential, add the ZBL overlay from the ACE model
+manifest with ``SumCalculator`` as in the tagged example above. The runnable
+``examples/publication/cost_comparison/ase_native_density.py`` shows the exact
+Li model and its step-zero reference. ``LinearModel.read`` accepts ordinary
+``.pt`` bundles, not ``.yace``; use ``YE3TYACENativeCalculator.from_artifact``
+for a saved YACE file. The paper's composite tagged schema likewise uses its
+dedicated native adapter. Newly fitted compact density, tagged, and Phi models
+retain the Torch ASE routes above.

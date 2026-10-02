@@ -12,10 +12,13 @@ is a base dependency here even though `ye3t` offers it as a reference extra.
 
 Install the separate `ye3t` compiler and then the local methods distribution.
 The methods metadata declares `ye3t>=0.1.0` as a runtime dependency; it
-does not vendor the compiler. With sibling source checkouts:
+does not vendor the compiler. With sibling source checkouts, install PyTorch,
+setuptools, and wheel first, then install `ye3t` without build isolation so its
+build can import the installed PyTorch:
 
 ```bash
-python -m pip install ../ye3t
+python -m pip install torch 'setuptools>=77,<82' wheel
+python -m pip install --no-build-isolation ../ye3t
 python -m pip install '.[examples]'
 ```
 
@@ -30,6 +33,51 @@ Optional packages are selected with pip extras after installing the local
 
 Install all three with `python -m pip install '.[examples,fit,neighbors]'`.
 ASE remains available for neighbor construction without matscipy.
+
+## C++ evaluators
+
+The tagged and ordinary density ASE evaluators can use the optional CPU C++
+library in this repository's `native/` directory. Build `ye3t_tagged_c_api`
+from the `ye3t-methods` source root with a sibling `ye3t` source checkout,
+then choose `backend="native_cpu"` and supply the resulting shared library:
+
+```bash
+cmake -S native -B ../build-ye3t-methods-native \
+  -DCMAKE_BUILD_TYPE=Release -DYE3T_RUNTIME_SOURCE="$PWD/../ye3t"
+cmake --build ../build-ye3t-methods-native --target ye3t_tagged_c_api --parallel
+export YE3T_TAGGED_C_API_LIBRARY="$PWD/../build-ye3t-methods-native/libye3t_tagged_c_api.so"
+```
+
+The build needs a C++17 compiler, CMake 3.20 or newer, and `yaml-cpp`
+development files. For host-specific optimization, configure with
+`-DYE3T_NATIVE_CPU=ON`; `-DYE3T_ENABLE_IPO=ON` enables supported
+interprocedural optimization.
+
+```python
+model = LinearModel.read("tagged.ye3t.json")
+atoms.calc = model.ase_calculator(
+    backend="native_cpu",
+    execution_policy="direct",
+)
+```
+
+The same library contains the ordinary YACE C++ evaluator. For a density
+model whose radial specification passes strict YACE export:
+
+```python
+model = LinearModel.read("ordinary.pt")
+model.export_lammps("ordinary.yace")  # verifies strict YACE compatibility
+atoms.calc = model.ase_calculator(
+    backend="native_cpu",
+)
+```
+
+The [evaluator guide](docs/evaluators.rst) gives the environment variable
+option and the distinct settings for descriptor construction and evaluation.
+The density default radial basis may not pass strict YACE export; choose a
+PACE-compatible basis when fitting for C++ evaluation. The native source is
+included under `native/` with the GNU General Public License in that directory. The compiled
+library is a separate optional build and is not installed by the Python wheel.
 
 Alternatively, with a compatible `ye3t` distribution available to pip,
 install the local wheel:

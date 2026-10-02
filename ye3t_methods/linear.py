@@ -2,6 +2,7 @@
 
 from copy import deepcopy
 import json
+import tempfile
 from pathlib import Path
 
 import numpy as np
@@ -682,6 +683,30 @@ class LinearModel:
         if self._fitted is None:
             raise RuntimeError("Fit or read a model before constructing an ASE calculator.")
         if self.basis.source == "density":
+            if backend == "native_cpu":
+                from ye3t_ace.yace_native import YE3TYACENativeCalculator
+
+                temporary = tempfile.TemporaryDirectory(prefix="ye3t_yace_native_")
+                try:
+                    path = Path(temporary.name) / "model.yace"
+                    self.export_lammps(path)
+                    if self.reference_energies:
+                        from ye3t_ace.ace.yace import read_yace
+
+                        exported = read_yace(path, compatibility="lammps_pace_linear_v1")
+                        expected = [float(self._fitted.bias) +
+                                    float(self.reference_energies.get(name, 0.0))
+                                    for name in self.basis.elements]
+                        if not np.allclose(exported["E0"], expected, rtol=0.0, atol=1e-12):
+                            raise ValueError(
+                                "Native YACE export did not preserve the fitted reference energies."
+                            )
+                    calculator = YE3TYACENativeCalculator.from_artifact(path, **kwargs)
+                    calculator._temporary = temporary
+                    return calculator
+                except Exception:
+                    temporary.cleanup()
+                    raise
             return LinearACEScalarCalculator(
                 self._fitted, self.basis.cutoff,
                 self.basis._resolved.get(

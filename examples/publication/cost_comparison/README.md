@@ -46,11 +46,15 @@ refitting.
 ## Choose an ASE evaluator
 
 The fitted `ye3t_tagged_127` paper artifact is a tagged-plus-ACE composite.
-Build the `ye3t-lammps` C ABI library with `ML_YE3T_BUILD_TAGGED_C_API=ON`,
-then run its editable [ASE example](ase_native_tagged.py):
+Build this archive's native C++ library with a sibling `ye3t` source checkout,
+then run both editable ASE examples:
 
 ```bash
-export YE3T_TAGGED_C_API_LIBRARY=./libye3t_tagged_c_api.so
+cmake -S native -B ../build-ye3t-methods-native \
+  -DYE3T_RUNTIME_SOURCE=../ye3t
+cmake --build ../build-ye3t-methods-native --target ye3t_tagged_c_api --parallel
+export YE3T_TAGGED_C_API_LIBRARY="$PWD/../build-ye3t-methods-native/libye3t_tagged_c_api.so"
+python examples/publication/cost_comparison/ase_native_density.py
 python examples/publication/cost_comparison/ase_native_tagged.py
 ```
 
@@ -65,9 +69,10 @@ The example structure is the 16-atom Li LAMMPS validation cell.
 
 The standalone C++ adapter evaluates the **linear residual**; the example
 combines it with the required ZBL reference from the model manifest. ZBL
-contributes zero on the example Li cell. The ACE
-control's promoted `.yace` is for LAMMPS/PACE; the package's Torch ASE loader
-reads saved `.pt` bundles instead. The paper composite also is not a compact
+contributes zero on the example Li cell. The ACE control's promoted `.yace`
+also loads directly in ASE through `YE3TYACENativeCalculator.from_artifact`.
+The package's compact Torch ASE loader reads saved `.pt` bundles instead.
+The paper composite also is not a compact
 `LinearModel.read` artifact. See [evaluator choices](../../../docs/evaluators.rst)
 for `backend="pytorch"`, `reference`, `native_polynomial`, and `native_cpu`
 on newly fitted compact models.

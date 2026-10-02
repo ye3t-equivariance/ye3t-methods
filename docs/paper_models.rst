@@ -39,27 +39,32 @@ After building LAMMPS with ML-YE3T and, for the independent control, ML-PACE:
    lmp -in in.li_pace_product_127
    lmp -in in.li_ye3t_mixed_127
 
-ASE evaluation of the paper tagged model
-----------------------------------------
+ASE evaluation of the paper models
+----------------------------------
 
-The exact tagged-plus-ACE composite can also run in ASE through the separate
-``ye3t-lammps`` C++ library. Build that library with
-``ML_YE3T_BUILD_TAGGED_C_API=ON``, then from the extracted source archive run:
+Both the exact tagged-plus-ACE composite and the independent ACE control run
+in ASE through the C++ library bundled in this source archive. Build it with
+a sibling ``ye3t`` source checkout, then run the two editable examples:
 
 .. code-block:: bash
 
-   export YE3T_TAGGED_C_API_LIBRARY=./libye3t_tagged_c_api.so
+   cmake -S native -B ../build-ye3t-methods-native \
+     -DYE3T_RUNTIME_SOURCE=../ye3t
+   cmake --build ../build-ye3t-methods-native --target ye3t_tagged_c_api --parallel
+   export YE3T_TAGGED_C_API_LIBRARY="$PWD/../build-ye3t-methods-native/libye3t_tagged_c_api.so"
+   python examples/publication/cost_comparison/ase_native_density.py
    python examples/publication/cost_comparison/ase_native_tagged.py
 
-The script has an editable configuration and validates the 16-atom Li
+Each script has an editable configuration and validates the 16-atom Li
 step-zero energy against the retained LAMMPS log. It reports forces, stress,
-the selected C++ policy, and the neighbor-list backend. The standalone C++
-adapter evaluates the fitted **residual**; the script combines it with
+and the neighbor-list backend. The C++ adapter evaluates the fitted
+**residual**; each script combines it with
 ``YE3TZBLCalculator.from_model_manifest`` through ASE ``SumCalculator``.
 The ZBL overlay is zero on this example geometry.
-The ordinary ACE control is supplied as ``.yace`` for LAMMPS/PACE, with no
-direct ``LinearModel.read`` ASE route from that file. See :doc:`evaluators`
-for the compact Torch paths and exact artifact limitations.
+The ordinary ACE control is supplied as ``.yace`` and loads through
+``YE3TYACENativeCalculator.from_artifact``. ``LinearModel.read`` reads compact
+Torch ``.pt`` bundles, not ``.yace`` files. See :doc:`evaluators` for the
+compact Torch paths and exact artifact limitations.
 
 The inputs supply the ZBL overlay used in training. Read the
 ``examples/publication/cost_comparison/README.md`` and the local LAMMPS

@@ -5,7 +5,7 @@ record covers the fixed-feature application split only. The inherited
 projection and polynomial approximation modules have been removed from the
 release source. The pre-removal source is preserved with a SHA-256 inventory
 under the sibling workflows archive.
-Local artifacts are prepared without publishing or changing remotes. The author clarified that
+The source repository has been published to GitHub. The author clarified that
 “flag” in the release brief meant the tagged route listed below; it does not
 name a separate linear family.
 

@@ -24,9 +24,10 @@ Model persistence
 
 ``LinearModel.read(path)`` restores the corresponding fitted model and label
 order. Give an explicit file path when multiple suffixes could match one stem.
-The paper's tagged-plus-ACE composite uses the separate native
+The paper's tagged-plus-ACE composite uses the native
 ``YE3TTaggedCauchyCalculator.from_artifact`` loader; the paper ACE ``.yace``
-control has no ``LinearModel.read`` route. See :doc:`evaluators` for the
+control uses ``YE3TYACENativeCalculator.from_artifact``. ``LinearModel.read``
+does not read ``.yace`` files. See :doc:`evaluators` for the
 supported ASE backends and examples.
 Torch artifacts use Python deserialization and must come from a trusted source.
 The tagged JSON loader checks its versioned schema and hashes. A loaded model
