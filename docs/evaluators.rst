@@ -151,8 +151,11 @@ project needs its own cache:
 
    basis = Basis(
        elements=["Ni"], source="tagged_cauchy_image", cutoff=4.8,
-       tensor_order=4, tag_counts=(0, 2), radial_degrees=(0,),
-       angular_degree=1,
+       pair_cutoffs_A={"Ni-Ni": 4.8},
+       rank=4, tag_counts=(0, 2),
+       nmax_per_rank={4: 1}, lmax_per_rank={4: 1},
+       source_block_partitions_by_rank={4: ((4,),)},
+       angular_patterns_by_rank={4: ((1, 1, 1, 1),)},
        compiled_cache_dir=Path.home() / ".cache" / "ye3t" / "tagged",
    )
    print(basis.resolved["compiled_cache_dir"])

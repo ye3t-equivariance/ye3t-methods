@@ -52,14 +52,18 @@ unsupported settings are rejected rather than ignored.
 ordered tags. ``target_L`` identifies that carrier's rotation irrep. Neither
 is the global parent Young partition of an atomistic descriptor. The example
 uses ``sector_policy="tagged_mixed"`` to retain both tag-exchange types;
-``backend="reference"`` selects the current reference evaluator.
+``backend="reference"`` selects the carrier reference evaluator. Standalone
+carriers currently accept only that evaluator. The scalar tagged ``Basis``
+below uses an ``auto`` polynomial evaluator, and saved linear models can use
+the native C++ ASE calculator; those backend options do not apply to the raw
+carrier example.
 
 Building, fitting, and inspecting
 ---------------------------------
 
 The runnable ``examples/evaluate_ni_descriptors.py`` script shows a Ni fcc
 cell, a displaced copy, one visible config, descriptor row slices, and a check
-for the nontrivial internal Young witness. Its essential basis request is:
+for a nontrivial source-block Young partition. Its essential basis request is:
 
 .. code-block:: python
 
@@ -67,17 +71,68 @@ for the nontrivial internal Young witness. Its essential basis request is:
 
    basis = Basis(
        elements=["Ni"], source="tagged_cauchy_image", cutoff=4.8,
-       tensor_order=4, tag_counts=(0, 2), radial_degrees=(0,),
-       angular_degree=1, backend="reference",
+       pair_cutoffs_A={"Ni-Ni": 4.8},
+       rank=4, tag_counts=(0, 2),
+       nmax_per_rank={4: 1}, lmax_per_rank={4: 1},
+       source_block_partitions_by_rank={4: ((4,),)},
+       angular_patterns_by_rank={4: ((1, 1, 1, 1),)},
    )
    print(basis.labels[0].as_dict())
+   print(basis.resolved["polynomial_backend"])
 
-``tag_counts`` selects raw tag-count opportunities before the exact image is
-formed. ``radial_degrees`` selects source degrees, ``angular_degree`` the
-one-neighbor angular degree, and ``tensor_order`` the fixed tensor order.
-The example's ``expected_internal_tag_young`` and
-``expected_internal_role_young`` values check compiler provenance; they do
-not select a different global parent. The tagged constructor currently fixes
+The descriptor-first interface accepts the same general catalogue:
+
+.. code-block:: python
+
+   from ye3t_ace import YE3TDescriptors
+
+   config = {
+       "metadata": {"name": "ni_tagged_catalogue"},
+       "basis": {
+           "type": "tagged_cauchy_image", "species": ["Ni"], "cutoff_A": 4.8,
+           "pair_cutoffs_A": {"Ni-Ni": 4.8},
+           "catalogue": {
+               "nmax_per_rank": {4: 1}, "lmax_per_rank": {4: 1},
+               "source_block_partitions_by_rank": {4: ((4,),)},
+               "angular_patterns_by_rank": {4: ((1, 1, 1, 1),)},
+               "tag_counts_by_rank": {4: (0, 2)},
+           },
+       },
+       "representation": {
+           "carrier": "A_s", "target": {"permutation": "trivial", "L": 0},
+           "mode": "tagged_cauchy_image",
+       },
+       "runtime": {"backend": "auto"},
+       "model": {}, "targets": {}, "validation": {},
+   }
+   descriptors = YE3TDescriptors.ye3t_basis(config)
+   print(len(descriptors.feature_labels))
+
+``tag_counts`` in ``Basis`` and ``tag_counts_by_rank`` in the catalogue select
+raw tag-count opportunities before the exact image is formed. ``rank`` fixes
+the tensor order in ``Basis``; the catalogue rank comes from its per-rank keys.
+``nmax_per_rank`` and
+``lmax_per_rank`` are explicit maps from rank to radial and angular caps.
+``angular_patterns_by_rank`` restricts the rank-four source factors to four
+``l=1`` channels; the angular cap alone would also permit ``l=0``.
+``source_block_partitions_by_rank`` requests one four-factor source block.
+This general catalogue request has a different column inventory from the older
+bounded rank-four witness stored in paper artifacts. ``cutoff`` is the global
+neighbor cutoff in angstroms. Optional ``pair_cutoffs_A`` sets radial cutoffs
+for a complete ordered species-pair map; each value must be at most ``cutoff``.
+The certified shifted-Jacobi radial source has no
+adjustable radial lambda; requesting one would require a different compiler
+source. The coefficient catalogue is compiled exactly and cached. The
+default tagged polynomial evaluator selects its native path when available;
+``basis.resolved["polynomial_backend"]`` reports the selected evaluator.
+Its backend setting is separate from coefficient compilation. The generic
+``numeric_cached`` subduction and fast Clebsch--Gordan route is not yet wired
+to this tagged-image request. Cold rank-four Ni compilation can take tens of
+seconds; a repeated request reloads the persistent cache more quickly.
+The example's ``expected_source_block_young`` checks the compiled general
+catalogue; it is not the tag or role Young partition of the older bounded
+construction and does not select a different global parent. The tagged
+constructor currently fixes
 that parent to the symmetric partition ``(N)`` with ``L=0`` and even parity.
 ``max_rank`` belongs to ordinary density and is rejected here. Inspect the
 actual column count and each label's ``compiler_coordinate_provenance`` and
@@ -88,6 +143,9 @@ which those partitions act; they are not interchangeable with a parent
 
 The compact linear model fits precomputed energies and forces and can include
 ASE Voigt stress rows with ``stress_weight``. The fixture supplies these labels.
+``examples/quickstart/tagged_fit.py`` uses the general catalogue above and
+reports a source-block Young partition; it does not assert the bounded paper
+model's tag-sign and role Young witness.
 ``LinearModel.write`` produces a versioned, hash-bound ``.ye3t.json`` model;
 ``LinearModel.read`` restores it. An ASE calculator can evaluate energy,
 forces, and stress. ``export_lammps`` writes the tagged deployment artifact;

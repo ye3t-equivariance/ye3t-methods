@@ -14,8 +14,11 @@ config = {
     },
     "basis": {
         "elements": ["Ta"], "source": "tagged_cauchy_image", "cutoff": 4.8,
-        "tensor_order": 4, "tag_counts": (0, 2), "radial_degrees": (0,),
-        "angular_degree": 1, "backend": "reference",
+        "pair_cutoffs_A": {"Ta-Ta": 4.8},
+        "rank": 4, "tag_counts": (0, 2),
+        "nmax_per_rank": {4: 1}, "lmax_per_rank": {4: 1},
+        "source_block_partitions_by_rank": {4: ((4,),)},
+        "angular_patterns_by_rank": {4: ((1, 1, 1, 1),)},
     },
     "representation": {"parent_young": "trivial", "parent_L": 0},
     "runtime": {
@@ -26,7 +29,11 @@ config = {
     "model": {"type": "linear", "regularization": 1e-8,
               "energy_weight": 1.0, "force_weight": 1.0, "stress_weight": 0.1},
     "targets": {"energy": "energy", "forces": "forces", "stress": "stress"},
-    "validation": {"evaluate_structure": fixtures / "ta3_structure.extxyz"},
+    "validation": {
+        "evaluate_structure": fixtures / "ta3_structure.extxyz",
+        "expected_tag_count": 2,
+        "expected_source_block_young": (2, 2),
+    },
 }
 if config["representation"] != {"parent_young": "trivial", "parent_L": 0}:
     raise ValueError("This linear tagged readout supports only a scalar invariant parent.")
@@ -52,19 +59,24 @@ atoms.calc = restored.ase_calculator(
     native_library=config["runtime"]["native_library"],
     execution_policy=config["runtime"]["execution_policy"],
 )
+# The general catalogue's source-block partition is distinct from the
+# bounded paper model's tag-sign and role Young labels.
 two_tag = next(label for label in basis.labels if any(
-    tuple(raw["tag_kappa"]) == (1, 1)
+    raw["tag_count"] == config["validation"]["expected_tag_count"]
+    and config["validation"]["expected_source_block_young"] in tuple(
+        tuple(partition) for partition in raw["label"]["block_kappas"]
+    )
     for raw in label.as_dict()["compiler_raw_opportunities"]
 ))
 print(basis)
 print("training_structures", len(structures))
-print("two_tag_coordinate", two_tag.feature_index)
-print("tag_kappa", sorted({
-    tuple(raw["tag_kappa"])
+print("two_tag_source_block_coordinate", two_tag.feature_index)
+print("tag_counts", sorted({
+    raw["tag_count"]
     for raw in two_tag.as_dict()["compiler_raw_opportunities"]
 }))
-print("role_kappa", sorted({
-    tuple(raw["role_kappa"])
+print("source_block_kappas", sorted({
+    tuple(tuple(partition) for partition in raw["label"]["block_kappas"])
     for raw in two_tag.as_dict()["compiler_raw_opportunities"]
 }))
 print("roundtrip_features", len(restored.labels))

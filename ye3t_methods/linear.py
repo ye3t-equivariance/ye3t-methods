@@ -64,6 +64,15 @@ class FeatureLabel:
                 f"motif={fields['motif_name']}"
             )
         raw = fields["compiler_raw_opportunities"]
+        if raw and "tag_kappa" not in raw[0]:
+            tag_counts = sorted({int(item["tag_count"]) for item in raw})
+            block_kappas = sorted({tuple(tuple(part) for part in
+                item["label"]["block_kappas"]) for item in raw})
+            return (
+                f"[{self.feature_index}] B N={fields['N']} L={fields['L']} "
+                f"tag_counts={tag_counts} block_kappas={block_kappas[:2]} "
+                f"({len(raw)} compiler opportunities)"
+            )
         tags = sorted({tuple(item["tag_kappa"]) for item in raw})
         roles = sorted({tuple(item["role_kappa"]) for item in raw})
         tag_view = f"{tags[:2]}" + (f" +{len(tags) - 2} more" if len(tags) > 2 else "")
@@ -115,16 +124,22 @@ def _density_labels(specs, elements):
     return tuple(labels)
 
 
-def _tagged_labels(records, tensor_order, raw_labels):
-    by_id = {str(item["raw_opportunity_id"]): item for item in raw_labels}
+def _tagged_labels(records, tensor_order, raw_labels, raw_from_image=None):
+    if raw_from_image is None:
+        by_id = {str(item["raw_opportunity_id"]): item for item in raw_labels}
+    else:
+        by_feature = [[] for _ in records]
+        for raw_label, terms in zip(raw_labels, raw_from_image, strict=True):
+            for term in terms:
+                opportunity = deepcopy(raw_label)
+                opportunity["image_coefficient"] = deepcopy(term["coefficient"])
+                by_feature[int(term["feature_index"])].append(opportunity)
     labels = []
     for index, record in enumerate(records):
-        opportunities = tuple(
-            deepcopy(by_id[str(item["raw_opportunity_id"])])
-            for item in record["contributors"]
-        )
+        opportunities = (tuple(by_feature[index]) if raw_from_image is not None else tuple(
+            deepcopy(by_id[str(item["raw_opportunity_id"])]) for item in record["contributors"]))
         labels.append(FeatureLabel(index, "tagged_cauchy_image", f"tagged-image:{index}", {
-            "N": int(tensor_order),
+            "N": int(record.get("tensor_order", tensor_order)),
             "L": 0,
             "M": 0,
             "compiler_coordinate_provenance": deepcopy(record),
@@ -206,12 +221,16 @@ class Basis:
     """Resolved density, scalar tagged, or explicit motif basis."""
 
     def __init__(self, *, elements, source="density", cutoff, max_rank=None,
-                 nmax=4, lmax=2, radial_decay=0.25, tag_counts=None,
+                 nmax=4, lmax=2, radial_decay=None, tag_counts=None,
+                 rank=None, nmax_per_rank=None, lmax_per_rank=None,
+                 source_block_partitions_by_rank=None, angular_patterns_by_rank=None,
+                 max_records_per_rank=None, max_features_per_rank=None,
                  radial_degrees=None, tensor_order=None, angular_degree=None,
                  backend=None, motif_family="full", motif_specs=None,
                  channels=None, edge_cutoff=None, edge_basis_backend="site_basis",
                  periodic_image_mode="unique", normalize_motif_features=True,
-                 compiled_cache_dir=None, descriptor_cache_dir=None):
+                 compiled_cache_dir=None, descriptor_cache_dir=None,
+                 compiler_validation="certificate", pair_cutoffs_A=None):
         self.elements = tuple(str(value) for value in elements)
         if not self.elements or len(set(self.elements)) != len(self.elements):
             raise ValueError("elements must be a nonempty unique sequence.")
@@ -219,10 +238,17 @@ class Basis:
         if not np.isfinite(self.cutoff) or self.cutoff <= 0:
             raise ValueError("cutoff must be finite and positive in Angstrom.")
         self.source = str(source)
+        catalogue_options = (rank, nmax_per_rank, lmax_per_rank,
+            source_block_partitions_by_rank, angular_patterns_by_rank,
+            max_records_per_rank, max_features_per_rank)
         if self.source == "density":
+            if pair_cutoffs_A is not None:
+                raise ValueError("pair_cutoffs_A is available for the tagged source only.")
+            radial_decay = 0.25 if radial_decay is None else float(radial_decay)
             if compiled_cache_dir is not None:
                 raise ValueError("Density uses descriptor_cache_dir, not compiled_cache_dir.")
-            if tag_counts is not None or radial_degrees is not None or tensor_order is not None:
+            if tag_counts is not None or radial_degrees is not None or tensor_order is not None or any(
+                    value is not None for value in catalogue_options):
                 raise ValueError("Tagged source options require source='tagged_cauchy_image'.")
             rank_count = 3 if max_rank is None else int(max_rank)
             if rank_count < 1:
@@ -265,29 +291,92 @@ class Basis:
             }
             self._labels = _density_labels(self._descriptor.descriptor_specs, self.elements)
         elif self.source == "tagged_cauchy_image":
+            if radial_decay is not None:
+                raise ValueError("The tagged shifted-Jacobi source has no radial_decay setting.")
             if descriptor_cache_dir is not None:
                 raise ValueError("Tagged Cauchy image uses compiled_cache_dir, not descriptor_cache_dir.")
-            if tag_counts is None or radial_degrees is None:
-                raise ValueError("Tagged basis requires explicit tag_counts and radial_degrees.")
+            if tag_counts is None:
+                raise ValueError("Tagged basis requires explicit tag_counts.")
             if max_rank is not None:
-                raise ValueError("Tagged tensor order is specified by tensor_order, not max_rank.")
-            order = 4 if tensor_order is None else int(tensor_order)
-            angular = 1 if angular_degree is None else int(angular_degree)
+                raise ValueError("Tagged rank is specified by rank, not max_rank.")
             self.backend = "auto" if backend is None else str(backend)
             cache_dir = (default_linear_cache_directory() / "compiler" / "tagged_cauchy_image"
                          if compiled_cache_dir is None else Path(compiled_cache_dir))
-            config = {
-                "elements": self.elements,
-                "representation": YE3TRepresentation.tagged_cauchy_image(),
-                "tagged_cauchy_image": {
+            if compiler_validation not in {"full", "certificate"}:
+                raise ValueError("compiler_validation must be full or certificate.")
+            uses_catalogue = any(value is not None for value in catalogue_options)
+            if uses_catalogue:
+                if any(value is not None for value in (radial_degrees, tensor_order, angular_degree)):
+                    raise ValueError("Use rank and per-rank caps without tensor_order, radial_degrees, or angular_degree.")
+                if any(value is None for value in (rank, nmax_per_rank, lmax_per_rank,
+                                                   source_block_partitions_by_rank)):
+                    raise ValueError("Tagged catalogue basis requires rank, nmax_per_rank, "
+                                     "lmax_per_rank, and source_block_partitions_by_rank.")
+                order = int(rank)
+                if order < 1:
+                    raise ValueError("rank must be positive.")
+                for name, setting in (("nmax_per_rank", nmax_per_rank),
+                                      ("lmax_per_rank", lmax_per_rank),
+                                      ("source_block_partitions_by_rank", source_block_partitions_by_rank)):
+                    if (not isinstance(setting, dict) or len(setting) != 1
+                            or {int(key) for key in setting} != {order}):
+                        raise ValueError(f"{name} must contain exactly rank {order}.")
+                radial_cap = int(next(iter(nmax_per_rank.values())))
+                angular_cap = int(next(iter(lmax_per_rank.values())))
+                if radial_cap < 1 or angular_cap < 0:
+                    raise ValueError("nmax_per_rank must be positive and lmax_per_rank nonnegative.")
+                partitions = tuple(tuple(int(part) for part in parts)
+                                   for parts in next(iter(source_block_partitions_by_rank.values())))
+                if not partitions or any(not parts or min(parts) < 1 or sum(parts) != order
+                                         for parts in partitions):
+                    raise ValueError("Each source block partition must contain positive sizes summing to rank.")
+                catalogue = {
+                    "nmax_per_rank": {order: radial_cap},
+                    "lmax_per_rank": {order: angular_cap},
+                    "source_block_partitions_by_rank": {order: partitions},
+                    "tag_counts_by_rank": {order: tuple(int(value) for value in tag_counts)},
+                    "angular_basis_backend": "exact_weight_space_v1",
+                }
+                if angular_patterns_by_rank is not None:
+                    if (not isinstance(angular_patterns_by_rank, dict)
+                            or len(angular_patterns_by_rank) != 1
+                            or {int(key) for key in angular_patterns_by_rank} != {order}):
+                        raise ValueError("angular_patterns_by_rank must contain exactly the selected rank.")
+                    patterns = tuple(tuple(int(value) for value in pattern)
+                                     for pattern in next(iter(angular_patterns_by_rank.values())))
+                    if not patterns or any(len(pattern) != order or min(pattern) < 0
+                                           or max(pattern) > angular_cap for pattern in patterns):
+                        raise ValueError("Each angular pattern must have rank entries in 0..lmax_per_rank.")
+                    catalogue["angular_patterns_by_rank"] = {order: patterns}
+                for name, value in (("max_records_per_rank", max_records_per_rank),
+                                    ("max_features_per_rank", max_features_per_rank)):
+                    if value is not None:
+                        catalogue[name] = {order: int(value)}
+                tagged_request = {"catalogue": catalogue, "cutoff_A": self.cutoff,
+                                  "coefficient_materialization": "compile",
+                                  "compiled_cache_dir": cache_dir,
+                                  "compiler_validation": compiler_validation}
+            else:
+                if radial_degrees is None:
+                    raise ValueError("Tagged basis requires rank and per-rank caps; legacy requests need radial_degrees.")
+                order = 4 if tensor_order is None else int(tensor_order)
+                angular = 1 if angular_degree is None else int(angular_degree)
+                tagged_request = {
                     "tensor_order": order,
-                    "selected_raw_tag_counts": tuple(int(v) for v in tag_counts),
-                    "radial_degrees": tuple(int(v) for v in radial_degrees),
+                    "selected_raw_tag_counts": tuple(int(value) for value in tag_counts),
+                    "radial_degrees": tuple(int(value) for value in radial_degrees),
                     "angular_degree": angular,
                     "cutoff_A": self.cutoff,
                     "coefficient_materialization": "compile",
                     "compiled_cache_dir": cache_dir,
-                },
+                    "compiler_validation": compiler_validation,
+                }
+            if pair_cutoffs_A is not None:
+                tagged_request["pair_cutoffs_A"] = dict(pair_cutoffs_A)
+            config = {
+                "elements": self.elements,
+                "representation": YE3TRepresentation.tagged_cauchy_image(),
+                "tagged_cauchy_image": tagged_request,
                 "backend": self.backend,
             }
             self._descriptor = YE3TDescriptors.ye3t_basis(config)
@@ -295,20 +384,33 @@ class Basis:
                 "source": self.source, "elements": tuple(self._descriptor.elements),
                 "cutoff_A": self.cutoff, "N": order,
                 "tag_counts": tuple(int(v) for v in tag_counts),
-                "radial_degrees": tuple(int(v) for v in radial_degrees),
-                "angular_degree": angular, "backend": self.backend,
+                "backend": self.backend,
                 "compiled_cache_dir": str(cache_dir),
+                "compiler_validation": compiler_validation,
             }
+            if pair_cutoffs_A is not None:
+                self._resolved["pair_cutoffs_A"] = dict(pair_cutoffs_A)
+            if uses_catalogue:
+                self._resolved["catalogue"] = catalogue
+            else:
+                self._resolved["radial_degrees"] = tuple(int(v) for v in radial_degrees)
+                self._resolved["angular_degree"] = angular
             self.elements = tuple(self._descriptor.elements)
             compiled = self._descriptor.metadata["tagged_cauchy_image_compiled"]
+            self._resolved["polynomial_backend"] = self._descriptor.metadata[
+                "tagged_cauchy_image_evaluator"].backend
             self._labels = _tagged_labels(
                 self._descriptor.feature_labels, order,
-                compiled.payload["raw_coordinate_labels"],
+                compiled.payload.get("raw_coordinate_labels", compiled.payload.get("raw_labels")),
+                compiled.payload.get("raw_from_image") if uses_catalogue else None,
             )
         elif self.source == "bar_phi":
+            if pair_cutoffs_A is not None:
+                raise ValueError("pair_cutoffs_A is available for the tagged source only.")
             if compiled_cache_dir is not None or descriptor_cache_dir is not None:
                 raise ValueError("bar_phi does not use density or tagged compiler cache settings.")
-            if max_rank is not None or tag_counts is not None or radial_degrees is not None or tensor_order is not None:
+            if max_rank is not None or tag_counts is not None or radial_degrees is not None or tensor_order is not None or any(
+                    value is not None for value in catalogue_options):
                 raise ValueError("bar_phi uses explicit motif slots; density and tagged truncations do not apply.")
             self.backend = "pytorch" if backend is None else str(backend)
             if self.backend != "pytorch":
@@ -369,15 +471,23 @@ class Basis:
         basis.backend = str(model.evaluator.backend)
         basis._descriptor = None
         request = model.evaluator.compiled.plan.report.request
+        payload = model.evaluator.compiled.payload
+        records = payload["image_coordinate_provenance"]
+        if "tensor_order" in request:
+            order = int(request["tensor_order"])
+        else:
+            ranks = tuple(sorted({int(record["tensor_order"]) for record in records}))
+            order = ranks[0] if len(ranks) == 1 else None
         basis._resolved = {
             "source": basis.source, "elements": basis.elements,
             "cutoff_A": basis.cutoff, "compiler_request": request,
             "compiler_hash": model.evaluator.compiled.self_hash,
+            "N": order,
         }
-        records = model.evaluator.compiled.payload["image_coordinate_provenance"]
         basis._labels = _tagged_labels(
-            records, request["tensor_order"],
-            model.evaluator.compiled.payload["raw_coordinate_labels"],
+            records, order,
+            payload.get("raw_coordinate_labels", payload.get("raw_labels")),
+            payload.get("raw_from_image") if "catalogue" in request else None,
         )
         return basis
 
