@@ -110,8 +110,11 @@ a C++17 compiler, CMake 3.20 or newer, and ``yaml-cpp`` development files:
 
 The examples above use ``YE3T_TAGGED_C_API_LIBRARY``. To override it for a
 calculator, pass ``native_library="../build-ye3t-methods-native/libye3t_tagged_c_api.so"``
-when running from this source root. The native library is built separately from
-the Python wheel. Pass ``-DYE3T_NATIVE_CPU=ON`` at CMake configuration to
+when running from this source root. A source install using
+``python -m pip install --no-build-isolation .`` builds and packages the library
+automatically when installed ``ye3t``, CMake 3.20+, a C++17 compiler, and
+``yaml-cpp`` are available. The adapters find that packaged library without an
+environment variable. Pass ``-DYE3T_NATIVE_CPU=ON`` at CMake configuration to
 optimize for the build host, and ``-DYE3T_ENABLE_IPO=ON`` when interprocedural
 optimization is supported. The optional native source has its own GPL-2.0-or-later
 license in ``native/LICENSE``. ``execution_policy`` is ``direct`` or ``auto``;
@@ -125,7 +128,7 @@ installed and otherwise falls back to ASE's neighbor list. ``matscipy`` is an
 optional speedup; it changes neighbor construction, not the model or force
 formula. The calculator's ``native_runtime.last_neighbor_backend`` reports the
 path actually used.
-Install it with ``python -m pip install '.[neighbors]'`` from the methods
+Install it with ``python -m pip install --no-build-isolation '.[neighbors]'`` from the methods
 source checkout after installing the local ``ye3t`` dependency.
 
 A previous local matched 127-feature Ni composite (59 ACE and 68 tagged

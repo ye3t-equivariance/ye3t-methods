@@ -19,7 +19,7 @@ build can import the installed PyTorch:
 ```bash
 python -m pip install torch 'setuptools>=77,<82' wheel
 python -m pip install --no-build-isolation ../ye3t
-python -m pip install '.[examples]'
+python -m pip install --no-build-isolation '.[examples]'
 ```
 
 Optional packages are selected with pip extras after installing the local
@@ -27,19 +27,20 @@ Optional packages are selected with pip extras after installing the local
 
 | Extra | Install from the `ye3t-methods` source directory | Adds |
 | --- | --- | --- |
-| `fit` | `python -m pip install '.[fit]'` | scikit-learn for LASSO, ARDRegression, and other optional linear fitters |
-| `neighbors` | `python -m pip install '.[neighbors]'` | matscipy for faster neighbor rebuilds on eligible general cells |
-| `examples` | `python -m pip install '.[examples]'` | plotting and example utilities |
+| `fit` | `python -m pip install --no-build-isolation '.[fit]'` | scikit-learn for LASSO, ARDRegression, and other optional linear fitters |
+| `neighbors` | `python -m pip install --no-build-isolation '.[neighbors]'` | matscipy for faster neighbor rebuilds on eligible general cells |
+| `examples` | `python -m pip install --no-build-isolation '.[examples]'` | plotting and example utilities |
 
-Install all three with `python -m pip install '.[examples,fit,neighbors]'`.
+Install all three with `python -m pip install --no-build-isolation '.[examples,fit,neighbors]'`.
 ASE remains available for neighbor construction without matscipy.
 
 ## C++ evaluators
 
-The tagged and ordinary density ASE evaluators can use the optional CPU C++
-library in this repository's `native/` directory. Build `ye3t_tagged_c_api`
-from the `ye3t-methods` source root with a sibling `ye3t` source checkout,
-then choose `backend="native_cpu"` and supply the resulting shared library:
+The tagged and ordinary density ASE evaluators use the CPU C++ library in
+`native/`. Installing from source with `--no-build-isolation` builds and
+installs the library automatically when `ye3t`, CMake 3.20+, a C++17 compiler,
+and `yaml-cpp` development files are already installed. The ASE adapters find
+the packaged library automatically. For a separate CMake build, run:
 
 ```bash
 cmake -S native -B ../build-ye3t-methods-native \
@@ -76,14 +77,14 @@ The [evaluator guide](docs/evaluators.rst) gives the environment variable
 option and the distinct settings for descriptor construction and evaluation.
 The density default radial basis may not pass strict YACE export; choose a
 PACE-compatible basis when fitting for C++ evaluation. The native source is
-included under `native/` with the GNU General Public License in that directory. The compiled
-library is a separate optional build and is not installed by the Python wheel.
+included under `native/` with the GNU General Public License in that directory.
+Source-built wheels include the compiled library for their build platform.
 
 Alternatively, with a compatible `ye3t` distribution available to pip,
 install the local wheel:
 
 ```bash
-python -m pip install ye3t_methods-0.1.0-py3-none-any.whl
+python -m pip install ye3t_methods-0.1.0-*.whl
 ```
 
 The source archive contains these complete scripts and their deterministic

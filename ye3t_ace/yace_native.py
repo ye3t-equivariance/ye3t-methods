@@ -4,6 +4,7 @@ import ctypes
 import ctypes.util
 import os
 import weakref
+from pathlib import Path
 
 import numpy as np
 from ase.calculators.calculator import Calculator, all_changes
@@ -16,6 +17,10 @@ class _YACENativeRuntime(_TaggedCauchyNativeRuntime):
 
     def __init__(self, path, *, library_path=None, neighbor_skin=0.3):
         candidate = library_path or os.environ.get("YE3T_TAGGED_C_API_LIBRARY")
+        if candidate is None:
+            suffix = ".dll" if os.name == "nt" else (".dylib" if os.sys.platform == "darwin" else ".so")
+            bundled = Path(__file__).resolve().parent / f"libye3t_tagged_c_api{suffix}"
+            candidate = str(bundled) if bundled.is_file() else None
         if candidate is None:
             candidate = ctypes.util.find_library("ye3t_tagged_c_api")
         if not candidate:

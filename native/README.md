@@ -11,7 +11,10 @@ The native sources are covered by the GNU General Public License provided in
 [LICENSE](LICENSE). The Python package's root BSD 3-Clause license does not
 replace the license on these native files.
 
-Build with CMake and a YE3T source checkout containing its C++ runtime core:
+With `ye3t` already installed, CMake 3.20+, a C++17 compiler, and `yaml-cpp`,
+`python -m pip install --no-build-isolation .` builds this library into the
+installed package. The build reads runtime C++ source from installed `ye3t`;
+set `YE3T_RUNTIME_SOURCE` to a checkout if needed. For a separate CMake build:
 
 ```sh
 cmake -S native -B ../build-ye3t-methods-native \

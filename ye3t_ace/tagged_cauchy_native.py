@@ -22,6 +22,10 @@ class _TaggedCauchyNativeRuntime:
             raise ValueError("Native tagged execution_policy must be auto or direct.")
         candidate = library_path or os.environ.get("YE3T_TAGGED_C_API_LIBRARY")
         if candidate is None:
+            suffix = ".dll" if os.name == "nt" else (".dylib" if os.sys.platform == "darwin" else ".so")
+            bundled = Path(__file__).resolve().parent / f"libye3t_tagged_c_api{suffix}"
+            candidate = str(bundled) if bundled.is_file() else None
+        if candidate is None:
             candidate = ctypes.util.find_library("ye3t_tagged_c_api")
         if not candidate:
             raise RuntimeError(

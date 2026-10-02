@@ -3,6 +3,7 @@ include RELEASE_VALIDATION.md
 include LICENSE
 include CITATION.cff
 include pyproject.toml
+include setup.py
 graft examples
 graft docs
 graft tests
