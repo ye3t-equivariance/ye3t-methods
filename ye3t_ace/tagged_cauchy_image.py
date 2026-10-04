@@ -29,7 +29,7 @@ from ye3t_ace.lifted_cauchy_linear import LiftedCauchyPolynomialSource
 from ye3t.couplings.orthogonal_shifted_jacobi import (
     shifted_jacobi_ladder_with_derivative,
 )
-from ye3t_ace.tagged_cauchy_linear import position_jacobian_from_edge_derivative
+from ye3t_ace.tagged_cauchy_linear import _real_float64_tensor, position_jacobian_from_edge_derivative
 from ye3t_ace.equivariant_calc.edge_geometry import (
     directed_edges_all_images_bruteforce,
 )
@@ -823,12 +823,12 @@ class TaggedCauchyImageLinearModel:
         self.species_order = tuple(evaluator.species_order)
         if isinstance(beta, dict):
             beta_by_species = {
-                str(key): torch.as_tensor(value, dtype=torch.float64)
+                str(key): _real_float64_tensor(value, f"beta[{key}]")
                 for key, value in beta.items()
             }
         elif len(self.species_order) == 1:
             beta_by_species = {
-                self.species_order[0]: torch.as_tensor(beta, dtype=torch.float64)
+                self.species_order[0]: _real_float64_tensor(beta, "beta")
             }
         else:
             raise ValueError("Multi-species tagged models require per-species beta.")

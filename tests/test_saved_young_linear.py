@@ -3,6 +3,8 @@
 import torch
 
 from ye3t_ace.linear_young_character import YE3TSavedDescriptorSetFeatureMap
+from ye3t_ace._record import record_replace
+from ye3t_ace.equivariant_calc.site_basis_v2 import SiteBasisV2
 
 
 def test_saved_nontrivial_young_scalar_is_a_fixed_invariant_column():
@@ -38,14 +40,43 @@ def test_saved_nontrivial_young_scalar_is_a_fixed_invariant_column():
     ], dtype=torch.float64)
     types = torch.tensor([0, 1, 0, 1, 1, 0, 1, 0], dtype=torch.long)
     values = feature_map(types, positions)
+    x_ij, edge_index, atom_types = feature_map._edge_inputs(types, positions)
+    complex_basis = SiteBasisV2(record_replace(feature_map.site_basis_config, spherical_backend="complex"))
+    _, complex_base = complex_basis.compute_atomic_base(
+        x_ij=x_ij, edge_index=edge_index, atom_types=atom_types,
+        channels=feature_map.channels,
+    )
+    density = feature_map._density(types, positions)
+    for l_value, group in feature_map.channel_groups.items():
+        width = 2 * int(l_value) + 1
+        expected = complex_base[:, group["start"]:group["stop"]].reshape(
+            len(positions), len(group["n_values"]), feature_map.num_types, feature_map.num_types, width,
+        )
+        for n_index, n_value in enumerate(group["n_values"]):
+            torch.testing.assert_close(
+                density[(int(n_value), int(l_value))], expected[:, n_index].sum(dim=(1, 2)),
+                atol=1.0e-12, rtol=1.0e-12,
+            )
+    axis = torch.tensor([1.0, 2.0, 3.0], dtype=torch.float64)
+    axis = axis / torch.linalg.norm(axis)
+    cross = torch.tensor([
+        [0.0, -axis[2], axis[1]],
+        [axis[2], 0.0, -axis[0]],
+        [-axis[1], axis[0], 0.0],
+    ], dtype=torch.float64)
+    angle = torch.tensor(0.73, dtype=torch.float64)
+    rotation = torch.eye(3, dtype=torch.float64) + torch.sin(angle) * cross + (1.0 - torch.cos(angle)) * cross @ cross
+    rotated = feature_map(types, positions @ rotation.T)
     permutation = torch.tensor([6, 2, 7, 0, 5, 1, 4, 3])
     reordered = feature_map(types[permutation], positions[permutation])
 
     assert values.shape == (1, 1)
     assert torch.isfinite(values).all()
     assert values.abs().max().item() > 1.0e-10
+    torch.testing.assert_close(rotated, values, atol=1.0e-10, rtol=1.0e-10)
     torch.testing.assert_close(reordered, values, atol=1.0e-10, rtol=1.0e-10)
     report = feature_map.report()
     assert report["nontrivial_descriptor_count"] == 1
     assert report["uses_runtime_gram_matrix"] is False
+    assert report["density_angular_convention"] == "site_signed_m_reversed_to_ye3t_tesseral_v1"
     assert report["uses_scalar_proxy"] is False

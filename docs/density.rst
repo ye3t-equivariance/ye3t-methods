@@ -28,6 +28,13 @@ a small label cap. Larger ranks and angular limits can increase compilation
 time and descriptor width substantially; inspect ``len(basis.labels)`` before
 fitting a large dataset.
 
+The default catalogue keeps even ``sum(l)`` scalar labels, so its columns are
+invariant under spatial inversion. The lower-level
+``YE3TDescriptors.ace(config)`` accepts ``parity_filter="none"`` for valid
+odd-parity SO(3) pseudoscalars. Those columns change sign under inversion and
+should only enter a model when that behavior is intended. Both direct and
+factorized evaluation return checked real scalar values for these labels.
+
 The runnable :doc:`quickstart` is a deliberately small numerical fixture. A
 transferable model should choose its rank and radial/angular schedule for the
 actual dataset; for example, one may construct ranks through four with visible

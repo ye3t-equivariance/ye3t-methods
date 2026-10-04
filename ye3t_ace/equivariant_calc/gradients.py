@@ -21,6 +21,7 @@ from .ace_eval_v2 import (
     checked_real_scalar_projection,
 )
 from .ace_symmetric_power import ace_real_symmetric_power_table
+from .site_basis_v2 import site_real_block_to_ye3t_tesseral
 from .labeling import DescriptorSpec
 from .product_dag import (
     ProductDAGValues,
@@ -867,7 +868,9 @@ def _factorized_descriptor_group_linear_form_root_adjoint_real(evaluator, group,
     for label_index, (block_specs, block_indices) in enumerate(zip(group.block_specs, group.block_channel_indices)):
         for block_index, (spec, indices) in enumerate(zip(block_specs, block_indices)):
             indices_tensor = torch.as_tensor(indices, dtype=torch.long, device=real_base.device)
-            selected = real_base.index_select(1, indices_tensor)
+            selected = site_real_block_to_ye3t_tesseral(
+                real_base.index_select(1, indices_tensor), int(spec["l"]),
+            )
             if str(spec["kind"]) == "leaf":
                 value = selected
             else:
@@ -910,7 +913,10 @@ def _factorized_descriptor_group_linear_form_root_adjoint_real(evaluator, group,
                 )
                 if x_adjoint is None:
                     return None
-            root_adjoint.index_add_(1, indices_tensor, x_adjoint)
+            root_adjoint.index_add_(
+                1, indices_tensor,
+                site_real_block_to_ye3t_tesseral(x_adjoint, int(spec["l"])),
+            )
     return site_linear, root_adjoint
 
 
@@ -1061,7 +1067,9 @@ def _factorized_descriptor_group_linear_form_root_adjoint_native_real(evaluator,
             cached = block_value_cache.get(cache_key)
             if cached is None:
                 indices_tensor = torch.as_tensor(indices, dtype=torch.long, device=real_base.device)
-                selected = real_base.index_select(1, indices_tensor)
+                selected = site_real_block_to_ye3t_tesseral(
+                    real_base.index_select(1, indices_tensor), int(spec["l"]),
+                )
                 if str(spec["kind"]) == "leaf":
                     value = selected
                 else:
@@ -1120,7 +1128,10 @@ def _factorized_descriptor_group_linear_form_root_adjoint_native_real(evaluator,
             )
             if x_adjoint is None:
                 return None
-        root_adjoint.index_add_(1, indices_tensor, x_adjoint)
+        root_adjoint.index_add_(
+            1, indices_tensor,
+            site_real_block_to_ye3t_tesseral(x_adjoint, int(spec["l"])),
+        )
     evaluator._last_backend_counts["native_real_block_value_calls"] = (
         evaluator._last_backend_counts.get("native_real_block_value_calls", 0)
         + int(block_value_calls)
@@ -1426,7 +1437,9 @@ def _factorized_descriptor_plan_root_adjoint(evaluator, plan, atomic_base, outpu
                 indices_tensor = torch.as_tensor(indices, dtype=torch.long, device=atomic_base.device)
                 selected = atomic_base.index_select(1, indices_tensor)
                 if evaluator.site_basis.cfg.spherical_backend == "real":
-                    x = real_tesseral_to_complex_multiplet(selected.real, input_L)
+                    x = real_tesseral_to_complex_multiplet(
+                        site_real_block_to_ye3t_tesseral(selected.real, input_L), input_L,
+                    )
                 else:
                     x = selected
                 if str(spec["kind"]) == "leaf":
@@ -1470,6 +1483,7 @@ def _factorized_descriptor_plan_root_adjoint(evaluator, plan, atomic_base, outpu
                         int(spec["l"]),
                         work_dtype,
                     )
+                    channel_adjoint = site_real_block_to_ye3t_tesseral(channel_adjoint, int(spec["l"]))
                 else:
                     channel_adjoint = x_adjoint.to(dtype=atomic_base.dtype)
                 root_adjoint.index_add_(2, indices_tensor, channel_adjoint)
@@ -1489,7 +1503,9 @@ def _direct_symmetric_power_plan_root_adjoint(evaluator, plan, atomic_base, outp
         indices_tensor = torch.as_tensor(entry.channel_indices, dtype=torch.long, device=atomic_base.device)
         selected = atomic_base.index_select(1, indices_tensor)
         if evaluator.site_basis.cfg.spherical_backend == "real":
-            x = real_tesseral_to_complex_multiplet(selected.real, input_L)
+            x = real_tesseral_to_complex_multiplet(
+                site_real_block_to_ye3t_tesseral(selected.real, input_L), input_L,
+            )
         else:
             x = selected
         if str(spec["kind"]) == "leaf":
@@ -1528,6 +1544,7 @@ def _direct_symmetric_power_plan_root_adjoint(evaluator, plan, atomic_base, outp
                 input_L,
                 work_dtype,
             )
+            channel_adjoint = site_real_block_to_ye3t_tesseral(channel_adjoint, input_L)
         else:
             channel_adjoint = x_adjoint.to(dtype=atomic_base.dtype)
         root_adjoint.index_add_(2, indices_tensor, channel_adjoint)
@@ -1594,7 +1611,9 @@ def _factorized_descriptor_plan_linear_form_root_adjoint(evaluator, plan, atomic
                 indices_tensor = torch.as_tensor(indices, dtype=torch.long, device=atomic_base.device)
                 selected = atomic_base.index_select(1, indices_tensor)
                 if evaluator.site_basis.cfg.spherical_backend == "real":
-                    x = real_tesseral_to_complex_multiplet(selected.real, input_L)
+                    x = real_tesseral_to_complex_multiplet(
+                        site_real_block_to_ye3t_tesseral(selected.real, input_L), input_L,
+                    )
                 else:
                     x = selected
                 if str(spec["kind"]) == "leaf":
@@ -1638,6 +1657,7 @@ def _factorized_descriptor_plan_linear_form_root_adjoint(evaluator, plan, atomic
                         int(spec["l"]),
                         block_adjoint.dtype,
                     )
+                    channel_adjoint = site_real_block_to_ye3t_tesseral(channel_adjoint, int(spec["l"]))
                 else:
                     channel_adjoint = x_adjoint.to(dtype=atomic_base.dtype)
                 group_root.index_add_(1, indices_tensor, channel_adjoint)

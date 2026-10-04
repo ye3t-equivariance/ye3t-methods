@@ -25,7 +25,7 @@ from .ace_symmetric_power import (
     native_real_l1_even_scalar_symmetric_power,
 )
 from .labeling import CompactLabel, DescriptorSpec, SingleChannelLabel, normalize_compact_label
-from .site_basis_v2 import SiteBasisConfig, SiteBasisV2
+from .site_basis_v2 import SiteBasisConfig, SiteBasisV2, site_real_block_to_ye3t_tesseral
 from ye3t_ace._record import recordclass
 
 
@@ -75,6 +75,33 @@ def checked_real_scalar_projection(values, *, imag_tol, context):
             f"relative imaginary residual {relative_imag.item():.3e})"
         )
     return values.real
+
+
+def _scalar_real_phase(label, *, L_R, M_R):
+    """Phase that makes complex-spherical scalar coefficients real on real inputs."""
+
+    if int(L_R) == 0 and int(M_R) == 0 and (sum(int(l) for l in label.l_tuple) % 2):
+        return -1j
+    return 1.0 + 0.0j
+
+
+def _descriptor_factorized_schedules(labels, *, M_R, spherical_backend):
+    rich_schedule = generate_factorized_coefficient_schedule_for_labels(
+        labels,
+        M_R_values=(M_R,),
+        coeff_dtype=complex,
+    )
+    schedule = rich_schedule.to_torch(dtype=torch.complex128)
+    phase = _scalar_real_phase(labels[0], L_R=labels[0].L_R, M_R=M_R)
+    if phase != 1.0:
+        schedule.coeffs.mul_(phase)
+    real_schedule = None
+    if spherical_backend == "real" and int(labels[0].L_R) == 0 and int(M_R) == 0:
+        real_schedule = generate_real_factorized_coefficient_schedule_for_labels(
+            labels,
+            component_indices=(0,),
+        )
+    return rich_schedule, schedule, real_schedule
 
 
 @recordclass(('label', 'rank', 'M_R', 'L_R', 'ms_combinations', 'coeffs'))
@@ -717,18 +744,9 @@ class ACECovariantEvaluator(torch.nn.Module):
             group_descriptors = tuple(item[1] for item in items)
             labels = tuple(item[2] for item in items)
             try:
-                rich_schedule = generate_factorized_coefficient_schedule_for_labels(
-                    labels,
-                    M_R_values=(M_R,),
-                    coeff_dtype=complex,
+                rich_schedule, schedule, real_rich_schedule = _descriptor_factorized_schedules(
+                    labels, M_R=M_R, spherical_backend=self.site_basis.cfg.spherical_backend,
                 )
-                schedule = rich_schedule.to_torch(dtype=torch.complex128)
-                real_rich_schedule = None
-                if self.site_basis.cfg.spherical_backend == "real" and int(key[1]) == 0 and int(M_R) == 0:
-                    real_rich_schedule = generate_real_factorized_coefficient_schedule_for_labels(
-                        labels,
-                        component_indices=(0,),
-                    )
             except Exception as exc:
                 failure = self._factorized_plan_failed(f"Could not build factorized descriptor schedule: {exc}")
                 if failure is not None:
@@ -771,18 +789,9 @@ class ACECovariantEvaluator(torch.nn.Module):
                 group_descriptors = tuple(group_descriptors[pos] for pos in compatible_positions)
                 labels = tuple(labels[pos] for pos in compatible_positions)
                 try:
-                    rich_schedule = generate_factorized_coefficient_schedule_for_labels(
-                        labels,
-                        M_R_values=(M_R,),
-                        coeff_dtype=complex,
+                    rich_schedule, schedule, real_rich_schedule = _descriptor_factorized_schedules(
+                        labels, M_R=M_R, spherical_backend=self.site_basis.cfg.spherical_backend,
                     )
-                    schedule = rich_schedule.to_torch(dtype=torch.complex128)
-                    real_rich_schedule = None
-                    if self.site_basis.cfg.spherical_backend == "real" and int(key[1]) == 0 and int(M_R) == 0:
-                        real_rich_schedule = generate_real_factorized_coefficient_schedule_for_labels(
-                            labels,
-                            component_indices=(0,),
-                        )
                 except Exception as exc:
                     failure = self._factorized_plan_failed(f"Could not build partial factorized descriptor schedule: {exc}")
                     if failure is not None:
@@ -1413,7 +1422,8 @@ class ACECovariantEvaluator(torch.nn.Module):
             _CHANNEL_INDEX_TENSOR_CACHE[index_key] = index_tensor
         values = atomic_base.index_select(1, index_tensor)
         if self.site_basis.cfg.spherical_backend == "real":
-            return real_tesseral_to_complex_multiplet(values.real, int(L))
+            real_values = site_real_block_to_ye3t_tesseral(values.real, int(L))
+            return real_tesseral_to_complex_multiplet(real_values, int(L))
         return values
 
     def _real_channel_values_from_indices(

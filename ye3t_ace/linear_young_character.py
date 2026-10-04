@@ -12,6 +12,7 @@ from ye3t_ace.equivariant_calc.site_basis_v2 import (
     DEFAULT_ATOMIC_BASE_NORMALIZATION,
     SiteBasisConfig,
     SiteBasisV2,
+    site_real_block_to_ye3t_tesseral,
 )
 from ye3t.representations.builder import GeneralizedExactSymbolicLabeler, _raw_tensor_basis_states
 from ye3t.runtime.native import real_tesseral_to_complex_multiplet
@@ -443,13 +444,13 @@ class YE3TSavedDescriptorSetFeatureMap(torch.nn.Module):
             )
             real_values = torch.sum(real_pair_values, dim=(2, 3))
             complex_values = real_tesseral_to_complex_multiplet(
-                real_values.reshape(-1, width),
+                site_real_block_to_ye3t_tesseral(real_values.reshape(-1, width), int(l_value)),
                 int(l_value),
             ).reshape(positions.shape[0], len(n_values), width)
             for n_value in n_values:
                 density[(int(n_value), int(l_value))] = complex_values[:, int(group["n_to_group"][int(n_value)]), :]
             complex_pair_values = real_tesseral_to_complex_multiplet(
-                real_pair_values.reshape(-1, width),
+                site_real_block_to_ye3t_tesseral(real_pair_values.reshape(-1, width), int(l_value)),
                 int(l_value),
             ).reshape(positions.shape[0], len(n_values), self.num_types, self.num_types, width)
             for n_value in n_values:
@@ -574,6 +575,7 @@ class YE3TSavedDescriptorSetFeatureMap(torch.nn.Module):
             "nontrivial_descriptor_count": int(nontrivial),
             "descriptor_readout_path": "saved exact Young-character labels evaluated as scalar design columns",
             "coordinate_readout_path": "normalized exact lowered-multiplet contraction vectors in complex magnetic coordinates",
+            "density_angular_convention": "site_signed_m_reversed_to_ye3t_tesseral_v1",
             "uses_runtime_gram_matrix": False,
             "supports_chemical_pair_sources": True,
             "real_scalar_check": "imaginary residual is rejected above tolerance",

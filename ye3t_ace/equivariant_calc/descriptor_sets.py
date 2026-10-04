@@ -16,7 +16,7 @@ from ye3t.couplings import (
 )
 from ye3t_ace.ace_labeler.validation import iter_canonical_leaf_labelings, validate_tree_type
 from ye3t_ace.couplings.generalized import generate_library_for_labels
-from .ace_eval_v2 import GeneralizedCouplingLibrary
+from .ace_eval_v2 import GeneralizedCouplingLibrary, _scalar_real_phase
 from .labeling import CompactLabel, DescriptorSpec, SingleChannelLabel, normalize_compact_label
 from ye3t_ace._record import recordclass
 
@@ -514,14 +514,6 @@ def _coerce_ms(ms_raw, rank):
             raise ValueError(f"ms_combs length {len(ms_raw)} is not divisible by rank {rank}")
         return tuple(tuple(int(ms_raw[i * rank + j]) for j in range(rank)) for i in range(len(ms_raw) // rank))
     return tuple(tuple(int(x) for x in row) for row in ms_raw)
-
-
-def _scalar_real_phase(label, *, L_R, M_R):
-    """Phase convention that makes scalar/pseudoscalar complex-Y invariants real."""
-
-    if int(L_R) == 0 and int(M_R) == 0 and (sum(int(l) for l in label.l_tuple) % 2):
-        return -1j
-    return 1.0 + 0.0j
 
 
 def build_descriptor_specs_from_settings(

@@ -90,6 +90,14 @@ _ANGULAR_BASIS = ComplexSphericalHarmonicsBasis()
 _INVERSE_REAL_FORM_CACHE = {}
 
 
+def _real_float64_tensor(value, name):
+    tensor = torch.as_tensor(value, dtype=torch.complex128)
+    max_imag = float(torch.max(torch.abs(tensor.imag)).item()) if tensor.numel() else 0.0
+    if max_imag != 0.0:
+        raise ValueError(f"{name} must be real-valued; max imaginary magnitude is {max_imag:.3e}.")
+    return tensor.real
+
+
 def compile_tagged_cauchy_artifact(
     role_dimension,
     *,
@@ -423,19 +431,8 @@ class TaggedTupleEvaluator:
         self.budget = int(budget)
         self._inner = LiftedCauchyTorchEvaluator(self.compiled)
         self.descriptor_selection = None
-        # Real only (not complex, unlike TaggedMomentEvaluator's own lenient
-        # combination_matrix handling): this evaluator's per-atom output
-        # (``out`` in descriptors(), below) is already real (LiftedCauchy
-        # TorchEvaluator.evaluate returns .real internally), and the whole
-        # point of a combination_matrix here is to keep beta and the pooled
-        # feature space in ONE real space with no silent complex residual --
-        # torch.as_tensor(..., dtype=torch.float64) raises on a genuinely
-        # complex input rather than silently dropping its imaginary part, so
-        # callers must extract .real (with their own imaginary-residual
-        # check, e.g. as TaggedCauchyModel/pooled_feature_matrix callers
-        # already do) before passing it in here.
         self.combination_matrix = (
-            None if combination_matrix is None else torch.as_tensor(combination_matrix, dtype=torch.float64)
+            None if combination_matrix is None else _real_float64_tensor(combination_matrix, "combination_matrix")
         )
 
     @property
@@ -1924,7 +1921,7 @@ class TaggedCauchyModel:
             if unknown:
                 raise ValueError(f"beta mapping has entries for unknown species {unknown}.")
             per_species_tensors = {
-                species: torch.as_tensor(values, dtype=torch.float64).clone()
+                species: _real_float64_tensor(values, f"beta[{species}]").clone()
                 for species, values in beta.items()
             }
             lengths = {species: int(tensor.shape[0]) for species, tensor in per_species_tensors.items()}
@@ -1940,7 +1937,7 @@ class TaggedCauchyModel:
             beta_width = int(self.beta.shape[1])
         else:
             self.beta_by_species = None
-            self.beta = torch.as_tensor(beta, dtype=torch.float64).clone()
+            self.beta = _real_float64_tensor(beta, "beta").clone()
             beta_width = int(self.beta.shape[0])
 
         if self.multi_content:
@@ -1960,12 +1957,8 @@ class TaggedCauchyModel:
                 raise ValueError("beta length must equal the merged real program feature count.")
             return
 
-        # Real only, same rationale as TaggedTupleEvaluator's own combination_
-        # matrix handling: torch.as_tensor(..., dtype=torch.float64) raises on
-        # a genuinely complex input instead of silently discarding its
-        # imaginary part.
         self.combination_matrix = (
-            None if combination_matrix is None else torch.as_tensor(combination_matrix, dtype=torch.float64)
+            None if combination_matrix is None else _real_float64_tensor(combination_matrix, "combination_matrix")
         )
         self.evaluator = TaggedTupleEvaluator(
             self.compiled, self.role_bindings, combination_matrix=self.combination_matrix

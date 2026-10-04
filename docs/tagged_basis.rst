@@ -143,6 +143,8 @@ catalogue; it is not the tag or role Young partition of the older bounded
 construction and does not select a different global parent. The tagged
 constructor currently fixes
 that parent to the symmetric partition ``(N)`` with ``L=0`` and even parity.
+An explicit ``angular_patterns_by_rank`` entry with odd total angular degree
+is rejected for this scalar catalogue.
 ``max_rank`` belongs to ordinary density and is rejected here. Inspect the
 actual column count and each label's ``compiler_coordinate_provenance`` and
 ``compiler_raw_opportunities`` rather than inferring columns from the request.

@@ -64,6 +64,19 @@ def test_tagged_catalogue_rejects_inconsistent_rank_caps(tmp_path):
         Basis(**{**settings, "angular_basis_backend": "numeric_cached"})
 
 
+@pytest.mark.parametrize("pattern", ((1, 1, 1), (1, 2, 2)))
+def test_tagged_scalar_rejects_odd_angular_patterns(tmp_path, pattern):
+    with pytest.raises(ValueError, match="even total angular degree"):
+        Basis(
+            elements=["Ni"], source="tagged_cauchy_image", cutoff=4.8,
+            rank=3, tag_counts=(0, 2),
+            nmax_per_rank={3: 1}, lmax_per_rank={3: 2},
+            source_block_partitions_by_rank={3: ((2, 1),)},
+            angular_patterns_by_rank={3: (pattern,)},
+            compiled_cache_dir=tmp_path,
+        )
+
+
 @pytest.mark.parametrize("partition,pattern", (
     ((2, 1), (1, 1, 2)),
     ((3,), (2, 2, 2)),
