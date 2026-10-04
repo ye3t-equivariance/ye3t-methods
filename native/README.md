@@ -3,9 +3,8 @@
 This directory contains the standalone YE3T CPU evaluator and C ABI used by
 the ASE adapters. It supports ordinary YACE density models, tagged models, and
 tagged models with an ordinary YACE backbone. The C++ files were copied from
-`ye3t-lammps` on 2026-10-02, from working tree revision
-`09fee77c5c21c9783d84f8355eaa515ce8ead12a` (including a local change to
-`src/ye3t_tagged_c_api.cpp`). The original source headers are retained.
+`ye3t-lammps`; the YACE loader and CPU evaluator were synchronized on
+2026-10-04. The original source headers are retained.
 
 The native sources are covered by the GNU General Public License provided in
 [LICENSE](LICENSE). The Python package's root BSD 3-Clause license does not

@@ -6,6 +6,7 @@ from ase import Atoms
 from ye3t.core.basis import ExactACELabeler
 from ye3t_ace import YE3TDescriptors
 from ye3t_ace.ace.linear_ace import LinearACEScalarCalculator, LinearACEScalarModelBundle
+from ye3t_ace._record import record_replace
 from ye3t_ace.tagged_cauchy_image import TaggedCauchyImageLinearModel
 from ye3t_methods import Basis
 
@@ -37,13 +38,14 @@ def test_default_density_rank_three_lmax_two_labels_are_real_scalars():
         ((2, 2, 2), "natural"),
     ),
 )
+@pytest.mark.parametrize("spherical_backend", ("real", "complex"))
 def test_rank_three_scalar_direct_factorized_and_force_paths_agree(
-    monkeypatch, l_tuple, parity_filter,
+    monkeypatch, l_tuple, parity_filter, spherical_backend,
 ):
     labeler = ExactACELabeler((1, 2, 3), l_tuple, strict_target_validation=False)
     labels = labeler.compact_labels_for_target(0)
     assert len(labels) == 1
-    descriptor = YE3TDescriptors.ace({
+    config = {
         "elements": ["Ni"],
         "type_map": {"Ni": 0},
         "cutoff": 3.5,
@@ -61,7 +63,14 @@ def test_rank_three_scalar_direct_factorized_and_force_paths_agree(
         "max_variants_per_label": 1,
         "site_basis": {"mode": "explicit", "rc": [3.5], "lmbda": [0.25]},
         "backend": "pytorch",
-    })
+    }
+    descriptor = YE3TDescriptors.ace(config)
+    if spherical_backend == "complex":
+        config["site_basis_config"] = record_replace(
+            descriptor.site_basis_config, spherical_backend="complex",
+        )
+        descriptor = YE3TDescriptors.ace(config)
+    assert descriptor.site_basis_config.spherical_backend == spherical_backend
     atoms = Atoms(
         "Ni4",
         positions=((0.0, 0.0, 0.0), (1.4, 0.2, 0.1),
@@ -111,6 +120,50 @@ def test_rank_three_scalar_direct_factorized_and_force_paths_agree(
             np.testing.assert_allclose(direct, factorized, atol=1e-9, rtol=1e-9)
     for direct, factorized in zip(reference, results["require"][1][("autograd", "auto")]):
         np.testing.assert_allclose(direct, factorized, atol=1e-10, rtol=1e-10)
+
+
+def test_rank_three_odd_scalar_real_and_complex_sources_agree(monkeypatch):
+    labels = ExactACELabeler(
+        (1, 2, 3), (1, 1, 1), strict_target_validation=False,
+    ).compact_labels_for_target(0)
+    config = {
+        "elements": ["Ni"], "type_map": {"Ni": 0}, "cutoff": 3.5,
+        "ranks": [3], "nmax": [3], "lmax": [1], "lmin": [0],
+        "L_R": 0, "M_R_values": [0], "basis_type": "no_charge",
+        "k_o_max": 0, "k_max": [0], "manual_labels": labels,
+        "parity_filter": "none", "max_variants_per_label": 1,
+        "site_basis": {"mode": "explicit", "rc": [3.5], "lmbda": [0.25]},
+        "backend": "pytorch",
+    }
+    real_descriptor = YE3TDescriptors.ace(config)
+    config["site_basis_config"] = record_replace(
+        real_descriptor.site_basis_config, spherical_backend="complex",
+    )
+    complex_descriptor = YE3TDescriptors.ace(config)
+    atoms = Atoms(
+        "Ni4",
+        positions=((0.0, 0.0, 0.0), (1.4, 0.2, 0.1),
+                   (-0.3, 1.2, 0.4), (0.5, -0.2, 1.5)),
+        cell=(8.0, 8.0, 8.0),
+    )
+    monkeypatch.setenv("YE3T_ACE_FACTORIZED_DESCRIPTOR_RUNTIME", "require")
+    results = []
+    for descriptor in (real_descriptor, complex_descriptor):
+        features = descriptor.create(atoms).detach().cpu().numpy()
+        bundle = LinearACEScalarModelBundle(
+            settings=descriptor.settings,
+            site_basis_config=descriptor.site_basis_config,
+            descriptor_specs=descriptor.descriptor_specs,
+            weight=np.ones(len(descriptor.descriptor_specs)),
+            bias=0.0, basis_mode=None, fit_method="scalar_reality_regression",
+        )
+        evaluated = atoms.copy()
+        evaluated.calc = LinearACEScalarCalculator(
+            bundle, 3.5, {"Ni": 0}, force_method="analytic_factorized",
+        )
+        results.append((features, evaluated.get_potential_energy(), evaluated.get_forces()))
+    for actual, expected in zip(results[0], results[1]):
+        np.testing.assert_allclose(actual, expected, atol=1.0e-10, rtol=1.0e-10)
 
 
 def test_tagged_readout_rejects_imaginary_coefficients():

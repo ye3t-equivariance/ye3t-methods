@@ -5313,6 +5313,37 @@ YACEModel YACEModel::load(const std::string &path, const std::string &sidecar_ma
       plan.descriptor_offsets.push_back(static_cast<std::int64_t>(plan.descriptor_terms.size()));
     }
 
+    for (const auto &entry : monomial_indices) {
+      MonomialKey conjugate;
+      conjugate.reserve(entry.first.size());
+      int magnetic_parity = 0;
+      bool partner_present = true;
+      for (const auto &factor : entry.first) {
+        const auto &channel = destination.channels[static_cast<std::size_t>(factor.first)];
+        magnetic_parity += std::abs(channel.magnetic) * factor.second;
+        const ChannelKey opposite(
+            channel.kind == YACEChannel::RADIAL_BASE ? 0 : 1,
+            channel.neighbor_species, channel.radial, channel.angular, -channel.magnetic);
+        const auto partner = channel_indices.find(opposite);
+        if (partner == channel_indices.end()) {
+          partner_present = false;
+          break;
+        }
+        conjugate.emplace_back(partner->second, factor.second);
+      }
+      if (partner_present)
+        std::sort(conjugate.begin(), conjugate.end());
+      const auto partner = partner_present ? monomial_indices.find(conjugate) : monomial_indices.end();
+      const double coefficient = plan.monomial_coefficients[static_cast<std::size_t>(entry.second)];
+      const double partner_coefficient = partner == monomial_indices.end()
+          ? 0.0
+          : plan.monomial_coefficients[static_cast<std::size_t>(partner->second)];
+      const double phase = magnetic_parity % 2 == 0 ? 1.0 : -1.0;
+      const double scale = std::max({1.0, std::abs(coefficient), std::abs(partner_coefficient)});
+      if (std::abs(coefficient - phase * partner_coefficient) > 1.0e-10 * scale)
+        fail(bucket_path, "scalar polynomial violates complex-conjugation reality");
+    }
+
     plan.factor_offsets.push_back(0);
     for (const auto &monomial : monomial_factors) {
       plan.maximum_term_factors =

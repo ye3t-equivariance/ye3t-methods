@@ -1475,6 +1475,11 @@ void YE3TCPUEvaluator::evaluate_complete_batch(int atom_count, const int *centra
           maximum_imaginary_density_ =
               std::max(maximum_imaginary_density_,
                        std::abs(density_[static_cast<std::size_t>(atom)].imag()));
+          if (!std::isfinite(density) ||
+              !std::isfinite(density_[static_cast<std::size_t>(atom)].imag()) ||
+              std::abs(density_[static_cast<std::size_t>(atom)].imag()) >
+                  1.0e-10 * std::max(1.0, std::abs(density)))
+            throw std::runtime_error("YE3T density has a material imaginary component");
           if (density >= species.density_safe_limit)
             throw std::runtime_error(
                 "YE3T density entered the unsupported core-smoothing interval");
