@@ -224,6 +224,7 @@ class Basis:
                  nmax=4, lmax=2, radial_decay=None, tag_counts=None,
                  rank=None, nmax_per_rank=None, lmax_per_rank=None,
                  source_block_partitions_by_rank=None, angular_patterns_by_rank=None,
+                 angular_basis_backend=None,
                  max_records_per_rank=None, max_features_per_rank=None,
                  radial_degrees=None, tensor_order=None, angular_degree=None,
                  backend=None, motif_family="full", motif_specs=None,
@@ -247,7 +248,7 @@ class Basis:
             radial_decay = 0.25 if radial_decay is None else float(radial_decay)
             if compiled_cache_dir is not None:
                 raise ValueError("Density uses descriptor_cache_dir, not compiled_cache_dir.")
-            if tag_counts is not None or radial_degrees is not None or tensor_order is not None or any(
+            if tag_counts is not None or radial_degrees is not None or tensor_order is not None or angular_basis_backend is not None or any(
                     value is not None for value in catalogue_options):
                 raise ValueError("Tagged source options require source='tagged_cauchy_image'.")
             rank_count = 3 if max_rank is None else int(max_rank)
@@ -325,6 +326,10 @@ class Basis:
                 angular_cap = int(next(iter(lmax_per_rank.values())))
                 if radial_cap < 1 or angular_cap < 0:
                     raise ValueError("nmax_per_rank must be positive and lmax_per_rank nonnegative.")
+                angular_compiler = ("exact_weight_space_v1" if angular_basis_backend is None
+                                    else str(angular_basis_backend))
+                if angular_compiler not in {"legacy_exact", "exact_weight_space_v1"}:
+                    raise ValueError("angular_basis_backend must be legacy_exact or exact_weight_space_v1.")
                 partitions = tuple(tuple(int(part) for part in parts)
                                    for parts in next(iter(source_block_partitions_by_rank.values())))
                 if not partitions or any(not parts or min(parts) < 1 or sum(parts) != order
@@ -335,7 +340,7 @@ class Basis:
                     "lmax_per_rank": {order: angular_cap},
                     "source_block_partitions_by_rank": {order: partitions},
                     "tag_counts_by_rank": {order: tuple(int(value) for value in tag_counts)},
-                    "angular_basis_backend": "exact_weight_space_v1",
+                    "angular_basis_backend": angular_compiler,
                 }
                 if angular_patterns_by_rank is not None:
                     if (not isinstance(angular_patterns_by_rank, dict)
@@ -357,6 +362,8 @@ class Basis:
                                   "compiled_cache_dir": cache_dir,
                                   "compiler_validation": compiler_validation}
             else:
+                if angular_basis_backend is not None:
+                    raise ValueError("angular_basis_backend requires rank and per-rank tagged catalogue settings.")
                 if radial_degrees is None:
                     raise ValueError("Tagged basis requires rank and per-rank caps; legacy requests need radial_degrees.")
                 order = 4 if tensor_order is None else int(tensor_order)
@@ -392,6 +399,7 @@ class Basis:
                 self._resolved["pair_cutoffs_A"] = dict(pair_cutoffs_A)
             if uses_catalogue:
                 self._resolved["catalogue"] = catalogue
+                self._resolved["angular_basis_backend"] = angular_compiler
             else:
                 self._resolved["radial_degrees"] = tuple(int(v) for v in radial_degrees)
                 self._resolved["angular_degree"] = angular
@@ -409,7 +417,7 @@ class Basis:
                 raise ValueError("pair_cutoffs_A is available for the tagged source only.")
             if compiled_cache_dir is not None or descriptor_cache_dir is not None:
                 raise ValueError("bar_phi does not use density or tagged compiler cache settings.")
-            if max_rank is not None or tag_counts is not None or radial_degrees is not None or tensor_order is not None or any(
+            if max_rank is not None or tag_counts is not None or radial_degrees is not None or tensor_order is not None or angular_basis_backend is not None or any(
                     value is not None for value in catalogue_options):
                 raise ValueError("bar_phi uses explicit motif slots; density and tagged truncations do not apply.")
             self.backend = "pytorch" if backend is None else str(backend)

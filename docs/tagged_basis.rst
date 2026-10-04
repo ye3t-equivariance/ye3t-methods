@@ -76,6 +76,7 @@ for a nontrivial source-block Young partition. Its essential basis request is:
        nmax_per_rank={4: 1}, lmax_per_rank={4: 1},
        source_block_partitions_by_rank={4: ((4,),)},
        angular_patterns_by_rank={4: ((1, 1, 1, 1),)},
+       angular_basis_backend="exact_weight_space_v1",
    )
    print(basis.labels[0].as_dict())
    print(basis.resolved["polynomial_backend"])
@@ -95,6 +96,7 @@ The descriptor-first interface accepts the same general catalogue:
                "nmax_per_rank": {4: 1}, "lmax_per_rank": {4: 1},
                "source_block_partitions_by_rank": {4: ((4,),)},
                "angular_patterns_by_rank": {4: ((1, 1, 1, 1),)},
+               "angular_basis_backend": "exact_weight_space_v1",
                "tag_counts_by_rank": {4: (0, 2)},
            },
        },
@@ -122,8 +124,15 @@ neighbor cutoff in angstroms. Optional ``pair_cutoffs_A`` sets radial cutoffs
 for a complete ordered species-pair map; each value must be at most ``cutoff``.
 The certified shifted-Jacobi radial source has no
 adjustable radial lambda; requesting one would require a different compiler
-source. The coefficient catalogue is compiled exactly and cached. The
-default tagged polynomial evaluator selects its native path when available;
+source. The coefficient catalogue is compiled exactly and cached. General
+tagged scalar catalogues use YE3T's exact requested-weight angular compiler.
+Set ``angular_basis_backend="legacy_exact"`` in ``Basis`` or its catalogue
+to use the full-sector exact oracle. Saved models retain their compiled
+coefficient convention.
+It checks that final real-tesseral scalar coefficients have no imaginary part.
+Imaginary entries in the intermediate complex-to-real basis matrix are
+expected and do not imply complex descriptor values. The default tagged
+polynomial evaluator selects its native path when available;
 ``basis.resolved["polynomial_backend"]`` reports the selected evaluator.
 Its backend setting is separate from coefficient compilation. The generic
 ``numeric_cached`` subduction and fast Clebsch--Gordan route is not yet wired

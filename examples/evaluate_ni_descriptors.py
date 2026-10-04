@@ -24,6 +24,7 @@ config = {
         "lmax_per_rank": {4: 1},
         "source_block_partitions_by_rank": {4: ((4,),)},
         "angular_patterns_by_rank": {4: ((1, 1, 1, 1),)},
+        "angular_basis_backend": "exact_weight_space_v1",
     },
     "representation": {
         "global_parent_young": (4,),
@@ -101,6 +102,7 @@ print("tag count and source-block Young:", expected["expected_tag_count"],
 print("compiler raw opportunities:", len(opportunities))
 print("matching descriptor:", witness_labels[0])
 print("polynomial evaluator backend:", basis.resolved["polynomial_backend"])
+print("angular compiler backend:", basis.resolved["angular_basis_backend"])
 print("compiled cache directory:", basis.resolved["compiled_cache_dir"])
 print(f"descriptor build seconds: {build_seconds:.6f}")
 print(f"descriptor evaluation seconds: {eval_seconds:.6f}")
