@@ -98,28 +98,72 @@ These are accuracy baselines for the saved linear models, not targets from
 refitting a new model. The script records full precision and compares against
 the hash-checked retained table.
 
+## Refit the selected Ni model with ASE
+
+[`refit_paper_ni.py`](refit_paper_ni.py) shows the full seven-section config for
+refitting the exact saved 127-column basis. It reads all 263 structures in the
+published Ni training/validation partition, subtracts the saved ZBL reference,
+uses the final selected weights and penalty in
+`finalist/fits/ye3t_tagged_127.json` (not the earlier radial-screen trials
+also embedded in model manifests), and writes a
+new self-contained `.ye3t` artifact plus a 31-structure held-out RMSE report:
+
+```bash
+python examples/publication/cost_comparison/refit_paper_ni.py
+```
+
+The script is a long CPU example. The 60- and 149-column selected portable
+archives are also in `portable_models`; change `source_archive`, its SHA-256,
+`feature_count`, and the `fit` hyperparameters in the visible config to refit
+either tier. Use that tier's `finalist/fits/ye3t_tagged_<count>.json` selected
+record for its hyperparameters. The source
+archive fixes radial functions, descriptor labels, column order, and the ZBL
+reference. `LinearModel.read` restores its compiled representation and `Basis`;
+rebuilding a nearby catalogue would change the selected paper columns. The fit
+changes every selected coefficient and the per-atom
+intercept. It never edits the source archive. The new artifact records hashes
+of the training data, selected design rows, residual targets, and fitted normal
+equations, plus training RMSE and configured finite-difference/save-load checks.
+
+The refitted bundle is evaluated through
+`LinearModel.read(...).ase_calculator(evaluator="torch")`. It has no native
+plan for its new weights; LAMMPS AUTO
+export requires a separately validated native plan. The script's held-out
+Ni-127 run on the published split gave **0.000677664 eV/atom** energy RMSE and
+**0.039417111 eV/Å** force RMSE. The retained model gives approximately
+**0.0006774455 eV/atom** and **0.0394175951 eV/Å** on that split. Raw fitted
+coefficients need not match: the selected ridge normal system has an estimated
+condition number of **3.86 × 10¹⁴**, so floating-point accumulation order
+changes coefficients along nearly redundant feature directions. Compare
+predictions and RMSE when checking a refit.
+
+These are results of a newly fitted model using the saved selected basis and
+final fit settings; they do not rerun feature selection or hyperparameter search.
+
 ## Choose an ASE evaluator
 
-The source archive also includes one vetted, self-contained Ni-127 portable
-model at `portable_models/Ni_ye3t_tagged_127.ye3t` (SHA-256
-`a57647406108a71273794e7786252147c93830d8954d8c44d9d7e813cb6502a2`).
+The source archive includes vetted, self-contained Ni 60-, 127-, and 149-column
+portable models. The Ni-127 model at
+`portable_models/Ni_ye3t_tagged_127.ye3t` has SHA-256
+`a57647406108a71273794e7786252147c93830d8954d8c44d9d7e813cb6502a2`.
 With the methods wheel installed, run
 `python examples/quickstart/paper_ni_portable_ase.py` from the extracted source
 archive. It loads the model with `LinearModel.read`, displays the 127 ordered
 descriptor columns through `Basis.create`, and checks complete ordinary,
 tagged, and ZBL ASE energy against the retained Ni LAMMPS step-zero result.
-The 60, 149, and augmented-196 portable conversions remain study artifacts.
+The augmented-196 portable conversion remains a study artifact.
 
 The fitted `ye3t_tagged_127` paper artifact is a tagged-plus-ACE composite.
 The default local `pip install` builds the native C++ ASE library. With `ye3t`
-installed, run both editable ASE examples from the source checkout:
+installed, run the editable ASE reference examples from the source checkout:
 
 ```bash
 python examples/publication/cost_comparison/ase_native_density.py
 python examples/publication/cost_comparison/ase_native_tagged.py
+python examples/publication/cost_comparison/ase_native_ni.py
 ```
 
-Both scripts show a Li BCC cell, the promoted artifact path, the matching ZBL
+The first two scripts show a Li BCC cell, the promoted artifact path, the matching ZBL
 manifest, the native evaluator settings, and the retained LAMMPS step-zero
 energy. Set `runtime.native_library` to a custom compiled library path when
 needed; `None` loads the library installed by the wheel. The tagged evaluator
@@ -139,7 +183,8 @@ execution_policy="direct")` for the linear residual and
 loads the ordinary `.yace` backbone and tagged correction into one resident
 model. The optional `matscipy` package speeds up neighbor rebuilds for cells
 that cannot use the adapter's SciPy cKDTree path; ASE remains the fallback.
-The example structure is the 16-atom Li LAMMPS validation cell.
+The Li example structure is the 16-atom LAMMPS validation cell. The Ni script
+checks its 32-atom tagged model against the retained step-zero energy.
 
 The standalone C++ adapter evaluates the **linear residual**; the example
 combines it with the required ZBL reference from the model manifest. ZBL

@@ -42,15 +42,16 @@ and atom-order invariance.
 Selecting fewer exact channels
 ------------------------------
 
-If the model deliberately excludes a subset of neighbor species, the
-descriptor-first ``YE3TDescriptors.ace`` constructor accepts
-``restrict_neighbor_mu``. The
-``examples/quickstart/chemical_channel_selection.py`` script selects Li
-neighbor channels from a Li/Na source and reduces the rank-one descriptor
-count from four to two. It retains exact one-hot encoding for the selected
-channels. Excluded neighbors contribute no selected channel, so this option
-is appropriate only when that restriction is part of the model design. It is
-not a low-rank replacement for all species interactions.
+If the model deliberately excludes a neighbor species, use a fixed embedding
+column with a one for the retained species and a zero for the excluded
+species. The public
+``examples/quickstart/chemical_channel_selection.py`` script keeps Li
+neighbors and excludes Na neighbors, while both elements remain valid
+centers. It evaluates rank-one-through-four ASE rows and checks that moving
+an excluded Na neighbor does not change Li-centered descriptors. This is a
+physical source restriction: the resulting labels describe the selected
+embedding column and need not have the same identity as older explicit
+one-hot labels selected after compilation.
 
 The older low-level ``SiteBasisV2.chemical_provider`` hook remains an
 in-memory research extension. It is separate from the configured fixed

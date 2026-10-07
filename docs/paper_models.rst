@@ -19,6 +19,8 @@ The archive layout is:
      systems/                    six editable element records
      run.py and workflow/        fitting and validation stages
      reproduce_ni_rmse.py        pinned six-model Ni accuracy replay
+     refit_paper_ni.py            standardized selected Ni-127 refit
+     portable_models/            selected 60/127/149-column Ni bundles
      lammps/<element>/           model files, inputs, reference logs
    examples/data/mlearn/         fixed data snapshot and split records
 
@@ -45,6 +47,26 @@ writes full-precision JSON. The paper example README gives the six reference
 values and ``--dataset-root``/``--output`` options. It replays saved models;
 it does not refit them or measure their LAMMPS speed.
 
+For a new fit using the exact selected Ni-127 basis, run the long ASE workflow:
+
+.. code-block:: bash
+
+   python examples/publication/cost_comparison/refit_paper_ni.py
+
+The script's visible seven-section config fixes the source bundle hash,
+published 263-frame training partition, ZBL reference, and selected paper
+hyperparameters. It saves a new Torch ASE artifact and evaluates all 31
+held-out frames. Change the source archive, hash, feature count, and frozen
+selected fit hyperparameters to use the retained 60- or 149-column basis.
+The completed Ni-127 run gave 0.000677664 eV/atom energy RMSE and
+0.039417111 eV/Å force RMSE, close to the retained model's 0.0006774455
+and 0.0394175951. The selected basis and source are fixed; catalogue
+selection and hyperparameter search are separate workflows. The new archive
+cannot use LAMMPS AUTO until a native plan for its changed coefficients is
+validated. The fit is ill-conditioned, so compare predictions and RMSE rather
+than raw coefficient bytes; the publication example README records the
+numerical details.
+
 The prefit LAMMPS artifacts can be used without rerunning the fitting workflow.
 After building LAMMPS with ML-YE3T and, for the independent control, ML-PACE:
 
@@ -66,7 +88,7 @@ With ``ye3t`` already installed, run the editable examples:
    python -m pip install --no-build-isolation .
    python examples/publication/cost_comparison/ase_native_density.py
    python examples/publication/cost_comparison/ase_native_tagged.py
-   python examples/quickstart/paper_ni_ase.py
+   python examples/publication/cost_comparison/ase_native_ni.py
    python examples/quickstart/paper_ni_portable_ase.py
 
 The two Li scripts have editable configurations and validate the 16-atom Li
@@ -78,7 +100,7 @@ The ZBL overlay is zero on this example geometry.
 The Ni quickstart checks the 32-atom tagged model against its retained
 LAMMPS step-zero energy. A separate CMake build is described in
 :doc:`evaluators` when the pip-built library is not used.
-The portable Ni quickstart uses the source archive's single vetted Ni-127
+The portable Ni quickstart uses the source archive's vetted Ni-127
 ``.ye3t`` bundle through ``LinearModel.read``. It exposes 127 ordered
 ``Basis.create`` rows and evaluates the complete ordinary, tagged, and ZBL
 energy with the CPU Torch ASE calculator. The bundle SHA-256 is
@@ -94,8 +116,8 @@ compact Torch paths and exact artifact limitations.
 The inputs supply the ZBL overlay used in training. Read the
 ``examples/publication/cost_comparison/README.md`` and the local LAMMPS
 README before running other systems or numerical-difference/NVE checks.
-Full paper refitting and LAMMPS replay require a suitable LAMMPS build and
-more time than the quickstart tests. The retained logs are previous promoted
+The original full paper study and LAMMPS replay require a suitable LAMMPS build
+and more time than the quickstart tests. The retained logs are previous promoted
 evidence; copying them into the source archive is not a fresh validation.
 
 The published elemental models use one-hot chemical channels. See

@@ -18,9 +18,14 @@ from ase.calculators.mixing import SumCalculator
 from ye3t.couplings import normalize_compact_label
 from ye3t.execution_plan import compile_tagged_moment_execution_portfolio
 from ye3t_methods.atomistic import YE3TDescriptors, YE3TRepresentation
-from ye3t_methods.atomistic.ace.linear_ace import LinearACEScalarCalculator, LinearACEScalarModelBundle
+from ye3t_methods.atomistic.ace.linear_ace import (
+    LinearACEScalarCalculator, LinearACEScalarModelBundle, _linear_ace_geometry_row,
+)
 from ye3t_methods.atomistic.reference_potentials import YE3TZBLCalculator
-from ye3t_methods.atomistic.tagged_cauchy_linear import TaggedCauchyModel, ordinary_edge_primitives
+from ye3t_methods.atomistic.tagged_cauchy_linear import (
+    TaggedCauchyModel, ordinary_edge_primitives,
+    ordinary_edge_primitives_with_derivative,
+)
 
 
 _CORE = {
@@ -143,9 +148,12 @@ def _read_members(raw):
 
 def read_portable_linear_archive(path):
     """Return a verified bounded Ni record, or None for another .ye3t schema."""
-    target = Path(path)
-    with target.open("rb") as handle:
-        raw = handle.read(256 * 1024 * 1024 + 1)
+    if isinstance(path, bytes):
+        raw = path
+    else:
+        target = Path(path)
+        with target.open("rb") as handle:
+            raw = handle.read(256 * 1024 * 1024 + 1)
     if len(raw) > 256 * 1024 * 1024:
         raise ValueError("Portable bundle exceeds the 256 MiB file limit.")
     with zipfile.ZipFile(BytesIO(raw)) as archive:
@@ -469,6 +477,49 @@ def portable_feature_rows(record, atoms):
     if rows.shape != (len(atoms), len(record["labels"])) or not np.isfinite(rows).all():
         raise RuntimeError("Portable scalar descriptor rows are invalid.")
     return rows
+
+
+def portable_feature_design_row(record, atoms):
+    """Return selected Ni energy and force design rows in saved column order."""
+    if any(atoms.pbc) and atoms.cell.rank != 3:
+        raise ValueError("Periodic selected Ni design rows require a full-rank cell.")
+    descriptor = record["ordinary_descriptor"]
+    ordinary = _linear_ace_geometry_row(
+        atoms, evaluator=descriptor.ace_descriptor.calculator.evaluator,
+        descriptors=record["ordinary_bundle"].descriptor_specs,
+        cutoff=record["sources"]["radial_fit"]["cutoff_A"], type_map={"Ni": 0},
+        device="cpu", forces=True, stress=False, chunk_size=None,
+    )
+    model = record["tagged_model"]
+    positions = torch.as_tensor(np.asarray(atoms.positions, dtype=np.float64))
+    atom_types = torch.as_tensor(
+        [model.species_index[name] for name in atoms.get_chemical_symbols()],
+        dtype=torch.long,
+    )
+    cell = (torch.as_tensor(np.asarray(atoms.cell.array, dtype=np.float64))
+            if atoms.cell.rank == 3 else None)
+    pbc = tuple(bool(value) for value in atoms.pbc) if cell is not None else None
+    primitives = ordinary_edge_primitives_with_derivative(
+        positions, atom_types, cell, pbc, model.cutoff,
+        model.radial_config, model.channels,
+    )
+    tagged, tagged_jacobian = model.real_evaluator.descriptors_and_jacobian(
+        positions, atom_types, primitives, term_chunk_size=4096,
+    )
+    selected = list(record["tagged_indices"])
+    tagged_sites = tagged[:, selected].detach().cpu().numpy()
+    tagged_forces = (-tagged_jacobian[selected].reshape(len(selected), -1)
+                     .T.detach().cpu().numpy())
+    ordinary_sites = ordinary["site_features"].detach().cpu().numpy()
+    sites = np.column_stack((ordinary_sites, tagged_sites))
+    forces = np.column_stack((
+        ordinary["forces"].detach().cpu().numpy(), tagged_forces,
+    ))
+    if (sites.shape != (len(atoms), len(record["labels"])) or
+            forces.shape != (3 * len(atoms), len(record["labels"])) or
+            not np.isfinite(sites).all() or not np.isfinite(forces).all()):
+        raise RuntimeError("Portable Ni selected energy/force design row is invalid.")
+    return {"site_features": sites, "energy": sites.sum(axis=0), "forces": forces}
 
 
 class _PortableTaggedCalculator(Calculator):

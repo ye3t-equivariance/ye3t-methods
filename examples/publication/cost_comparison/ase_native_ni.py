@@ -9,15 +9,18 @@ from ye3t_methods.atomistic.reference_potentials import YE3TZBLCalculator
 from ye3t_methods.atomistic.tagged_cauchy_image import YE3TTaggedCauchyCalculator
 
 
-paper = Path(__file__).resolve().parents[1] / "publication" / "cost_comparison" / "lammps" / "Ni"
+paper = Path(__file__).resolve().parent / "lammps" / "Ni"
 config = {
-    "metadata": {"name": "paper_ni_tagged_ase", "element": "Ni"},
-    "basis": {
-        "lattice": "fcc", "lattice_parameter_A": 3.508,
-        "repeat": (2, 2, 2), "first_atom_displacement_A": (0.08, -0.05, 0.04),
+    "metadata": {
+        "schema": "ye3t_config_v1", "name": "paper_ni_native_reference",
+        "status": "publication_reference",
+        "system": {"element": "Ni", "lattice": "fcc", "lattice_parameter_A": 3.508,
+                   "repeat": (2, 2, 2),
+                   "first_atom_displacement_A": (0.08, -0.05, 0.04)},
     },
-    "representation": {"global_parent_young": "trivial", "global_parent_L": 0},
-    "runtime": {"ase_backend": "native_cpu", "native_library": None,
+    "basis": {"from_saved_model": True},
+    "representation": {"from_saved_model": True},
+    "runtime": {"evaluator": "native_cpu", "native_library": None,
                 "execution_policy": "direct"},
     "model": {
         "artifact": paper / "models" / "ye3t_tagged_127" / "model.ye3t.json",
@@ -30,11 +33,10 @@ config = {
     },
 }
 
-atoms = bulk(
-    config["metadata"]["element"], config["basis"]["lattice"],
-    a=config["basis"]["lattice_parameter_A"], cubic=True,
-).repeat(config["basis"]["repeat"])
-atoms.positions[0] += config["basis"]["first_atom_displacement_A"]
+system = config["metadata"]["system"]
+atoms = bulk(system["element"], system["lattice"],
+             a=system["lattice_parameter_A"], cubic=True).repeat(system["repeat"])
+atoms.positions[0] += system["first_atom_displacement_A"]
 linear = YE3TTaggedCauchyCalculator.from_artifact(
     config["model"]["artifact"],
     native_library=config["runtime"]["native_library"],

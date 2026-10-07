@@ -25,22 +25,36 @@ Start with one of these complete workflows:
 .. code-block:: console
 
    python examples/quickstart/ase_descriptors.py
+   python examples/quickstart/tagged_descriptors.py
    python examples/quickstart/ase_octupole_descriptors.py
    python examples/quickstart/chemical_encoding.py
+   python examples/quickstart/chemical_channel_selection.py
    python examples/quickstart/density_fit.py
    python examples/quickstart/combined_density_tagged_fit.py
    python examples/quickstart/per_atom_vector_to_lammps.py
    python examples/quickstart/paper_ni_portable_ase.py
    python examples/quickstart/paper_ni_nve.py
 
-The first three return per-atom NumPy descriptor rows without training. The
-next three fit and save models; the combined example selects a distinct
+The scalar, tagged, octupole, and chemical examples return per-atom NumPy
+descriptor rows without training. The next three fit and save models; the combined example selects a distinct
 physical radial source for each component. The vector example also writes a
 LAMMPS input.
 The Ni saved-model example reads a pinned paper model and checks its reference
 energy. The NVE example runs 100 ASE Velocity-Verlet steps near equilibrium
 and writes every energy sample to CSV; this short run does not establish
 stability of the potential at compressed geometries.
+For an exact selected-basis Ni refit, use the long publication example:
+
+.. code-block:: console
+
+   python examples/publication/cost_comparison/refit_paper_ni.py
+
+Its visible seven-section config uses the 127-column saved basis, the full
+published training partition, and frozen paper fit weights. It saves a new
+Torch ASE artifact and computes held-out energy/force RMSE. The saved
+artifact cannot use LAMMPS AUTO until a native plan for its new weights is
+validated; see the publication example README for the 60/149 archive and
+selected hyperparameter edits.
 For the same configured representation → basis → model path, use these
 focused inspection, solver, tagged-source, and saved-model examples:
 
@@ -50,8 +64,6 @@ focused inspection, solver, tagged-source, and saved-model examples:
    python examples/quickstart/inspect_features.py
    python examples/quickstart/sklearn_fit.py
    python examples/quickstart/saved_ase_export.py
-   python examples/evaluate_ni_descriptors.py
-   python examples/quickstart/paper_ni_ase.py
 
 These specialist scripts retain a source-specific or older descriptor-first
 interface. Run them for the stated method; they are not templates for a new
@@ -62,7 +74,6 @@ configured density/tagged model:
    python examples/quickstart/phi_fit.py
    python examples/quickstart/phi_depth2.py
    python examples/quickstart/role_density_fit.py
-   python examples/quickstart/chemical_channel_selection.py
 
 The following inspect core coupling mathematics on supplied tensor factors.
 They do not take an ASE ``Atoms`` object or produce a fitted model:
@@ -78,7 +89,8 @@ rotation and deployment limits. ``role_density_fit.py`` uses the retained
 descriptor-first lifted-density path; see :doc:`role_density` for its
 slot-sector limits. ``chemical_encoding.py`` uses the configured physical
 fixed-embedding source with ASE and checks scalar symmetries, while
-``chemical_channel_selection.py`` selects exact one-hot species channels;
+``chemical_channel_selection.py`` masks excluded neighbor species with a
+fixed zero embedding row;
 see :doc:`chemical_encoding`. The separate experimental
 ``ordered_phi_star.py`` evaluates one full-tableau ``L=2`` ordered cluster;
 it does not fit a model (see :doc:`phi_basis`). Use the first group above
@@ -98,6 +110,13 @@ not make the output vector-valued. Edit the species, cutoff, radial family,
 rank schedule, and angular/radial caps for another system. The exact saved
 paper Ni-127 descriptors are shown by ``paper_ni_portable_ase.py``. This
 descriptor example does not fit or load a model.
+``tagged_descriptors.py`` follows the same public object flow with a rank-four
+tagged source. Its scalar parent stays globally symmetric, while two local
+Young ``(1,1)`` blocks carry angular ``L=1`` intermediates that couple to
+``L=0``. It returns fourteen ASE columns for four Ni atoms and checks a
+non-axis rotation and atom relabeling. The first materialization compiles
+the selected tagged image, so this advanced example takes longer than the
+ordinary descriptor quickstart.
 For default scalar ACE descriptors, the compact ``Basis`` constructor gives
 the same ASE ``Atoms`` to NumPy usage without a full fit config:
 
@@ -182,7 +201,8 @@ run needs the tagged C ABI library installed or
 The Ni script evaluates a four-atom fcc cell and its displaced copy. Its
 ``validation`` settings inspect internal tag and role Young types supplied by
 the compiler; the tagged basis keeps a fixed symmetric scalar parent.
-``paper_ni_ase.py`` instead loads the promoted Ni tagged potential, adds its
+``examples/publication/cost_comparison/ase_native_ni.py`` instead loads the
+promoted Ni tagged potential, adds its
 ZBL overlay, and checks the energy of the 32-atom reference cell against the
 retained LAMMPS result. It needs a native C++ installation.
 ``paper_ni_portable_ase.py`` reads the portable model through
@@ -228,6 +248,9 @@ ASE descriptors without fitting
 -------------------------------
 
 .. literalinclude:: ../examples/quickstart/ase_descriptors.py
+   :language: python
+
+.. literalinclude:: ../examples/quickstart/tagged_descriptors.py
    :language: python
 
 .. literalinclude:: ../examples/quickstart/ase_octupole_descriptors.py

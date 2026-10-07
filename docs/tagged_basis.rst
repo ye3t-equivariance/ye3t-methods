@@ -166,16 +166,16 @@ is the global parent Young partition of an atomistic descriptor. The example
 uses ``sector_policy="tagged_mixed"`` to retain both tag-exchange types;
 ``backend="reference"`` selects the carrier reference evaluator. Standalone
 carriers currently accept only that evaluator. The scalar tagged ``Basis``
-below uses an ``auto`` polynomial evaluator, and saved linear models can use
-the native C++ ASE calculator; those backend options do not apply to the raw
-carrier example.
+below also requests the reference evaluator for a portable descriptor-only
+example. The separate tagged fit example can use the native C++ ASE
+calculator; its backend option does not apply to the raw carrier example.
 
 Building, fitting, and inspecting
 ---------------------------------
 
-The runnable ``examples/evaluate_ni_descriptors.py`` script shows a Ni fcc
+The runnable ``examples/quickstart/tagged_descriptors.py`` script shows a Ni fcc
 cell, a displaced copy, one visible config, descriptor row slices, and a check
-for a nontrivial source-block Young partition. Its configured object flow is:
+for nontrivial local Young and angular intermediates. Its configured object flow is:
 
 .. code-block:: python
 
@@ -190,8 +190,11 @@ for a nontrivial source-block Young partition. Its configured object flow is:
    print(rows.shape, basis.labels[0].as_dict())
 
 The script shows the complete editable seven-section config. Its tagged
-component uses shifted-Jacobi radial factors, tag counts 0 and 2, a rank-four
-``l=1`` angular pattern, and the symmetric scalar parent. The retained
+component uses shifted-Jacobi radial factors, two tags, a rank-four
+``l=1`` angular pattern, and the symmetric scalar parent. The selected
+two-block route has local Young types ``(1,1)`` and block angular values
+``(1,1)`` which couple to global ``L=0``; its global Young parent remains
+``(4)``. The retained
 lower-level descriptor-first interface accepts the same general catalogue:
 
 .. code-block:: python

@@ -45,6 +45,11 @@ The full example constructs the
 `ye3t.YE3TRepresentation` and basis from its visible config, then calls
 `descriptors = basis.create(atoms)`. The returned real NumPy array has one row
 per atom and one column per compiler-selected scalar descriptor.
+For tagged scalar ASE rows with nontrivial local Young and angular
+intermediates, use
+[`tagged_descriptors.py`](examples/quickstart/tagged_descriptors.py).
+It uses the same public representation and basis objects and checks the
+two-block local `(1,1)` Young and `L=1` angular coupling witness.
 For non-scalar properties, [`ase_octupole_descriptors.py`](examples/quickstart/ase_octupole_descriptors.py)
 uses the same interface with an `L=3` parent and returns seven real-tesseral
 components per feature.
@@ -61,6 +66,13 @@ The `YE3TRepresentation` re-export from `ye3t_methods` is the older
 descriptor-first selector; it is not interchangeable with the core class used
 by `Basis.from_config`.
 For the configured workflow, import `YE3TRepresentation` from `ye3t`.
+To refit the exact selected 127-column Ni paper basis and evaluate the
+published held-out split, run the full
+[`refit_paper_ni.py`](examples/publication/cost_comparison/refit_paper_ni.py)
+example. Its visible config supplies the saved source, paper loss weights,
+training data, and output paths. The 60/149 saved tiers are available beside
+it. A refit writes a new Torch ASE archive; the original native plan is not
+reused for changed coefficients.
 Maintained model code imports from `ye3t_methods`; a small `ye3t_ace` import
 shim remains only to read models saved under historical module names. Do not
 install the historical `ye3t-ace` distribution alongside `ye3t-methods` in
@@ -173,7 +185,9 @@ workflow:
 
 ```bash
 python examples/quickstart/ase_descriptors.py             # ASE Atoms to NumPy rows
+python examples/quickstart/tagged_descriptors.py          # tagged Young/angular rows
 python examples/quickstart/chemical_encoding.py            # multi-species scalar rows
+python examples/quickstart/chemical_channel_selection.py   # select neighbor species
 python examples/quickstart/density_fit.py                 # fit a scalar model
 python examples/quickstart/combined_density_tagged_fit.py # combine physical sources
 python examples/quickstart/per_atom_vector_to_lammps.py   # fit and export a vector model
@@ -187,8 +201,9 @@ workflow data. Further tagged, lifted, explicit-Φ, source, solver, and
 inspection examples are listed in the [quickstart guide](docs/quickstart.rst).
 
 The scalar Ni descriptor example builds an fcc ASE cell and returns 96
-independent scalar columns from ranks through eight. The chemical example
-uses a fixed two-channel embedding for three species. Both follow the
+independent scalar columns from ranks through eight. The chemical examples
+show a fixed two-channel mixture for three species and a one-channel source
+that excludes Na neighbors while retaining Na centers. They follow the
 configured representation → basis → descriptor workflow.
 The Ni ASE quickstart loads the promoted tagged paper model, adds its ZBL
 reference, and checks the 32-atom energy against the retained LAMMPS result.

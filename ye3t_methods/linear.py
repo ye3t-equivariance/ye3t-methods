@@ -1680,7 +1680,10 @@ class Basis:
             "source": basis.source, "elements": basis.elements,
             "cutoff_A": basis.cutoff, "backend": basis.backend,
             "feature_count": len(record["labels"]),
-            "archive_schema": record["manifest"]["schema"],
+            "archive_schema": (record["refit"]["schema"] if "refit" in record else
+                               record["manifest"]["schema"]),
+            "native_plan_status": (record["refit"]["native_plan_status"]
+                                   if "refit" in record else "saved_base_plan"),
         }
         labels = []
         for row in record["labels"]:
@@ -2627,6 +2630,63 @@ class LinearModel:
             force_weight=_FIT_UNSET, stress_weight=_FIT_UNSET, energy_key=_FIT_UNSET,
             force_key=_FIT_UNSET, stress_key=_FIT_UNSET, fit_E0=_FIT_UNSET,
             config=None):
+        if self.basis.source == "portable_linear":
+            if config is None or any(value is not _FIT_UNSET for value in (
+                    regularization, fit_method, sklearn_params, energy_weight,
+                    force_weight, stress_weight, energy_key, force_key,
+                    stress_key, fit_E0)):
+                raise ValueError("Selected portable Ni refit requires a seven-section config.")
+            from .portable_refit import fit_portable_linear
+
+            frames = tuple(structures)
+            record = fit_portable_linear(self.basis._portable, frames, config)
+            previous_basis, previous_fitted = self.basis, self._fitted
+            try:
+                self.basis = Basis._from_portable_linear(record)
+                self._fitted = record
+                checks = record["refit"]["fit_metadata"]["validation_checks"]
+                report = {"checks": checks, "results": {}}
+                if checks:
+                    first = frames[0].copy()
+                    calculator = self.ase_calculator(evaluator="torch")
+                    first.calc = calculator
+                    energy = float(first.get_potential_energy())
+                    force = first.get_forces()
+                    if "force_fd" in checks:
+                        atom_index, axis = np.unravel_index(
+                            np.argmax(np.abs(force)), force.shape)
+                        step = 1e-5
+                        energies = []
+                        for sign in (-1, 1):
+                            displaced = first.copy()
+                            displaced.positions[atom_index, axis] += sign * step
+                            displaced.calc = calculator
+                            energies.append(float(displaced.get_potential_energy()))
+                        finite = -(energies[1] - energies[0]) / (2 * step)
+                        error = abs(float(force[atom_index, axis]) - finite)
+                        if error > 1e-4 * max(1.0, abs(float(force[atom_index, axis]))):
+                            raise ValueError("Portable Ni refit force_fd validation failed.")
+                        report["results"]["force_fd"] = {
+                            "atom_index": int(atom_index), "cartesian_axis": int(axis),
+                            "force_eV_per_A": float(force[atom_index, axis]),
+                            "finite_difference_eV_per_A": finite,
+                            "absolute_error": error,
+                        }
+                    if "round_trip" in checks:
+                        with tempfile.TemporaryDirectory(prefix="ye3t_ni_refit_validate_") as directory:
+                            restored = LinearModel.read(self.write(Path(directory) / "model.ye3t"))
+                            replay = first.copy()
+                            replay.calc = restored.ase_calculator(evaluator="torch")
+                            if (abs(float(replay.get_potential_energy()) - energy) > 1e-8 or
+                                    not np.allclose(replay.get_forces(), force,
+                                                    rtol=0, atol=1e-7)):
+                                raise ValueError("Portable Ni refit round_trip validation failed.")
+                        report["results"]["round_trip"] = {"passed": True}
+                record["refit"]["fit_metadata"]["configured_validation"] = report
+            except Exception:
+                self.basis, self._fitted = previous_basis, previous_fitted
+                raise
+            return self
         if config is not None:
             if any(value is not _FIT_UNSET for value in (
                     regularization, fit_method, sklearn_params, energy_weight,
@@ -3360,6 +3420,8 @@ class LinearModel:
         if self.basis.source == "portable_linear":
             if backend not in (None, "pytorch"):
                 raise ValueError("Portable Ni scalar ASE currently supports the Torch evaluator.")
+            if "refit" in self._fitted and backend is None:
+                raise ValueError("Portable Ni refits require evaluator='torch'; no native AUTO plan is saved.")
             from .portable_archive import portable_torch_calculator
 
             return portable_torch_calculator(self._fitted, neighbors=neighbors,
@@ -3678,6 +3740,10 @@ class LinearModel:
                 target = target.with_suffix(".ye3t")
             if target.suffix != ".ye3t":
                 raise ValueError("Portable scalar bundles use a .ye3t path.")
+            if "refit" in self._fitted:
+                from .portable_refit import write_portable_refit_archive
+
+                return write_portable_refit_archive(self._fitted, target)
             target.write_bytes(self._fitted["archive_bytes"])
             return target
         if not target.suffix:
@@ -3722,13 +3788,16 @@ class LinearModel:
         if target.suffix == ".ye3t":
             from .combined_archive import read_combined_scalar_archive
             from .portable_archive import read_portable_linear_archive
+            from .portable_refit import read_portable_refit_archive
 
             combined = read_combined_scalar_archive(target)
             if combined is not None:
                 model = cls(combined["basis"])
                 fitted = combined["fitted"]
             else:
-                fitted = read_portable_linear_archive(target)
+                fitted = read_portable_refit_archive(target)
+                if fitted is None:
+                    fitted = read_portable_linear_archive(target)
             if combined is None and fitted is None:
                 fitted = _read_legacy_compat_archive(target)
                 model = cls(Basis._from_legacy_composite(fitted))
