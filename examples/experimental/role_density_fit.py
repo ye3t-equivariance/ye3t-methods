@@ -1,4 +1,4 @@
-"""Fit a lifted-density scalar readout to ASE energies and forces.
+"""Fit an experimental lifted-density scalar readout to ASE energies and forces.
 
 Lifted density mainly changes the radial basis; it has limited formal
 expressivity in nontrivial permutation sectors.

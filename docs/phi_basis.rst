@@ -51,12 +51,12 @@ is a Torch artifact. The example exercises finite periodic geometry; there is
 no native C++ or LAMMPS evaluator for this branch.
 
 For a four-vertex depth-two tree, use
-``examples/quickstart/phi_depth2.py``. Its edges ``(0,1)``, ``(1,2)``,
+``examples/experimental/phi_depth2.py``. Its edges ``(0,1)``, ``(1,2)``,
 and ``(1,3)`` specify the motif directly; the script builds and evaluates
 one descriptor without fitting a model. The motif's vertex count and
 slot-channel pattern remain visible in the editable input.
 
-.. literalinclude:: ../examples/quickstart/phi_depth2.py
+.. literalinclude:: ../examples/experimental/phi_depth2.py
    :language: python
 
 Ordered rank-eight ``Phi`` star (experimental)

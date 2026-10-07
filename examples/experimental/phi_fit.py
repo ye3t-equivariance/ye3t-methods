@@ -7,7 +7,7 @@ from ye3t_methods import Basis, LinearModel
 from ye3t_methods.atomistic.cluster_phi import MotifTemplate, PhiMotifSpec, PhiSlotChannel
 
 
-fixtures = Path(__file__).with_name("fixtures")
+fixtures = Path(__file__).resolve().parents[1] / "quickstart" / "fixtures"
 output_root = Path(__file__).resolve().parents[2].parent / "ye3t-workflows" / "quickstart_linear"
 channel = PhiSlotChannel(n=1, l=0, m=0, neighbor_type=0)
 motifs = (

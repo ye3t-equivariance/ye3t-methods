@@ -1,4 +1,4 @@
-"""Build an explicit four-vertex motif descriptor on a depth-two tree."""
+"""Build an experimental four-vertex motif on a depth-two tree."""
 
 from ase import Atoms
 from ye3t_methods import Basis

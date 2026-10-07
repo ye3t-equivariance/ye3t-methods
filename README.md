@@ -290,8 +290,8 @@ Training structures must already contain energy and force labels. `fit` reads
 their stored labels and does not invoke attached calculators to obtain missing
 data. Tagged models additionally require the physical tag counts, radial
 degrees, tensor order, and angular degree shown in `tagged_fit.py`. Explicit
-cluster `bar_phi` models require motif templates and channels as shown in
-`phi_fit.py`.
+cluster `bar_phi` models require motif templates and channels as shown in the
+retained experimental `examples/experimental/phi_fit.py`.
 
 `print(basis)`, `print(model)`, `basis.labels[j].as_dict()`,
 `basis.describe(j)`, and `basis.describe(j, format="latex")` inspect actual

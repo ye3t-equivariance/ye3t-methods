@@ -65,15 +65,15 @@ focused inspection, solver, tagged-source, and saved-model examples:
    python examples/quickstart/sklearn_fit.py
    python examples/quickstart/saved_ase_export.py
 
-These specialist scripts retain a source-specific or older descriptor-first
-interface. Run them for the stated method; they are not templates for a new
-configured density/tagged model:
+These retained experimental scripts use source-specific or older
+descriptor-first interfaces. Run them for the stated method; use the configured
+quickstarts above as templates for a new density or tagged model:
 
 .. code-block:: console
 
-   python examples/quickstart/phi_fit.py
-   python examples/quickstart/phi_depth2.py
-   python examples/quickstart/role_density_fit.py
+   python examples/experimental/phi_fit.py
+   python examples/experimental/phi_depth2.py
+   python examples/experimental/role_density_fit.py
 
 The following inspect core coupling mathematics on supplied tensor factors.
 They do not take an ASE ``Atoms`` object or produce a fitted model:
@@ -268,20 +268,20 @@ Near-equilibrium ASE molecular dynamics
 .. literalinclude:: ../examples/quickstart/paper_ni_nve.py
    :language: python
 
-Explicit motif fit
-------------------
+Experimental explicit motif fit
+-------------------------------
 
-.. literalinclude:: ../examples/quickstart/phi_fit.py
+.. literalinclude:: ../examples/experimental/phi_fit.py
    :language: python
 
-Retained role-density fit
--------------------------
+Experimental role-density fit
+-----------------------------
 
 This quick variant uses the descriptor-first API and an oracle model to make
 small training labels. It verifies the fitted linear path; it does not assess a
 physical Ta potential.
 
-.. literalinclude:: ../examples/quickstart/role_density_fit.py
+.. literalinclude:: ../examples/experimental/role_density_fit.py
    :language: python
 
 ``inspect_features.py`` fits through the same configured object workflow and
