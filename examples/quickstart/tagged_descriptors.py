@@ -1,4 +1,9 @@
-"""Evaluate scalar tagged YE3T ASE rows with Young and angular intermediates."""
+"""Evaluate scalar tagged YE3T ASE rows with Young and angular intermediates.
+
+This descriptor-only example uses the atomistic reference evaluator. The
+generic dense YE3T coupling reference is a separate compiler path. For a
+native CPU linear energy/force/stress workflow, see ``tagged_fit.py``.
+"""
 
 from time import perf_counter
 
@@ -128,7 +133,8 @@ print("matching descriptor:", witness_labels[0])
 print("block Lambdas:", expected["expected_block_Lambdas"])
 print("physical radial family:",
       basis.resolved["components"][0]["single_factors"]["radial"]["family"])
-print("requested evaluator:", basis.resolved["runtime"]["evaluator"])
+assert basis.backend == config["runtime"]["evaluator"]
+print("executed atomistic evaluator:", basis.backend)
 print("rotation max absolute error:", float(np.max(np.abs(rotated_rows - rows[1]))))
 print("atom relabel max absolute error:",
       float(np.max(np.abs(reordered_rows - rows[1][order]))))

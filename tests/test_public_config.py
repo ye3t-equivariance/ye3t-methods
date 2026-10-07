@@ -10,6 +10,56 @@ from ye3t import YE3TRepresentation
 from ye3t_methods import Basis, LinearModel
 
 
+def test_core_cauchy_artifact_handoff_to_configured_basis(tmp_path, monkeypatch):
+    from ye3t import couplings
+
+    monkeypatch.setenv("YE3T_CACHE_DIR", str(tmp_path))
+    representation = YE3TRepresentation.from_config({
+        "group": "O3", "ranks": [4],
+        "parent": {"young_lambda": "(N)", "L": 0, "parity": "even"},
+        "factorization": "cauchy", "subspace": "full",
+        "uncoupled_factor_inputs": {
+            "eta_count_per_rank": {4: 1}, "l_max_per_rank": {4: 1}},
+        "intermediates": {"young_kappa": "all_valid",
+                          "block_rotation": {"policy": "all_valid"}},
+    })
+    config = {
+        "single_factors": {
+            "species": ["Ta"],
+            "radial": {"family": "shifted_jacobi", "cutoff_A": 4.8},
+            "chemical": {"kind": "explicit"},
+        },
+        "tensor_product": {"kind": "tagged", "tag_counts_per_rank": {4: [0, 2]}},
+        "catalogue": {
+            "ranks": [4], "nmax_per_rank": {4: 1}, "lmax_per_rank": {4: 1},
+            "source_block_partitions_by_rank": {4: [[4]]},
+            "angular_patterns_by_rank": {4: [[1, 1, 1, 1]]},
+        },
+    }
+    runtime = {"evaluator": "reference", "neighbors": "auto",
+               "cache": {"mode": "auto"}, "dtype": "float64", "device": "cpu"}
+    preview = Basis.from_config(config, representation=representation, runtime=runtime)
+    request = preview.cauchy_compiler_request()
+    artifact = couplings.compile(couplings.plan(couplings.count(request)))
+    handed = Basis.from_config(
+        config, representation=representation, runtime=runtime,
+        compiled_cauchy_artifact=artifact,
+    )
+    atoms = Atoms("Ta4", positions=((0, 0, 0), (1.5, 0.2, 0.1),
+                                   (-0.4, 1.6, 0.3), (0.5, -0.3, 1.7)))
+    np.testing.assert_allclose(handed.create(atoms), preview.create(atoms),
+                               rtol=0, atol=1e-12)
+    assert handed._descriptor.metadata["tagged_cauchy_image_compiled"].self_hash == artifact.self_hash
+    changed = json.loads(json.dumps(config))
+    changed["tensor_product"]["tag_counts_per_rank"]["4"] = [0]
+    mismatched = Basis.from_config(
+        changed, representation=representation, runtime=runtime,
+        compiled_cauchy_artifact=artifact,
+    )
+    with pytest.raises(ValueError, match="artifact request differs"):
+        mismatched.create(atoms)
+
+
 def _config():
     representation = YE3TRepresentation.from_config({
         "group": "O3", "ranks": [1, 2],

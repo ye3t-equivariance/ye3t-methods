@@ -1011,6 +1011,7 @@ class Basis:
 
     @classmethod
     def from_config(cls, config, *, representation, runtime,
+                    compiled_cauchy_artifact=None,
                     _check_optional_dependencies=True):
         """Purpose: Construct a public Basis from a validated config section.
 
@@ -1037,6 +1038,12 @@ class Basis:
         basis._resolution = resolution
         basis._catalogue = CataloguePreview(resolution)
         basis._resolved = payload
+        if compiled_cauchy_artifact is not None and (
+            len(payload["components"]) != 1
+            or payload["components"][0]["kind"] != "tagged"
+        ):
+            raise ValueError("A compiled Cauchy artifact requires one tagged basis component.")
+        basis._compiled_cauchy_artifact = compiled_cauchy_artifact
         basis._construction = {"basis": deepcopy(config),
                                "representation": representation.to_dict(),
                                "runtime": deepcopy(runtime)}
@@ -1065,8 +1072,48 @@ class Basis:
                 "output_convention": component["output_convention"],
             }),)
             basis._phi_compiled = None
+            basis._phi_runtime = None
             basis._phi_site_basis = None
         return basis
+
+    def cauchy_compiler_request(self):
+        """Return the exact YE3T request for this configured tagged basis.
+
+        A user can pass the result through ``ye3t.couplings.count``, ``plan``,
+        and ``compile``, then supply the artifact to ``Basis.from_config``.
+        The request contains the same record and feature caps used at fit time.
+        """
+        if self.source != "configured" or len(self._resolved["components"]) != 1:
+            raise ValueError("A Cauchy compiler request requires one configured component.")
+        component = self._resolved["components"][0]
+        if component["kind"] != "tagged":
+            raise ValueError("A Cauchy compiler request requires a tagged component.")
+        from ye3t.couplings import tagged_cauchy_image_request
+
+        ranks = tuple(int(rank) for rank in component["ranks"])
+        summary = self.catalogue.repeated_content_summary()["by_component"][component["name"]]
+        record_counts = {
+            rank: sum(row["candidate_fixed_contents_before_parity"]
+                      for row in summary if row["rank"] == rank)
+            for rank in ranks
+        }
+        preview = self.catalogue.counts()["by_component"][component["name"]]
+        raw_by_rank = preview["raw_opportunities_by_rank"]
+        if any(record_counts[rank] < 1 or raw_by_rank.get(rank, 0) < 1
+               for rank in ranks):
+            raise ValueError("Configured tagged basis has no source records or raw opportunities.")
+        catalogue = {
+            "nmax_per_rank": component["nmax_per_rank"],
+            "lmax_per_rank": component["lmax_per_rank"],
+            "source_block_partitions_by_rank": component["source_block_partitions_by_rank"],
+            "tag_counts_by_rank": component["tag_counts_per_rank"],
+            **({"angular_patterns_by_rank": component["angular_patterns_by_rank"]}
+               if "angular_patterns_by_rank" in component else {}),
+            "max_records_per_rank": record_counts,
+            "max_features_per_rank": raw_by_rank,
+            "angular_basis_backend": "exact_weight_space_v1",
+        }
+        return tagged_cauchy_image_request(catalogue=catalogue, species=self.elements)
 
     def _density_multiplet_compact_labels(self, component):
         from ye3t.couplings import count as count_couplings, normalize_compact_label
@@ -1457,19 +1504,15 @@ class Basis:
         if ordinary_catalogue is not None:
             raise ValueError("An ordinary scalar catalogue cannot materialize a tagged component.")
         ranks = tuple(int(rank) for rank in component["ranks"])
-        summary = self.catalogue.repeated_content_summary()["by_component"][component["name"]]
-        record_counts = {
-            rank: sum(row["candidate_fixed_contents_before_parity"]
-                      for row in summary if row["rank"] == rank)
-            for rank in ranks
-        }
-        preview = self.catalogue.counts()["by_component"][component["name"]]
-        raw_count = int(preview["raw_opportunity_count"])
-        raw_by_rank = preview["raw_opportunities_by_rank"]
-        if any(record_counts[rank] < 1 or raw_by_rank.get(rank, 0) < 1
-               for rank in ranks) or raw_count < 1:
-            raise ValueError("Configured tagged basis has no compiler source records or raw opportunities.")
-        if len(ranks) == 1:
+        request = self.cauchy_compiler_request()
+        catalogue = dict(request["catalogue"])
+        record_counts = {rank: int(catalogue["max_records_per_rank"][str(rank)])
+                         for rank in ranks}
+        raw_by_rank = {rank: int(catalogue["max_features_per_rank"][str(rank)])
+                       for rank in ranks}
+        raw_count = sum(raw_by_rank.values())
+        supplied_artifact = getattr(self, "_compiled_cauchy_artifact", None)
+        if len(ranks) == 1 and supplied_artifact is None:
             rank = ranks[0]
             materialized = Basis(
                 elements=self.elements, source="tagged_cauchy_image", cutoff=self.cutoff,
@@ -1488,16 +1531,6 @@ class Basis:
             descriptor = materialized._descriptor
             labels = materialized.labels
         else:
-            catalogue = {
-                "nmax_per_rank": component["nmax_per_rank"],
-                "lmax_per_rank": component["lmax_per_rank"],
-                "source_block_partitions_by_rank": component["source_block_partitions_by_rank"],
-                "tag_counts_by_rank": component["tag_counts_per_rank"],
-                **({"angular_patterns_by_rank": component["angular_patterns_by_rank"]}
-                   if "angular_patterns_by_rank" in component else {}),
-                "max_records_per_rank": record_counts,
-                "max_features_per_rank": raw_by_rank,
-            }
             descriptor = YE3TDescriptors.ye3t_basis({
                 "elements": self.elements,
                 "representation": YE3TRepresentation.tagged_cauchy_image(),
@@ -1507,6 +1540,8 @@ class Basis:
                     "compiled_cache_dir": default_linear_cache_directory()
                         / "compiler" / "tagged_cauchy_image",
                     "compiler_validation": "full",
+                    **({"compiled_artifact": supplied_artifact}
+                       if supplied_artifact is not None else {}),
                 },
                 "backend": "reference",
             })
@@ -1913,11 +1948,15 @@ class Basis:
         )
         if tuple(_labels) != channels or tuple(edge_values.shape) != (8, 6):
             raise ArithmeticError("Ordered Phi source channel ordering changed.")
-        slots = torch.stack(tuple(
+        factors = torch.stack(tuple(
             edge_values[index, (0 if index < 4 else 3):(3 if index < 4 else 6)]
             for index in range(8)
         ))
-        coupled = self._phi_compiled.coupler.evaluate_selected_typed_slots_torch(slots)
+        if self._phi_runtime is None:
+            self._phi_runtime = self._phi_compiled.coupler.bind_factorized_factors_torch(
+                dtype=factors.dtype, device=factors.device,
+            )
+        coupled = self._phi_runtime.evaluate(factors)
         real = complex_multiplet_to_real_tesseral(coupled, 2, range(-2, 3))
         if tuple(real.shape) != (1, 14, 5) or not torch.isfinite(real).all():
             raise ArithmeticError("Ordered Phi physical evaluator returned invalid axes or values.")

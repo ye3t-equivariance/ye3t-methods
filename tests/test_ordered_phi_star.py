@@ -87,6 +87,10 @@ def test_ordered_phi_star_public_count_and_physical_occurrences():
     atoms = Atoms("Ni9", positions=positions, cell=[8.0, 8.0, 8.0], pbc=True)
     occurrences = [(index, (0, 0, 0)) for index in range(1, 9)]
     values = basis.create_cluster(atoms, 0, occurrences)
+    assert basis._phi_compiled.coupler.factorized_coefficient_tables[0][
+        "kind"] == "typed_joint_factorized_v1"
+    assert not basis._phi_compiled.coupler.sparse_coefficient_tables
+    bound_runtime = basis._phi_runtime
     assert values.shape == (1, 14, 5)
     assert np.isfinite(values).all()
     assert np.linalg.norm(values) > 0
@@ -95,6 +99,7 @@ def test_ordered_phi_star_public_count_and_physical_occurrences():
     np.testing.assert_allclose(
         basis.create_cluster(atoms, 0, swapped), values, atol=1e-10, rtol=1e-10,
     )
+    assert basis._phi_runtime is bound_runtime
     angle = 0.41
     spin = np.array([
         [np.cos(angle), 0.0, np.sin(angle)],

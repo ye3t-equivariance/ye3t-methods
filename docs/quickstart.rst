@@ -117,6 +117,9 @@ Young ``(1,1)`` blocks carry angular ``L=1`` intermediates that couple to
 non-axis rotation and atom relabeling. The first materialization compiles
 the selected tagged image, so this advanced example takes longer than the
 ordinary descriptor quickstart.
+This descriptor-only script uses the atomistic reference evaluator and prints
+the executed backend. ``tagged_fit.py`` demonstrates the native CPU linear
+energy, force, and stress path for the same rank-four catalogue.
 For default scalar ACE descriptors, the compact ``Basis`` constructor gives
 the same ASE ``Atoms`` to NumPy usage without a full fit config:
 
@@ -186,8 +189,13 @@ The installed Python packages alone run the fit and write ``in.property``;
 LAMMPS is a separate installed consumer. The example uses repeated-content
 rank-three and rank-four ACE coordinates, so it also checks the full magnetic
 compiler route used by ordinary density multiplets.
-``tagged_fit.py`` follows the same object sequence. Its rank-four tagged
-source has two repeated blocks and a compiler-derived coordinate with local
+``tagged_fit.py`` follows the same object sequence. It compiles a core
+``CompiledTaggedCauchyImage`` artifact through ``ye3t.couplings`` and passes it directly to
+``Basis.from_config(..., compiled_cauchy_artifact=artifact)``. The basis
+rechecks the exact catalogue request and coefficient hash before fitting. Its
+ordered-role Cauchy counterpart has a separate core factor runtime; an ASE
+role source and model workflow for that carrier are not part of this example.
+The tagged example's rank-four source has two repeated blocks and a compiler-derived coordinate with local
 Young partitions ``(1,1)`` and block angular outputs ``(1,1)``. It actually
 fits energy, forces, and stress from bundled Ta interface fixtures, saves and
 reloads the result, then exports the hash-bound LAMMPS model, atomic data,

@@ -9,7 +9,7 @@ from pathlib import Path
 
 import numpy as np
 from ase.io import read, write
-from ye3t import YE3TRepresentation
+from ye3t import YE3TRepresentation, couplings
 from ye3t_methods import Basis, LinearModel
 
 
@@ -59,8 +59,14 @@ config = {
 
 structures = read(config["metadata"]["training_structures"], index=":")
 representation = YE3TRepresentation.from_config(config["representation"])
+preview = Basis.from_config(
+    config["basis"], representation=representation, runtime=config["runtime"],
+)
+request = preview.cauchy_compiler_request()
+compiled = couplings.compile(couplings.plan(couplings.count(request)))
 basis = Basis.from_config(
     config["basis"], representation=representation, runtime=config["runtime"],
+    compiled_cauchy_artifact=compiled,
 )
 atoms = read(config["metadata"]["evaluation_structure"])
 descriptors = basis.create(atoms)
@@ -114,6 +120,8 @@ atoms.calc = restored.ase_calculator(
 
 print(representation)
 print("features", len(basis.labels))
+print("core_cauchy_artifact_hash", compiled.self_hash)
+print("core_cauchy_request_hash", request["request_hash"])
 print("descriptor_rows", descriptors.shape)
 print("rotation_max_abs_error", np.max(abs(rotated_descriptors - descriptors)))
 print("atom_relabeling_max_abs_error",

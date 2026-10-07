@@ -6513,13 +6513,25 @@ class YE3TDescriptors:
                     raise ValueError("General tagged descriptors require the tagged-Cauchy representation.")
                 request = tagged_cauchy_image_request(
                     catalogue=tagged_cauchy_payload["catalogue"], species=canonical_elements)
+                supplied_artifact = tagged_cauchy_payload.pop("compiled_artifact", None)
                 compiler_validation = tagged_cauchy_payload.get("compiler_validation", "full")
                 if compiler_validation not in {"full", "certificate"}:
                     raise ValueError("compiler_validation must be full or certificate.")
                 cache_dir = tagged_cauchy_payload.get("compiled_cache_dir")
                 cache_path = None if cache_dir is None else Path(cache_dir)/(
                     request["request_hash"]+".json")
-                if cache_path is not None and cache_path.exists():
+                if supplied_artifact is not None:
+                    from ye3t.couplings import CompiledTaggedCauchyImage
+
+                    artifact_payload = (supplied_artifact.to_dict()
+                                        if isinstance(supplied_artifact, CompiledTaggedCauchyImage)
+                                        else supplied_artifact)
+                    compiled = CompiledTaggedCauchyImage.from_dict(
+                        artifact_payload, compiler_validation="full")
+                    if compiled.plan.report.request["request_hash"] != request["request_hash"]:
+                        raise ValueError("Supplied Cauchy artifact request differs from the basis catalogue.")
+                    preflight = compiled.plan.report
+                elif cache_path is not None and cache_path.exists():
                     from ye3t.couplings import CompiledTaggedCauchyImage
                     compiled = CompiledTaggedCauchyImage.from_dict(json.loads(cache_path.read_text()),
                         compiler_validation=compiler_validation)

@@ -262,6 +262,8 @@ def read_portable_linear_archive(path):
             raise ValueError("Portable ordinary selection is outside the catalogue.")
         row = catalogue["rows"][catalogue_index]
         coordinate = row["compiled_coordinate"]
+        # TODO(terminology): Rename this saved validation record only with a
+        # versioned reader for existing Ni archives and hash regression tests.
         certificate = coordinate["certificate"]
         label = labels[j]
         start, stop = offsets[j:j + 2]
