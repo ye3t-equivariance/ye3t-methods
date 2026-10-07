@@ -53,6 +53,18 @@ two-block local `(1,1)` Young and `L=1` angular coupling witness.
 For non-scalar properties, [`ase_octupole_descriptors.py`](examples/quickstart/ase_octupole_descriptors.py)
 uses the same interface with an `L=3` parent and returns seven real-tesseral
 components per feature.
+For factors computed by another method, [`coupled_factors.py`](examples/quickstart/coupled_factors.py)
+shows the same representation → basis flow with a Cauchy coupling plan from
+`ye3t`. `Basis.create_factors` accepts complete ordered role-by-`m`
+multiplets and returns all valid `(a,t,M)` coordinates for the selected parent
+Young partition, angular momentum, and product O(3) parity. The core count
+report separates independent paths, tableau coordinates, and magnetic
+components. This example supplies factors directly; a physical source such as
+lifted density, explicit Φ, or a message must construct those factors and any
+derivatives before coupling. It does not fit a scalar interatomic potential.
+An intrinsic `parity` may be set per supplied factor type; omitting it uses
+the polar spherical-harmonic value `(-1)^l`. Existing atomistic channel fields
+remain accepted for saved-model compatibility.
 For fitting, use the same core representation and `Basis.from_config`, then
 fit `LinearModel(basis)`. The rank-four
 [`density_fit.py`](examples/quickstart/density_fit.py) and

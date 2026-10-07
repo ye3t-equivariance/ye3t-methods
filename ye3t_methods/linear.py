@@ -40,7 +40,9 @@ from ye3t_methods.atomistic.cluster_phi import (
 from ye3t_methods.atomistic.linear_statistics import solve_ridge_statistics
 from ye3t_methods.atomistic.tagged_cauchy_image_fit import tagged_cauchy_image_geometry_row
 from ye3t_methods.atomistic.equivariant_calc.site_basis_serialization import serialize_site_basis_config
-from .config import CataloguePreview, resolve_basis_config, resolve_linear_fit_config
+from .config import (BasisResolution, CataloguePreview,
+                     CoupledFactorCataloguePreview, resolve_basis_config,
+                     resolve_linear_fit_config)
 
 
 _FIT_UNSET = object()
@@ -482,6 +484,10 @@ class FeatureLabel:
                 f"lambda={tuple(fields['parent_partition'])} L={fields['L']} "
                 f"alpha={fields['selected_full_alpha']}"
             )
+        if self.source == "ordered_role_cauchy":
+            return (f"[{self.feature_index}] B N={fields['N']} "
+                    f"lambda={tuple(fields['parent_partition'])} L={fields['L']} "
+                    f"a={self.feature_index}")
         if self.source == "tagged_carriers":
             return (f"[{self.feature_index}] B N={fields['N']} L={fields['L']} "
                     f"tags={fields['tag_count']} {self.identity}")
@@ -1012,6 +1018,7 @@ class Basis:
     @classmethod
     def from_config(cls, config, *, representation, runtime,
                     compiled_cauchy_artifact=None,
+                    compiled_plan=None,
                     _check_optional_dependencies=True):
         """Purpose: Construct a public Basis from a validated config section.
 
@@ -1021,6 +1028,98 @@ class Basis:
         Outputs: A Basis with catalogue preview and frozen resolution report.
         Does not: Materialize coefficients until create, labels, or fit.
         """
+        if (isinstance(config, Mapping)
+                and isinstance(config.get("tensor_product"), Mapping)
+                and config["tensor_product"].get("kind") == "ordered_role_cauchy"):
+            from ye3t import couplings
+            from ye3t.execution_plan import YE3TExecutionPlan
+
+            if compiled_cauchy_artifact is not None:
+                raise ValueError("Use compiled_plan for ordered role factor couplings.")
+            if set(config) != {"tensor_product", "channels", "block_sizes", "role_dimension"}:
+                raise ValueError("An ordered role basis needs tensor_product, channels, block_sizes, and role_dimension.")
+            if set(config["tensor_product"]) - {"kind", "role_kappa_policy"}:
+                raise ValueError("Unknown ordered role tensor_product setting.")
+            if len(representation.ranks) != 1 or representation.ranks[0] != sum(config["block_sizes"]):
+                raise ValueError("The representation must select the factor rank exactly.")
+            if representation.factorization != "cauchy":
+                raise ValueError("Ordered role factors require Cauchy factorization.")
+            if representation.young_kappa[0] != "all_valid":
+                raise ValueError("Ordered role factors currently require all valid local Young intermediates.")
+            parent = representation.parent_partition(representation.ranks[0])
+            request = couplings.covariant_cauchy_request(
+                config["channels"], config["block_sizes"],
+                target_L=representation.L,
+                target_parity=(-1 if representation.parity == "odd" else 1
+                               if representation.parity == "even" else None),
+                target_permutation="young:" + ",".join(str(part) for part in parent),
+                role_dimension=config["role_dimension"],
+                kappa_policy=config["tensor_product"].get("role_kappa_policy", "all"),
+                carrier="ordered_role",
+            )
+            report = couplings.count(request)
+            if report["multiplet_count"] == 0:
+                raise ValueError("The requested Young and rotation sector has no coupled factors.")
+            execution_plan = None
+            if isinstance(compiled_plan, YE3TExecutionPlan) or (
+                isinstance(compiled_plan, Mapping)
+                and "schema_version" in compiled_plan
+            ):
+                execution_plan = (compiled_plan if isinstance(compiled_plan, YE3TExecutionPlan)
+                                  else YE3TExecutionPlan.from_dict(compiled_plan))
+                if (len(execution_plan.instructions) != 1
+                        or execution_plan.instructions[0].opcode != "ordered_role_cauchy_factorized"):
+                    raise ValueError("Compiled plan has no ordered role Cauchy factor instruction.")
+                compiled_plan = execution_plan.instructions[0].metadata["compiled"]
+            if compiled_plan is not None:
+                if not couplings.validate_covariant_cauchy(compiled_plan):
+                    raise ValueError("Supplied factor coupling is invalid.")
+                if json.dumps(compiled_plan["request"], sort_keys=True) != json.dumps(request, sort_keys=True):
+                    raise ValueError("Compiled factor coupling does not match the representation and source channels.")
+            basis = object.__new__(cls)
+            basis.source = "ordered_role_cauchy"
+            basis.elements = ()
+            basis.cutoff = None
+            basis.backend = "factorized_torch"
+            basis._descriptor = None
+            basis._factor_request = request
+            basis._factor_report = report
+            basis._compiled_factor_plan = compiled_plan
+            basis._execution_plan = execution_plan
+            basis._factor_runtime = None
+            basis._factor_runtime_key = None
+            basis._factor_magnetic_basis = runtime.get("magnetic_basis", "complex_condon_shortley")
+            resolution_payload = {
+                "source": basis.source, "representation": representation.to_dict(),
+                "request": request, "runtime": deepcopy(runtime),
+                "component_count": report["component_count"],
+                "components": ({"name": "coupled_factors",
+                                "kind": "ordered_role_cauchy"},),
+                "warnings": (),
+                "capability_report": {
+                    "basis_create_available": False,
+                    "factor_evaluation_available": True,
+                    "component_count_status": {
+                        "coupled_factors": "exact_compiler_count"}},
+            }
+            encoded = json.dumps(resolution_payload, sort_keys=True,
+                                 separators=(",", ":"), allow_nan=False)
+            basis._resolution = BasisResolution(
+                encoded, hashlib.sha256(encoded.encode("utf-8")).hexdigest()
+            )
+            basis._catalogue = CoupledFactorCataloguePreview(report)
+            basis._resolved = basis._resolution.to_dict()
+            basis._labels = tuple(FeatureLabel(index, basis.source,
+                f"compiler_a:{index}", {"N": representation.ranks[0],
+                    "L": representation.L, "parent_partition": parent,
+                    "parity": request["target"]["o3_parity"],
+                    "compiler_label": label})
+                for index, label in enumerate(report["labels"]))
+            return basis
+        if compiled_plan is not None:
+            if compiled_cauchy_artifact is not None:
+                raise ValueError("Supply only one compiled coupling artifact.")
+            compiled_cauchy_artifact = compiled_plan
         resolution = resolve_basis_config(
             config, representation, runtime,
             check_optional_dependencies=_check_optional_dependencies)
@@ -1781,6 +1880,8 @@ class Basis:
         return deepcopy(self._resolved)
 
     def create(self, atoms):
+        if self.source == "ordered_role_cauchy":
+            raise ValueError("Ordered role factors use create_factors with role-by-m multiplets.")
         if self.source == "explicit_phi":
             raise ValueError("Ordered explicit Phi evaluates one selected cluster; call create_cluster.")
         if self.source == "configured":
@@ -1864,6 +1965,56 @@ class Basis:
                 not np.isrealobj(rows) or not np.isfinite(rows).all()):
             raise RuntimeError("Scalar Basis.create requires finite real per-atom descriptor rows.")
         return np.asarray(rows, dtype=np.float64)
+
+    def coupling_request(self):
+        """Return the core coupling request for this source, when available."""
+        if self.source == "ordered_role_cauchy":
+            return deepcopy(self._factor_request)
+        if self.source == "configured" and len(self._resolved["components"]) == 1:
+            if self._resolved["components"][0]["kind"] == "tagged":
+                return self.cauchy_compiler_request()
+        if self.source == "explicit_phi":
+            return deepcopy(self._resolved["components"][0]["compiler_request"])
+        raise ValueError("This basis has no single core coupling request.")
+
+    def create_factors(self, factor_multiplets, *, factor_types=None):
+        """Couple supplied ordered role-by-m factors into all (a,t,M) axes."""
+        if self.source != "ordered_role_cauchy":
+            raise ValueError("create_factors requires an ordered_role_cauchy basis.")
+        from ye3t import couplings
+
+        if self._compiled_factor_plan is None:
+            self._compiled_factor_plan = couplings.compile(
+                couplings.plan(self._factor_report)
+            )
+        if self._execution_plan is None:
+            self._execution_plan = couplings.lower_ordered_role_cauchy_execution_plan(
+                self._compiled_factor_plan
+            )
+        factors = (tuple(torch.as_tensor(item) for item in factor_multiplets)
+                   if isinstance(factor_multiplets, (tuple, list)) else
+                   torch.as_tensor(factor_multiplets))
+        if isinstance(factors, tuple) and not factors:
+            raise ValueError("Supply at least one factor multiplet.")
+        first = factors if isinstance(factors, torch.Tensor) else factors[0]
+        if not (first.dtype.is_floating_point or first.dtype.is_complex):
+            raise TypeError("Factor multiplets must have floating or complex values.")
+        key = (first.dtype, first.device)
+        if self._factor_runtime is None or self._factor_runtime_key != key:
+            self._factor_runtime = couplings.bind_ordered_role_execution_plan_torch(
+                self._execution_plan, dtype=first.dtype,
+                device=first.device, basis=self._factor_magnetic_basis,
+            )
+            self._factor_runtime_key = key
+        values, _ = self._factor_runtime.evaluate(
+            factors, factor_types=factor_types
+        )
+        expected = (self._factor_report["multiplet_count"],
+                    self._factor_report["tableau_count"],
+                    2 * self._factor_request["target"]["L"] + 1)
+        if tuple(values.shape[-3:]) != expected:
+            raise ArithmeticError("Coupled factor axes differ from the core count.")
+        return values
 
     def create_cluster(self, atoms, center, ordered_occurrences):
         """Evaluate one ordered rank-eight star with explicit periodic images."""
@@ -1986,6 +2137,11 @@ class Basis:
         return str(label) + "\n" + details
 
     def __str__(self):
+        if self.source == "ordered_role_cauchy":
+            target = self._factor_request["target"]
+            return (f"Basis(source=ordered_role_cauchy, N={sum(self._factor_request['block_sizes'])}, "
+                    f"lambda={tuple(target['young_partition'])}, L={target['L']}, "
+                    f"copies={len(self.labels)})")
         if self.source == "explicit_phi":
             return (f"Basis(source=explicit_phi, elements={self.elements}, cutoff_A={self.cutoff:g}, "
                     "output_axes=(selected_path, 14 tableaux, 5 magnetic components))")

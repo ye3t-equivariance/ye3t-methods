@@ -2,6 +2,7 @@
 
 from collections import namedtuple
 from collections.abc import Mapping
+from copy import deepcopy
 import hashlib
 import json
 import math
@@ -922,6 +923,25 @@ def resolve_linear_fit_config(config, basis, *, check_optional_dependencies=True
             "validation_checks": tuple(checks),
             "resolved_fit_config": resolved_fit,
             "resolved_fit_config_sha256": resolved_fit_hash}
+
+
+class CoupledFactorCataloguePreview:
+    """Exact count preview for one externally supplied factor content."""
+
+    def __init__(self, report):
+        self._report = deepcopy(report)
+
+    def counts(self, *, maximum_fixed_contents=4096):
+        if int(maximum_fixed_contents) < 1:
+            raise ValueError("maximum_fixed_contents must be positive.")
+        return deepcopy(self._report)
+
+    def repeated_content_summary(self):
+        request = self._report["request"]
+        return {"coefficient_materialization_performed": False,
+                "content_source": "ye3t.couplings.count",
+                "block_sizes": tuple(request["block_sizes"]),
+                "channels": deepcopy(request["channels"])}
 
 
 class CataloguePreview:
