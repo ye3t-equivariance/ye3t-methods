@@ -16,6 +16,29 @@ physical neighbor atoms are different operations. Intermediate tag and role
 Young sectors may be nontrivial, while the final energy coordinate is scalar
 and globally invariant. Coupling paths and coefficients come from ``ye3t``;
 the application does not enumerate them independently.
+The explicit tag positions use distinct ordered neighbor occurrences. The
+remaining density factors are inclusive: they may use a tagged neighbor or
+reuse a neighbor used by another density factor. The compiler's collision
+reduction, rather than a blanket ``1/s!`` factor, defines this physical image.
+Summing over physical tag tuples requires a globally trivial tag output; an
+overall tag-odd coordinate vanishes. The compact fitted route here is scalar.
+The exact selected full-``M`` physical-image basis and a per-atom linear fit
+are available for the CPU reference route with ``L>0`` below. Symmetry tests
+currently cover ``L=1,2,3``.
+
+For a new scalar fit, construct ``ye3t.YE3TRepresentation`` and pass it to
+``Basis.from_config`` before fitting ``LinearModel``. The seven-section
+``examples/quickstart/tagged_fit.py`` demonstrates this path. Its
+``basis.catalogue.angular_patterns_by_rank`` explicitly selects the
+rank-four ``(1,1,1,1)`` input pattern and two repeated source blocks. The
+example fits a column with nontrivial local Young partitions ``(1,1)`` and
+nonzero block angular outputs ``(1,1)``, while the final energy has ``L=0``.
+The field accepts a nonempty list
+of unique rank-length patterns for every selected rank, with angular degrees
+within that rank's ``lmax_per_rank``. It currently applies to scalar tagged
+bases only. Omitting it asks the compiler for every permitted pattern up to
+the angular cap and can change the fitted column set. The example's
+``native_cpu`` evaluator requires the installed tagged C ABI library.
 
 For the certified homogeneous two-tag witness, ``N=4``, input ``l=1``, and
 ``s=2``, the compiler includes a nontrivial tag sector
@@ -41,6 +64,95 @@ rank and radial/angular caps, tag counts, sector policy, and evaluator backend.
 The result has separate center, edge, and ordered edge-pair value blocks.
 These carrier values are not fitted scalar energy coordinates.
 
+``descriptor.create(atoms, descriptor_evaluation="pooled_carriers")`` sums
+each complete magnetic carrier over distinct ordered neighbor-image supports
+at its center. It retains compiler labels and reports the schedule hashes and
+pooling convention. The result is an unreduced per-center orbit sum: zero or
+linearly dependent coordinates may remain. It is not yet a certified
+independent physical-image basis and does not provide a fit or derivatives.
+The integrated physical checks currently cover zero, one, and two tags.
+
+``descriptor.create(atoms, descriptor_evaluation="physical_image")`` first
+uses exact compiler lowering of distinct-tag collisions and exact pivots
+within each rotation and parity sector. It then evaluates only the selected
+original coordinates. Its returned plan contains selected coordinate IDs and
+exact reconstruction coefficients for every candidate; one selection is
+checked across all magnetic components. The output coordinate ID list records
+the returned schedule order, which may differ from the plan's global candidate
+order. This mode currently supports tag
+counts zero, one, and two. It is a complete-multiplet image evaluator. Its
+value and derivative paths have focused checks; high-level force/stress
+fitting is still in progress.
+
+``Basis.from_config`` also exposes selected tagged multiplets for one or more ranks
+when the representation parent requests ``L>0``. Use the same
+``single_factors`` shifted-Jacobi source, tagged tensor product, and catalogue
+fields as the scalar config, with the desired ``parent.L`` and parity. Its
+``Basis.create(atoms)`` result has shape
+``(n_atoms, n_selected_multiplets, 2*L+1)`` in real-tesseral signed-``M``
+order. ``basis.labels`` holds the original compiler coordinate IDs and
+physical-image plan hash. The current route accepts per-rank zero/one/two tag
+count sets, explicit or one-hot chemistry, CPU ``reference`` evaluation, ASE
+neighbors, and cache mode ``auto`` or ``off``. It reports unsupported native,
+CUDA, or tag counts above two before materialization. The scalar tagged
+``Basis.create`` and saved paper-model route retain their existing 2D rows.
+When more than one rank is requested, the compiler combines rankwise
+compiled source records into one exact pooled physical O(3) image. The saved
+labels retain each rank and its selected original coordinate ID. Exact
+reconstruction may mix ranks: the pooled image is not rank graded and has no
+common ``S_N`` action. Each original source keeps its own formal parent.
+
+Full-multiplet per-atom fitting
+---------------------------------
+
+Construct ``Basis.from_config`` with a tagged ``L>0`` parent,
+then call ``LinearModel(basis).fit(structures,
+config=config)`` with the complete seven-section standard config. Set
+``model.kind="linear"``, ``model.output.scope="per_atom"``, and
+``model.fit.solver`` to ``ridge``, ``lasso``, or ``ard``. Set
+``targets.per_atom`` to a mapping with ``key``, ``input``, and ``units``;
+``input`` accepts ``real_tesseral`` for any supported ``L``, or ``cartesian``
+for the specified vector/tensor cases. Each training ASE Atoms
+stores the target in ``atoms.arrays[key]``. The Cartesian input is a polar
+vector for odd ``L=1`` or a symmetric traceless ``3x3`` tensor for even
+``L=2``. Scalar reference energies and energy, force, or stress targets do
+not belong to this fit. ``validation.checks=["round_trip"]`` checks an
+embedded-compiler save and reload on the first frame.
+
+The coefficients are shared across every magnetic component of a selected
+multiplet and kept separate for each central species. The selected compiler
+coordinates define the saved coefficient order. Ridge and LASSO use an
+identity penalty in those coordinates; ARD uses the same fixed coordinate
+gauge. Changing to another basis for the same physical image can change
+these regularized coefficients. The model saves that metric, every coordinate
+ID, the image-plan hash, the fitted coefficients, and the full compiled
+catalogue in a ``.ye3t.json`` artifact. Reading that artifact checks the
+hashes and source requests and does not recompile its coupling coefficients.
+These embedded hashes check consistency; they do not authenticate who produced
+the model.
+
+``model.predict(atoms)`` returns ``mean_real_tesseral`` with shape
+``(n_atoms, 2*L+1)``. For an ARD fit, ``predict(atoms,
+uncertainty=True)`` also returns the per-atom component covariance
+``covariance_real_tesseral``. This is conditional coefficient uncertainty;
+it excludes target noise and model error. ``model.ase_calculator()`` exposes
+``per_atom_real_tesseral_mean`` and, for ARD, the covariance as ASE
+properties. The fitted model is currently a reference CPU per-atom property
+model. Its v2 saved JSON is consumed by the separate
+``ye3t-lammps`` CPU ``compute ye3t/property/atom`` for mean inference.
+The model has no ``export_lammps`` method or force/stress readout for this
+per-atom target.
+
+The real-tesseral component axis follows the compiler's cosine, zero, sine
+order: ``cos(L)..cos(1), 0, sin(1)..sin(L)``. For a Cartesian polar vector
+``(x,y,z)``, the ``L=1`` components are ``(x,z,-y)``. For a symmetric
+traceless quadrupole ``Q``, the ``L=2`` components are
+``((Qxx-Qyy)/sqrt(2), sqrt(2)*Qxz, (2*Qzz-Qxx-Qyy)/sqrt(6),
+-sqrt(2)*Qyz, -sqrt(2)*Qxy)``. The conversion is norm preserving and its
+exact convention hash is retained when Cartesian labels are fitted.
+The hash includes both the Cartesian map and the core real-to-complex
+tesseral phase convention.
+
 ``nmax_per_rank`` and ``lmax_per_rank`` are exact maps covering every requested
 rank. ``cutoff_A`` bounds the neighbor list, while ``pair_cutoffs_A`` sets the
 radial cutoff for each ordered species pair and cannot exceed ``cutoff_A``.
@@ -63,29 +175,28 @@ Building, fitting, and inspecting
 
 The runnable ``examples/evaluate_ni_descriptors.py`` script shows a Ni fcc
 cell, a displaced copy, one visible config, descriptor row slices, and a check
-for a nontrivial source-block Young partition. Its essential basis request is:
+for a nontrivial source-block Young partition. Its configured object flow is:
 
 .. code-block:: python
 
+   from ye3t import YE3TRepresentation
    from ye3t_methods import Basis
 
-   basis = Basis(
-       elements=["Ni"], source="tagged_cauchy_image", cutoff=4.8,
-       pair_cutoffs_A={"Ni-Ni": 4.8},
-       rank=4, tag_counts=(0, 2),
-       nmax_per_rank={4: 1}, lmax_per_rank={4: 1},
-       source_block_partitions_by_rank={4: ((4,),)},
-       angular_patterns_by_rank={4: ((1, 1, 1, 1),)},
-       angular_basis_backend="exact_weight_space_v1",
+   representation = YE3TRepresentation.from_config(config["representation"])
+   basis = Basis.from_config(
+       config["basis"], representation=representation, runtime=config["runtime"],
    )
-   print(basis.labels[0].as_dict())
-   print(basis.resolved["polynomial_backend"])
+   rows = basis.create(atoms)
+   print(rows.shape, basis.labels[0].as_dict())
 
-The descriptor-first interface accepts the same general catalogue:
+The script shows the complete editable seven-section config. Its tagged
+component uses shifted-Jacobi radial factors, tag counts 0 and 2, a rank-four
+``l=1`` angular pattern, and the symmetric scalar parent. The retained
+lower-level descriptor-first interface accepts the same general catalogue:
 
 .. code-block:: python
 
-   from ye3t_ace import YE3TDescriptors
+   from ye3t_methods import YE3TDescriptors
 
    config = {
        "metadata": {"name": "ni_tagged_catalogue"},
@@ -110,9 +221,10 @@ The descriptor-first interface accepts the same general catalogue:
    descriptors = YE3TDescriptors.ye3t_basis(config)
    print(len(descriptors.feature_labels))
 
-``tag_counts`` in ``Basis`` and ``tag_counts_by_rank`` in the catalogue select
+Configured ``tag_counts_per_rank`` and lower-level ``tag_counts_by_rank`` select
 raw tag-count opportunities before the exact image is formed. ``rank`` fixes
-the tensor order in ``Basis``; the catalogue rank comes from its per-rank keys.
+the tensor order in the older direct ``Basis`` constructor; the configured
+catalogue states ranks explicitly.
 ``nmax_per_rank`` and
 ``lmax_per_rank`` are explicit maps from rank to radial and angular caps.
 ``angular_patterns_by_rank`` restricts the rank-four source factors to four
@@ -131,9 +243,10 @@ to use the full-sector exact oracle. Saved models retain their compiled
 coefficient convention.
 It checks that final real-tesseral scalar coefficients have no imaginary part.
 Imaginary entries in the intermediate complex-to-real basis matrix are
-expected and do not imply complex descriptor values. The default tagged
-polynomial evaluator selects its native path when available;
-``basis.resolved["polynomial_backend"]`` reports the selected evaluator.
+expected and do not imply complex descriptor values. The older direct tagged
+``Basis`` constructor selects a native polynomial evaluator when available and
+reports it in ``basis.resolved["polynomial_backend"]``. The configured route
+records its requested evaluator in ``basis.resolved["runtime"]["evaluator"]``.
 Its backend setting is separate from coefficient compilation. The generic
 ``numeric_cached`` subduction and fast Clebsch--Gordan route is not yet wired
 to this tagged-image request. Cold rank-four Ni compilation can take tens of
@@ -154,9 +267,10 @@ which those partitions act; they are not interchangeable with a parent
 
 The compact linear model fits precomputed energies and forces and can include
 ASE Voigt stress rows with ``stress_weight``. The fixture supplies these labels.
-``examples/quickstart/tagged_fit.py`` uses the general catalogue above and
-reports a source-block Young partition; it does not assert the bounded paper
-model's tag-sign and role Young witness.
+``examples/quickstart/tagged_fit.py`` uses a compact two-block catalogue and
+reports both source-block Young partitions and angular intermediates. Its
+bundled Ta targets are manufactured interface fixtures, so its fitted error
+is not an accuracy result for a physical Ta potential.
 ``LinearModel.write`` produces a versioned, hash-bound ``.ye3t.json`` model;
 ``LinearModel.read`` restores it. An ASE calculator can evaluate energy,
 forces, and stress. ``export_lammps`` writes the tagged deployment artifact;

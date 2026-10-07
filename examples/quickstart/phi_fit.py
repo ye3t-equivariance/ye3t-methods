@@ -4,7 +4,7 @@ from pathlib import Path
 
 from ase.io import read
 from ye3t_methods import Basis, LinearModel
-from ye3t_ace.cluster_phi import MotifTemplate, PhiMotifSpec, PhiSlotChannel
+from ye3t_methods.atomistic.cluster_phi import MotifTemplate, PhiMotifSpec, PhiSlotChannel
 
 
 fixtures = Path(__file__).with_name("fixtures")

@@ -12,9 +12,9 @@ from ase.neighborlist import neighbor_list
 
 import optimize_cached as study
 import radial_screen as radial
-from ye3t_ace.ace.linear_ace import load_xyz_structures
-from ye3t_ace.linear_statistics import structure_linear_statistics, sum_linear_statistics
-from ye3t_ace.reference_potentials import lammps_zbl_reference_config
+from ye3t_methods.atomistic.ace.linear_ace import load_xyz_structures
+from ye3t_methods.atomistic.linear_statistics import structure_linear_statistics, sum_linear_statistics
+from ye3t_methods.atomistic.reference_potentials import lammps_zbl_reference_config
 
 
 def minimum_training_distance(structures):

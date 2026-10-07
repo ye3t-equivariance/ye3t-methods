@@ -29,7 +29,7 @@ class CMakeBuild(build_ext):
                 "Install ye3t first or set YE3T_RUNTIME_SOURCE to its source root."
             )
         build_dir = Path(self.build_temp).resolve() / "ye3t_methods_native"
-        output_dir = Path(self.build_lib).resolve() / "ye3t_ace"
+        output_dir = Path(self.build_lib).resolve() / "ye3t_methods" / "atomistic"
         build_dir.mkdir(parents=True, exist_ok=True)
         output_dir.mkdir(parents=True, exist_ok=True)
         cmake = shutil.which("cmake")
@@ -71,7 +71,7 @@ if native_setting not in {"0", "1", "ase"}:
 
 setup(
     ext_modules=(
-        [Extension("ye3t_ace.libye3t_tagged_c_api", sources=[])]
+        [Extension("ye3t_methods.atomistic.libye3t_tagged_c_api", sources=[])]
         if native_setting != "0" else []
     ),
     cmdclass={"build_ext": CMakeBuild},

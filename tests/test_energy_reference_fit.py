@@ -4,7 +4,7 @@ import pytest
 ase = pytest.importorskip("ase")
 from ase import Atoms
 
-from ye3t_ace.energy_references import fit_element_reference_energies
+from ye3t_methods.atomistic.energy_references import fit_element_reference_energies
 
 
 def _frame(symbols, energy):

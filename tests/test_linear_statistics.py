@@ -5,7 +5,7 @@ import pytest
 
 
 def _records():
-    from ye3t_ace.linear_statistics import structure_linear_statistics
+    from ye3t_methods.atomistic.linear_statistics import structure_linear_statistics
 
     rng = np.random.default_rng(9127)
     records = []
@@ -30,7 +30,7 @@ def _records():
 
 
 def test_statistics_match_dense_weighted_ridge_and_score():
-    from ye3t_ace.linear_statistics import (
+    from ye3t_methods.atomistic.linear_statistics import (
         assemble_weighted_normal_equations,
         score_linear_statistics,
         solve_ridge_statistics,
@@ -106,7 +106,7 @@ def test_statistics_match_dense_weighted_ridge_and_score():
 
 
 def test_group_weights_use_cached_shards_without_changing_normalization():
-    from ye3t_ace.linear_statistics import (
+    from ye3t_methods.atomistic.linear_statistics import (
         assemble_weighted_normal_equations,
         sum_linear_statistics,
     )
@@ -129,7 +129,7 @@ def test_group_weights_use_cached_shards_without_changing_normalization():
 
 
 def test_generic_statistics_cache_round_trip_and_corruption_recovery(tmp_path):
-    from ye3t_ace.cache import (
+    from ye3t_methods.atomistic.cache import (
         LINEAR_STATISTICS_CACHE_SCHEMA,
         LinearCacheValidationError,
         load_linear_sufficient_statistics,

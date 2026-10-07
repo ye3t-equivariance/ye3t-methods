@@ -23,23 +23,21 @@ species embedding.
 Fixed chemical embeddings
 -------------------------
 
-The retained low-level ``SiteBasisV2`` accepts a ``chemical_provider``
-callable. A fixed species embedding matrix ``E`` can define a chemical
-kernel ``K = E E^T``, with source factor
+The configured ``Basis.from_config`` route accepts
+``single_factors.chemical.kind="fixed_embedding"`` with an explicit
+``species_order`` and full-column-rank species-by-channel matrix ``E``.
+Each neighbor species contributes its corresponding row of ``E`` to the
+physical one-factor density source. The compiler counts and labels the
+resulting physical channels, including their higher-rank couplings.
 
-.. math::
-
-   C_{ij}^{ab} = K_{\mathrm{type}(i),a}
-                  K_{\mathrm{type}(j),b}.
-
-For ``E=I``, this recovers the one-hot factor exactly. A lower-dimensional
-fixed ``E`` mixes species channels but does not automatically reduce the
-compiled descriptor width. Set the embedding before fitting and keep it fixed
-for every evaluation of that fit. The
-source archive's ``examples/quickstart/chemical_encoding.py`` is an
-executable two-species demonstration: it constructs a compact one-hot
-``Basis``, evaluates low-level source channels with both providers, and
-checks the predicted linear channel transform.
+For ``E=I``, this recovers the one-hot neighbor factor. A narrower
+full-rank ``E`` reduces the physical chemical channel count before
+coupling. Set the matrix before fitting and keep it fixed for every
+evaluation of that fit. The source archive's
+``examples/quickstart/chemical_encoding.py`` builds a three-species ASE
+``Atoms`` object, evaluates rank-one and rank-two scalar descriptors
+through the public representation and basis objects, and checks rotation
+and atom-order invariance.
 
 Selecting fewer exact channels
 ------------------------------
@@ -54,18 +52,13 @@ channels. Excluded neighbors contribute no selected channel, so this option
 is appropriate only when that restriction is part of the model design. It is
 not a low-rank replacement for all species interactions.
 
-A fixed embedding that both mixes all species and reduces the compiled
-chemical width still needs a saved source-label and deployment contract.
-The example marks that work as a TODO.
-
-The custom provider hook is an in-memory source evaluation path. Current
-``LinearModel.write/read``, strict YACE export, tagged JSON export, and
-the LAMMPS consumer do not serialize or deploy an arbitrary custom
-chemical provider. They therefore must not be used to save or deploy a
-model fitted with this example's custom kernel. Trainable embeddings would
-make the source features parameter-dependent and require a separate fit,
-serialization, derivative, and deployment contract; the current fixed-feature
-linear API does not claim that route.
+The older low-level ``SiteBasisV2.chemical_provider`` hook remains an
+in-memory research extension. It is separate from the configured fixed
+embedding above and has no general model serialization contract. A
+configured fixed embedding can be fitted and saved by the ordinary density
+linear route, but strict PACE/YACE export requires delta channels and
+rejects it. Trainable embeddings would make source features depend on
+parameters and require a separate fit and derivative contract.
 
 Chemical channels also appear in ``Phi`` motifs and tagged physical
 source schedules. Their slot/role semantics differ from ordinary density:

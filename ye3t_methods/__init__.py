@@ -3,8 +3,8 @@
 __version__ = "0.1.0"
 
 from .linear import Basis, FeatureLabel, LinearModel
-from ye3t_ace import YE3TDescriptorSet, YE3TDescriptors, YE3TModel, YE3TRepresentation
-from ye3t_ace.ace.linear_ace import (
+from ye3t_methods.atomistic import YE3TDescriptorSet, YE3TDescriptors, YE3TModel, YE3TRepresentation
+from ye3t_methods.atomistic.ace.linear_ace import (
     LinearACEScalarCalculator,
     LinearACEScalarModelBundle,
     fit_linear_ace,
@@ -12,7 +12,7 @@ from ye3t_ace.ace.linear_ace import (
     load_linear_ace_calculator,
     save_linear_ace_ase_bundle,
 )
-from ye3t_ace.energy_references import fit_element_reference_energies
+from ye3t_methods.atomistic.energy_references import fit_element_reference_energies
 
 __all__ = [
     "Basis",

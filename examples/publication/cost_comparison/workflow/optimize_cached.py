@@ -12,13 +12,13 @@ from pathlib import Path
 import numpy as np
 
 from ye3t.cache import canonical_json_bytes
-from ye3t_ace.ace.linear_ace import load_xyz_structures
-from ye3t_ace.cache import (
+from ye3t_methods.atomistic.ace.linear_ace import load_xyz_structures
+from ye3t_methods.atomistic.cache import (
     LINEAR_STATISTICS_CACHE_SCHEMA,
     load_linear_sufficient_statistics,
     persist_linear_sufficient_statistics,
 )
-from ye3t_ace.linear_statistics import (
+from ye3t_methods.atomistic.linear_statistics import (
     assemble_prepared_normal_equations,
     feature_normalization,
     prepare_weighted_normal_equations,
@@ -28,7 +28,7 @@ from ye3t_ace.linear_statistics import (
     structure_linear_statistics,
     sum_linear_statistics,
 )
-from ye3t_ace.reference_potentials import (
+from ye3t_methods.atomistic.reference_potentials import (
     evaluate_lammps_zbl_reference,
     lammps_zbl_reference_config,
 )

@@ -15,21 +15,21 @@ from pathlib import Path
 
 import numpy as np
 
-from ye3t_ace import (
+from ye3t_methods.atomistic import (
     YE3TDescriptors,
     YE3TModel,
     YE3TRepresentation,
     load_xyz_structures,
 )
-from ye3t_ace.reference_potentials import (
+from ye3t_methods.atomistic.reference_potentials import (
     evaluate_lammps_zbl_reference,
     lammps_zbl_reference_config,
 )
-from ye3t_ace.tagged_cauchy_image import (
+from ye3t_methods.atomistic.tagged_cauchy_image import (
     export_tagged_cauchy_image_model,
     load_tagged_cauchy_image_model,
 )
-from ye3t_ace.tagged_cauchy_image_fit import (
+from ye3t_methods.atomistic.tagged_cauchy_image_fit import (
     build_tagged_cauchy_image_normal_equations,
     score_tagged_cauchy_image_model,
     tagged_cauchy_reference_target_metadata,

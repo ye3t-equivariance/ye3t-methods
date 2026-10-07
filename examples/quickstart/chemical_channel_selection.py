@@ -1,6 +1,6 @@
 """Select which chemical neighbor channels enter an ACE descriptor basis."""
 
-from ye3t_ace import YE3TDescriptors
+from ye3t_methods.atomistic import YE3TDescriptors
 
 
 config = {

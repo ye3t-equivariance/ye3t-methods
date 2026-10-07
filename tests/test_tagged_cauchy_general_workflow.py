@@ -13,16 +13,16 @@ import torch
 from ase import Atoms
 from ase.calculators.singlepoint import SinglePointCalculator
 
-from ye3t_ace.ace.descriptors import YE3TDescriptors, YE3TModel
-from ye3t_ace.representations import YE3TRepresentation
-from ye3t_ace.reference_potentials import (
+from ye3t_methods.atomistic.ace.descriptors import YE3TDescriptors, YE3TModel
+from ye3t_methods.atomistic.representations import YE3TRepresentation
+from ye3t_methods.atomistic.reference_potentials import (
     evaluate_zbl_reference, evaluate_lammps_zbl_reference, lammps_zbl_reference_config,
 )
-from ye3t_ace.tagged_cauchy_image import (
+from ye3t_methods.atomistic.tagged_cauchy_image import (
     TaggedCauchyImageEvaluator, TaggedCauchyImageLinearModel,
     export_tagged_cauchy_image_model, load_tagged_cauchy_image_model,
 )
-from ye3t_ace.tagged_cauchy_image_fit import (
+from ye3t_methods.atomistic.tagged_cauchy_image_fit import (
     tagged_cauchy_image_geometry_row, score_tagged_cauchy_image_model,
 )
 
@@ -381,7 +381,7 @@ def test_general_native_deployment_with_bound_pair_references(general_descriptor
     assert result.returncode == 0, result.stdout+result.stderr
     # Recompute transport hashes: these must fail semantic validation, not just
     # detection of stale outer JSON checksums.
-    from ye3t_ace.tagged_cauchy_image import _binding, _deployment_identity, _payload_hash
+    from ye3t_methods.atomistic.tagged_cauchy_image import _binding, _deployment_identity, _payload_hash
     for fault, message in (("zbl_hash", "semantic hash"),
                            ("zbl_switch", "unsupported ZBL convention"),
                            ("missing_atomic_reference", "expected every species"),

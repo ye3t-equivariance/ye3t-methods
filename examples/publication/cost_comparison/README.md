@@ -28,8 +28,9 @@ checkout, then install the methods package with its optional workflow tools.
 For sibling source checkouts:
 
 ```bash
-python -m pip install ../ye3t
-python -m pip install '.[examples]'
+python -m pip install torch 'setuptools>=77,<82' wheel cmake
+python -m pip install --no-build-isolation ../ye3t
+python -m pip install --no-build-isolation '.[examples]'
 python examples/publication/cost_comparison/run.py --stage preflight --systems Li
 python examples/publication/cost_comparison/run.py --stage prepare --systems Li
 ```
@@ -64,7 +65,50 @@ CPU time; see `run.py --help` for restartable stages and resource guards.
 The fitted model files are already present, so running LAMMPS does not require
 refitting.
 
+To reproduce the held-out Ni energy and force RMSE for the saved 60-, 127-,
+and 149-feature ordinary ACE and tagged YE3T models, run:
+
+```bash
+python examples/publication/cost_comparison/reproduce_ni_rmse.py
+```
+
+The script reads the bundled 31-frame mlearn Ni test split and the six saved
+model manifests under `lammps/Ni`, checks their hashes, includes each model's
+ZBL overlay, and compares the resulting errors with the retained accuracy
+table. Its JSON report defaults to the sibling
+`ye3t-workflows/MLIP/cost_comparison/ni_rmse_recomputed.json` directory. Use
+`--dataset-root` for a matching separately downloaded mlearn snapshot,
+`--models-root` for a matching deployment bundle, and `--output` to choose a
+report path. `--max-frames` is diagnostic only and does not claim baseline
+reproduction. The ordinary controls require the packaged native YACE reader;
+the tagged models use `LinearModel.read` and the native composite evaluator.
+
+The fixed held-out reference values are:
+
+| Features | Model | Energy RMSE (eV/atom) | Force RMSE (eV/Å) |
+| ---: | --- | ---: | ---: |
+| 60 | ACE | 0.003267 | 0.153414 |
+| 60 | tagged YE3T | 0.000963 | 0.058738 |
+| 127 | ACE | 0.001526 | 0.089734 |
+| 127 | tagged YE3T | 0.000677 | 0.039418 |
+| 149 | ACE | 0.001550 | 0.089478 |
+| 149 | tagged YE3T | 0.000643 | 0.036319 |
+
+These are accuracy baselines for the saved linear models, not targets from
+refitting a new model. The script records full precision and compares against
+the hash-checked retained table.
+
 ## Choose an ASE evaluator
+
+The source archive also includes one vetted, self-contained Ni-127 portable
+model at `portable_models/Ni_ye3t_tagged_127.ye3t` (SHA-256
+`a57647406108a71273794e7786252147c93830d8954d8c44d9d7e813cb6502a2`).
+With the methods wheel installed, run
+`python examples/quickstart/paper_ni_portable_ase.py` from the extracted source
+archive. It loads the model with `LinearModel.read`, displays the 127 ordered
+descriptor columns through `Basis.create`, and checks complete ordinary,
+tagged, and ZBL ASE energy against the retained Ni LAMMPS step-zero result.
+The 60, 149, and augmented-196 portable conversions remain study artifacts.
 
 The fitted `ye3t_tagged_127` paper artifact is a tagged-plus-ACE composite.
 The default local `pip install` builds the native C++ ASE library. With `ye3t`

@@ -5,8 +5,8 @@ from pathlib import Path
 from ase.build import bulk
 from ase.calculators.mixing import SumCalculator
 
-from ye3t_ace.reference_potentials import YE3TZBLCalculator
-from ye3t_ace.tagged_cauchy_image import YE3TTaggedCauchyCalculator
+from ye3t_methods.atomistic.reference_potentials import YE3TZBLCalculator
+from ye3t_methods.atomistic.tagged_cauchy_image import YE3TTaggedCauchyCalculator
 
 
 paper = Path(__file__).resolve().parents[1] / "publication" / "cost_comparison" / "lammps" / "Ni"

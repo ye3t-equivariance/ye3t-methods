@@ -8,13 +8,17 @@ import yaml
 from ase import Atoms
 
 from ye3t.core.basis import ExactACELabeler
-from ye3t_ace import YE3TDescriptors
-from ye3t_ace.ace.linear_ace import LinearACEScalarCalculator, LinearACEScalarModelBundle
-from ye3t_ace.ace.yace import read_yace
-from ye3t_ace.couplings.exact_catalog import ExactCouplingCatalog
-from ye3t_ace.equivariant_calc.descriptor_sets import DescriptorGenerationSettings
-from ye3t_ace.equivariant_calc.site_basis_v2 import SiteBasisConfig
-from ye3t_ace.yace_native import YE3TYACENativeCalculator
+from ye3t_methods.atomistic import YE3TDescriptors
+from ye3t_methods.atomistic.ace.linear_ace import LinearACEScalarCalculator, LinearACEScalarModelBundle
+from ye3t_methods.atomistic.ace.yace import read_yace
+from ye3t_methods.atomistic.couplings.exact_catalog import ExactCouplingCatalog
+from ye3t_methods.atomistic.equivariant_calc.descriptor_sets import DescriptorGenerationSettings
+from ye3t_methods.atomistic.equivariant_calc.site_basis_v2 import SiteBasisConfig
+from ye3t_methods.atomistic.equivariant_calc.site_basis_serialization import (
+    deserialize_site_basis_config, serialize_site_basis_config,
+)
+from ye3t_methods.atomistic.yace_native import YE3TYACENativeCalculator
+from ye3t_methods import Basis, LinearModel
 
 
 @pytest.fixture
@@ -71,6 +75,16 @@ def test_strict_yace_export_preserves_coefficients_and_reference(tmp_path, stric
         )
 
 
+def test_strict_yace_rejects_embedded_chemical_columns(tmp_path, strict_scalar_bundle):
+    payload = serialize_site_basis_config(strict_scalar_bundle.site_basis_config)
+    payload["chemical_basis"] = "fixed_embedding"
+    payload["chemical_embedding"] = [[0.5]]
+    strict_scalar_bundle.site_basis_config = deserialize_site_basis_config(payload)
+    with pytest.raises(ValueError, match="delta chemical channels"):
+        strict_scalar_bundle.export_lammps(
+            tmp_path / "invalid_embedding.yace", elements=["Si"], format="yace")
+
+
 def test_strict_yace_native_ase_matches_python_and_finite_difference(tmp_path, strict_scalar_bundle):
     library = os.environ.get("YE3T_TAGGED_C_API_LIBRARY")
     if not library or not os.path.isfile(library):
@@ -106,6 +120,137 @@ def test_strict_yace_native_ase_matches_python_and_finite_difference(tmp_path, s
         )
     finally:
         native.calc.close()
+
+
+@pytest.mark.parametrize("evaluator", ("native_cpu", "auto"))
+def test_public_density_model_forwards_explicit_native_neighbors(
+    strict_scalar_bundle, evaluator,
+):
+    library = os.environ.get("YE3T_TAGGED_C_API_LIBRARY")
+    if not library or not os.path.isfile(library):
+        pytest.skip("requires YE3T_TAGGED_C_API_LIBRARY pointing to the compiled native library")
+    basis = Basis._from_density_bundle(strict_scalar_bundle, 5.0, {"Si": 0})
+    model = LinearModel(basis, reference_energies={"Si": -3.0})
+    model._fitted = strict_scalar_bundle
+    atoms = Atoms("Si4", positions=((0, 0, 0), (1.9, 0.2, 0.1),
+                                    (-0.4, 2.1, 0.3), (0.5, -0.3, 2.2)),
+                  cell=(10, 10, 10), pbc=True)
+    reference = atoms.copy()
+    reference.calc = LinearACEScalarCalculator(
+        strict_scalar_bundle, cutoff=5.0, type_map={"Si": 0},
+        force_method="autograd", reference_energies={"Si": -3.0},
+    )
+    native = atoms.copy()
+    native.calc = model.ase_calculator(
+        evaluator=evaluator, neighbors="ase", native_library=library,
+    )
+    try:
+        assert native.calc.native_runtime.neighbors == "ase"
+        np.testing.assert_allclose(native.get_potential_energy(),
+                                   reference.get_potential_energy(), atol=1e-8)
+        np.testing.assert_allclose(native.get_forces(), reference.get_forces(), atol=1e-8)
+        np.testing.assert_allclose(native.get_stress(), reference.get_stress(), atol=1e-8)
+    finally:
+        native.calc.close()
+
+
+@pytest.mark.parametrize("neighbors", ("ase", "matscipy"))
+@pytest.mark.parametrize("geometry", ("unreduced", "tiny", "partial"))
+def test_native_yace_adversarial_periodic_geometry_matches_torch(
+    tmp_path, strict_scalar_bundle, neighbors, geometry,
+):
+    library = os.environ.get("YE3T_TAGGED_C_API_LIBRARY")
+    if not library or not os.path.isfile(library):
+        pytest.skip("requires YE3T_TAGGED_C_API_LIBRARY pointing to the compiled native library")
+    if neighbors == "matscipy":
+        pytest.importorskip("matscipy", reason="requires optional matscipy neighbor dependency")
+    path = strict_scalar_bundle.export_lammps(
+        tmp_path / "adversarial_si.yace", elements=["Si"], format="yace",
+    )
+    if geometry == "unreduced":
+        atoms = Atoms("Si2", positions=((0.1, 0.1, 0.1), (1.25, 0.85, 0.3)),
+                      cell=((3.1, 0, 0), (9.3, 3.2, 0), (0, 0, 9)),
+                      pbc=(True, True, False))
+    elif geometry == "tiny":
+        atoms = Atoms("Si2", positions=((0, 0, 0), (0.8, 0.6, 0.4)),
+                      cell=(2.3, 2.5, 2.7), pbc=True)
+    else:
+        atoms = Atoms("Si3", positions=((0, 0, 0), (1.9, 0.2, 0.1),
+                                        (0.4, 1.8, 0.9)),
+                      cell=(7, 7, 12), pbc=(True, False, True))
+    reference = atoms.copy()
+    reference.calc = LinearACEScalarCalculator(
+        strict_scalar_bundle, cutoff=5.0, type_map={"Si": 0},
+        force_method="autograd", reference_energies={"Si": -3.0},
+    )
+    native = atoms.copy()
+    native.calc = YE3TYACENativeCalculator.from_artifact(
+        path, native_library=library, neighbors=neighbors,
+    )
+    try:
+        np.testing.assert_allclose(native.get_potential_energy(),
+                                   reference.get_potential_energy(), rtol=0, atol=1e-8)
+        np.testing.assert_allclose(native.get_forces(), reference.get_forces(),
+                                   rtol=0, atol=1e-8)
+        np.testing.assert_allclose(native.get_stress(), reference.get_stress(),
+                                   rtol=0, atol=1e-8)
+        if geometry == "unreduced":
+            reduced = atoms.copy()
+            reduced_cell = np.asarray(reduced.cell.array).copy()
+            reduced_cell[1] -= 3 * reduced_cell[0]
+            reduced.set_cell(reduced_cell, scale_atoms=False)
+            reduced.calc = YE3TYACENativeCalculator.from_artifact(
+                path, native_library=library, neighbors=neighbors,
+            )
+            try:
+                np.testing.assert_allclose(reduced.get_potential_energy(),
+                                           native.get_potential_energy(), rtol=0, atol=1e-8)
+                np.testing.assert_allclose(reduced.get_forces(), native.get_forces(),
+                                           rtol=0, atol=1e-8)
+                np.testing.assert_allclose(reduced.get_stress(), native.get_stress(),
+                                           rtol=0, atol=1e-8)
+            finally:
+                reduced.calc.close()
+        if geometry == "tiny":
+            topology = native.calc.native_runtime._topology
+            repeated = (topology["src"] == 0) & (topology["dst"] == 1)
+            assert len({tuple(shift) for shift in topology["shifts"][repeated]}) > 1
+    finally:
+        native.calc.close()
+
+
+def test_native_yace_cell_and_pbc_mutation_rebuilds_positive_skin(
+    tmp_path, strict_scalar_bundle,
+):
+    library = os.environ.get("YE3T_TAGGED_C_API_LIBRARY")
+    if not library or not os.path.isfile(library):
+        pytest.skip("requires YE3T_TAGGED_C_API_LIBRARY pointing to the compiled native library")
+    path = strict_scalar_bundle.export_lammps(
+        tmp_path / "mutable_si.yace", elements=["Si"], format="yace",
+    )
+    atoms = Atoms("Si2", positions=((0, 0, 0), (1.8, 0.3, 0.2)),
+                  cell=(8, 8, 8), pbc=True)
+    atoms.calc = YE3TYACENativeCalculator.from_artifact(
+        path, native_library=library, neighbors="ase", neighbor_skin=0.3,
+    )
+    try:
+        atoms.get_forces()
+        runtime = atoms.calc.native_runtime
+        rebuilds = runtime.topology_rebuilds
+        atoms.set_cell((8.1, 8, 8), scale_atoms=False)
+        atoms.pbc = (True, False, True)
+        changed_forces = atoms.get_forces()
+        assert runtime.topology_rebuilds == rebuilds + 1
+        fresh = atoms.copy()
+        fresh.calc = YE3TYACENativeCalculator.from_artifact(
+            path, native_library=library, neighbors="ase", neighbor_skin=0.3,
+        )
+        try:
+            np.testing.assert_allclose(changed_forces, fresh.get_forces(), rtol=0, atol=1e-8)
+        finally:
+            fresh.calc.close()
+    finally:
+        atoms.calc.close()
 
 
 def _rank_three_bundle(l_tuple):

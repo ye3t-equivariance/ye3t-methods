@@ -4,7 +4,7 @@ from pathlib import Path
 
 from ase.build import bulk
 
-from ye3t_ace import YE3TDescriptors
+from ye3t_methods.atomistic import YE3TDescriptors
 
 
 config = {

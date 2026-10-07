@@ -16,7 +16,7 @@ from ase import Atoms
 from ase.io import read, write
 from ase.neighborlist import neighbor_list
 
-from ye3t_ace.ace.catalogue_selection import (
+from ye3t_methods.atomistic.ace.catalogue_selection import (
     linear_catalogue_preflight,
     resolve_ordinary_scalar_catalogues,
     resolve_tagged_content_schedule,

@@ -10,14 +10,14 @@ from pathlib import Path
 import numpy as np
 
 from ye3t.couplings import normalize_compact_label
-from ye3t_ace import (
+from ye3t_methods.atomistic import (
     YE3TDescriptors,
     YE3TRepresentation,
     save_linear_ace_ase_bundle,
 )
-from ye3t_ace.ace.lammps_export import compile_ordinary_scalar_catalogue
-from ye3t_ace.ace.linear_ace import LinearACEScalarModelBundle, export_scalar_bundle_to_yace
-from ye3t_ace.equivariant_calc import ACECovariantEvaluator
+from ye3t_methods.atomistic.ace.lammps_export import compile_ordinary_scalar_catalogue
+from ye3t_methods.atomistic.ace.linear_ace import LinearACEScalarModelBundle, export_scalar_bundle_to_yace
+from ye3t_methods.atomistic.equivariant_calc import ACECovariantEvaluator
 
 import build_rows as run_screen
 

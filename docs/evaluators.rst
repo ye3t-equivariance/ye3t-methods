@@ -2,11 +2,43 @@ Choosing a linear evaluator
 ===========================
 
 ``Basis(backend=...)`` controls descriptor construction and fitting.
-``LinearModel.ase_calculator(backend=...)`` selects evaluation of a saved or
-fitted model. These are separate choices. The ordinary ACE low-level
+``LinearModel.ase_calculator(evaluator=..., neighbors=...)`` selects evaluation
+of a saved or fitted model. ``backend=...`` remains an alias for the evaluator
+selector; specify one of them. These are separate choices. The ordinary ACE low-level
 ``source_backend`` setting selects a one-neighbor source kernel. Full C++
 ordinary ASE evaluation uses ``backend="native_cpu"`` and requires the
 model to pass strict YACE export.
+
+For a native CPU scalar ASE calculator, ``neighbors="auto"`` uses the
+validated default neighbor route. Select ``neighbors="ase"`` or
+``neighbors="matscipy"`` explicitly to use that builder; ``matscipy`` needs
+the optional ``neighbors`` extra. With ``evaluator="auto"``, an explicit
+neighbor choice selects ``native_cpu`` for a compatible density or standalone
+tagged model. An unsupported native export or missing native library raises an
+error. For a configured PACE density model, ``Basis.create`` uses ordered
+Torch descriptor rows independently of ``runtime.evaluator``. A config that
+selects ``native_cpu`` uses strict YACE export for its fitted model when
+``evaluator="auto"`` is requested, while ``evaluator="torch"`` remains an
+explicit comparison route. A config that selects ``torch`` keeps that choice
+for ``auto``. A reloaded compact ``.pt`` model retains its labels but does not
+retain the config's evaluator choice; pass ``evaluator="native_cpu"`` to select
+the native path after loading. Unsupported evaluator names raise an error.
+For a supported shifted-Jacobi tagged scalar config at one or more selected
+ranks with explicit
+or one-hot chemistry,
+``runtime.evaluator="native_cpu"`` likewise keeps reference descriptor rows
+and selects the existing tagged native ASE calculator for an in-memory fitted
+model. Its explicit ``neighbors`` choice applies to ASE model evaluation;
+standalone descriptor rows retain the validated reference geometry route.
+After reading the saved tagged ``.ye3t.json`` model, select ``native_cpu``
+explicitly again.
+For an in-memory configured model, omitting ``neighbors`` in
+``ase_calculator`` uses the config's requested neighbor policy. Passing
+``neighbors="auto"`` explicitly overrides it. Loaded compact models default
+to ``auto`` because they do not retain that runtime preference.
+When a native config requests ``matscipy``, an explicit Torch comparison
+uses the compatible ASE or reference neighbor route; explicitly asking a
+Torch calculator for ``matscipy`` still raises an error.
 
 .. list-table:: Supported compact ASE choices
    :header-rows: 1
@@ -22,12 +54,27 @@ model to pass strict YACE export.
        ``force_method="analytic_factorized"`` for the explicit analytic force
        path; the default is ``autograd``. ``native_cpu`` calls the separate C++
        YACE evaluator and rejects models that cannot be lowered to strict YACE.
+   * - Configured density ``L>0`` per-atom multiplets
+     - ``pytorch`` on CPU
+     - ``pytorch`` on CPU
+     - ASE real-tesseral per-atom mean and optional ARD covariance; no scalar
+       energy readout. The separate LAMMPS CPU property compute accepts the
+       qualified ``L=1`` odd and ``L=2`` even v2 density artifacts. The
+       density Kokkos property compute remains unfinished.
    * - ``tagged_cauchy_image``
      - ``auto`` by default; ``reference`` or ``native`` explicitly
      - ``reference`` by default; ``native_polynomial`` or ``native_cpu`` explicitly
      - ``reference`` uses the Torch reference evaluator. ``native_polynomial``
        accelerates only the polynomial contraction. ``native_cpu`` uses the
        optional C++ library built from this package's ``native/`` source.
+   * - Configured tagged ``L>0`` per-atom multiplets
+     - ``reference`` on CPU
+     - ``reference`` on CPU
+     - ASE real-tesseral mean and optional ARD covariance are tested through
+       ``L=3``. A separate LAMMPS CPU property compute accepts qualified
+       ``L=1,2`` means. The tagged device compute is experimental and has
+       passed bounded CPU/device parity tests; no posterior covariance is
+       exported to LAMMPS.
    * - ``bar_phi``
      - ``pytorch`` only
      - ``pytorch`` or its ``reference`` alias
@@ -67,7 +114,7 @@ and select ``native_cpu``:
 
    model = LinearModel.read("ordinary.pt")
    model.export_lammps("ordinary.yace")  # checks strict YACE compatibility
-   atoms.calc = model.ase_calculator(backend="native_cpu")
+   atoms.calc = model.ase_calculator(evaluator="native_cpu", neighbors="ase")
    energy, forces = atoms.get_potential_energy(), atoms.get_forces()
 
 The compact density default radial basis may not pass strict YACE export.
@@ -87,11 +134,11 @@ constructing the ASE calculator:
    from ye3t_methods import LinearModel
 
    model = LinearModel.read("tagged.ye3t.json")
-   atoms.calc = model.ase_calculator(backend="reference")
+   atoms.calc = model.ase_calculator(evaluator="torch")
    reference_forces = atoms.get_forces()
 
    atoms.calc = model.ase_calculator(
-       backend="native_cpu", execution_policy="direct",
+       evaluator="native_cpu", neighbors="ase", execution_policy="direct",
    )
    native_forces = atoms.get_forces()
 
@@ -132,6 +179,23 @@ evaluator sources; model loading still uses bundled static yaml-cpp.
 ``auto`` calibrates schedules when the model is opened and takes longer to
 initialize. The native model and its schedules stay resident in the calculator.
 It reuses neighbor topology while atoms move within the 0.3 Å skin.
+The tagged Torch reference enumerates all periodic images for validation. It
+raises on numerically ill-conditioned periodic cells or a scan exceeding one
+million candidate shifts; the native ASE/matscipy routes build neighbor lists
+without that brute-force scan.
+
+``LinearModel.read`` also accepts the promoted legacy Ni composite
+``model.ye3t.json`` when its verified v4 ``model_manifest.json`` and component
+files are colocated. Its ASE calculator applies the recorded ZBL term. The
+legacy composite has no serialized ordered compiler labels, so standalone
+descriptor rows and portable rewrite are unavailable for that artifact.
+
+The vetted single-file Ni portable ``.ye3t`` archives expose ordered
+``model.basis.create(atoms)`` rows and use ``evaluator="torch"`` or ``auto``
+on CPU for the complete ordinary-plus-tagged-plus-ZBL energy, forces, and
+stress. ``neighbors="ase"`` is supported. Explicit ``native_cpu`` and
+``matscipy`` requests reject on this bounded portable route. The saved
+couplings are read once; geometry changes do not compile a new coupler.
 
 Compilation caches
 ------------------
@@ -160,6 +224,38 @@ project needs its own cache:
    )
    print(basis.resolved["compiled_cache_dir"])
 
+Density descriptor-build entries use verified JSON for labels and metadata,
+with hash-bound NPZ sidecars for magnetic-index and coefficient arrays. A
+per-key process lock protects the JSON entry. Legacy ``.pkl`` and older
+JSON cache entries are ignored and can be pruned after a
+successful rebuild; they are never loaded by this path. Set
+``YE3T_CACHE_MODE`` to ``auto`` (default), ``read_only``, ``refresh``, or
+``off`` for the global disk store. The descriptor cache's in-process label
+and artifact LRUs have separate configurable byte budgets.
+
+To prewarm an ordinary ACE descriptor catalogue, save a JSON object with
+``schema: "ye3t_methods_prewarm_v1"``, ``settings`` in the
+``DescriptorGenerationSettings.as_dict()`` format, and ``selected_labels``
+containing only compiler-issued ``CompactLabel.to_dict()`` records. Preview
+the work before compiling:
+
+.. code-block:: bash
+
+   python -m ye3t_methods.cache --catalogue selected.json --cache-dir /path/to/cache
+   python -m ye3t_methods.cache --catalogue selected.json --cache-dir /path/to/cache --apply
+
+The preview validates selected labels through ``ye3t.couplings.count`` and
+reports label count and a magnetic-input-size proxy without writing cache
+entries or materializing coefficients. The default limits are 100 labels,
+rank 4, and 100,000 magnetic input elements; override them with
+``--max-labels``, ``--max-rank``, and ``--max-magnetic-elements``. These are
+precompile size limits, not a wall-time or memory guarantee. ``--apply``
+requires an explicit cache directory and a writable cache mode. This route
+prewarms selected ordinary ``no_charge`` ACE descriptor artifacts; other
+source programmes still compile through their normal validated paths.
+Existing ``ye3t_ace_prewarm_v1`` catalogues remain readable and retain their
+historical report schema; new catalogues should use the methods name above.
+
 The ordered tagged-carrier example also exposes
 ``config["runtime"]["compiled_cache_dir"]``. The cache location can be
 controlled globally with ``YE3T_ACE_CACHE_DIR`` or ``YE3T_CACHE_DIR``.
@@ -186,7 +282,7 @@ and a tagged correction. Load it directly with the native ASE adapter:
 
 .. code-block:: python
 
-   from ye3t_ace.tagged_cauchy_image import YE3TTaggedCauchyCalculator
+   from ye3t_methods.atomistic.tagged_cauchy_image import YE3TTaggedCauchyCalculator
 
    atoms.calc = YE3TTaggedCauchyCalculator.from_artifact(
        "lammps/Li/models/ye3t_tagged_127/model.ye3t.json",
@@ -200,7 +296,7 @@ the two ASE calculators:
 .. code-block:: python
 
    from ase.calculators.mixing import SumCalculator
-   from ye3t_ace.reference_potentials import YE3TZBLCalculator
+   from ye3t_methods.atomistic.reference_potentials import YE3TZBLCalculator
 
    linear = YE3TTaggedCauchyCalculator.from_artifact(
        "lammps/Li/models/ye3t_tagged_127/model.ye3t.json",
@@ -221,7 +317,7 @@ same saved artifact directly in ASE with the C++ library:
 
 .. code-block:: python
 
-   from ye3t_ace.yace_native import YE3TYACENativeCalculator
+   from ye3t_methods.atomistic.yace_native import YE3TYACENativeCalculator
 
    atoms.calc = YE3TYACENativeCalculator.from_artifact(
        "lammps/Li/models/ace_127/potential.yace",

@@ -7,8 +7,8 @@ from ase import Atoms
 from ase.calculators.singlepoint import SinglePointCalculator
 
 from ye3t_methods import Basis, LinearModel
-from ye3t_ace import YE3TModel
-from ye3t_ace.cluster_phi import (
+from ye3t_methods.atomistic import YE3TModel
+from ye3t_methods.atomistic.cluster_phi import (
     HybridACEPhiCalculator, MotifTemplate, PhiMotifSpec, PhiSlotChannel,
 )
 

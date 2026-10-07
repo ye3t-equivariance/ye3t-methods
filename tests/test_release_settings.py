@@ -2,13 +2,13 @@
 
 import pytest
 
-from ye3t_ace.ace.descriptors import ACEDescriptor, YE3TDescriptors
-from ye3t_ace.equivariant_calc.descriptor_sets import DescriptorGenerationSettings
-from ye3t_ace.equivariant_calc.site_basis_serialization import (
+from ye3t_methods.atomistic.ace.descriptors import ACEDescriptor, YE3TDescriptors
+from ye3t_methods.atomistic.equivariant_calc.descriptor_sets import DescriptorGenerationSettings
+from ye3t_methods.atomistic.equivariant_calc.site_basis_serialization import (
     deserialize_site_basis_config,
     serialize_site_basis_config,
 )
-from ye3t_ace.equivariant_calc.site_basis_v2 import SiteBasisConfig
+from ye3t_methods.atomistic.equivariant_calc.site_basis_v2 import SiteBasisConfig
 
 
 def test_descriptor_settings_reject_active_unknown_option():

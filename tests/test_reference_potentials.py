@@ -6,7 +6,7 @@ import numpy as np
 import pytest
 from ase import Atoms
 
-from ye3t_ace.reference_potentials import (
+from ye3t_methods.atomistic.reference_potentials import (
     YE3TZBLCalculator,
     evaluate_lammps_zbl_reference,
     lammps_zbl_reference_config,

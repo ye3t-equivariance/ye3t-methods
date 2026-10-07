@@ -2,7 +2,7 @@
 
 from ase import Atoms
 from ye3t_methods import Basis
-from ye3t_ace.cluster_phi import MotifTemplate, PhiMotifSpec, PhiSlotChannel
+from ye3t_methods.atomistic.cluster_phi import MotifTemplate, PhiMotifSpec, PhiSlotChannel
 
 
 config = {

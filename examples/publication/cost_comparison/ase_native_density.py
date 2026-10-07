@@ -6,8 +6,8 @@ from pathlib import Path
 from ase.build import bulk
 from ase.calculators.mixing import SumCalculator
 
-from ye3t_ace.reference_potentials import YE3TZBLCalculator
-from ye3t_ace.yace_native import YE3TYACENativeCalculator
+from ye3t_methods.atomistic.reference_potentials import YE3TZBLCalculator
+from ye3t_methods.atomistic.yace_native import YE3TYACENativeCalculator
 
 
 example_root = Path(__file__).resolve().parent

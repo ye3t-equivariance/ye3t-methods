@@ -6,7 +6,7 @@ from ase import Atoms
 from ase.calculators.singlepoint import SinglePointCalculator
 
 from ye3t_methods import Basis, LinearModel
-from ye3t_ace.tagged_cauchy_image import TaggedCauchyImageLinearModel
+from ye3t_methods.atomistic.tagged_cauchy_image import TaggedCauchyImageLinearModel
 
 
 def test_tagged_fit_save_load_ase_and_compiler_labels(tmp_path):

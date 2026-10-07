@@ -1,113 +1,79 @@
-"""Compare one-hot channels with a fixed, lower-width chemical embedding."""
+"""Evaluate scalar ASE descriptors with a fixed two-channel species embedding.
 
-import torch
+Edit the species list, embedding matrix, radial source, and catalogue below.
+Changing ``chemical.kind`` to ``explicit`` restores one-hot neighbor channels.
+"""
 
+import numpy as np
+from ase import Atoms
+from ye3t import YE3TRepresentation
 from ye3t_methods import Basis
-from ye3t_ace.equivariant_calc.labeling import SingleChannelLabel
-from ye3t_ace.equivariant_calc.site_basis_v2 import SiteBasisConfig, SiteBasisV2
 
 
 config = {
     "metadata": {
-        "name": "chemical_encoding", "vectors_A": [[1.5, 0.0, 0.0], [0.0, 1.5, 0.0]],
-        "edge_index": [[0, 0], [1, 2]], "atom_types": [0, 0, 1],
+        "schema": "ye3t_config_v1", "name": "chemical_encoding",
+        "status": "stable",
+        "system": {
+            "symbols": "NiCuAl",
+            "positions_A": [[0.0, 0.0, 0.0], [1.4, 0.1, 0.2], [0.3, 1.7, 0.4]],
+        },
+    },
+    "representation": {
+        "group": "O3", "ranks": [1, 2],
+        "parent": {"young_lambda": "(N)", "L": 0, "parity": "even"},
+        "factorization": "cauchy", "subspace": "full",
+        "uncoupled_factor_inputs": {
+            "eta_count_per_rank": {1: 1, 2: 1},
+            "l_max_per_rank": {1: 0, 2: 0},
+        },
+        "intermediates": {
+            "young_kappa": "all_valid", "block_rotation": {"policy": "all_valid"},
+        },
     },
     "basis": {
-        "elements": ["Li", "Na"],
-        "cutoff_A": 4.0,
-        "radial_decay": 0.25,
-        "max_rank": 1,
-        "nmax": 1,
-        "lmax": 0,
-        "one_hot_chemical_basis": "delta",
-        "fixed_embedding_rows": [[1.0], [0.5]],
+        "single_factors": {
+            "species": ["Ni", "Cu", "Al"],
+            "radial": {"family": "pace_chebexp_cos", "cutoff_A": 4.5,
+                       "cutoff_width_A": 0.01, "lambda": 0.79},
+            "chemical": {
+                "kind": "fixed_embedding",
+                "species_order": ["Ni", "Cu", "Al"],
+                "matrix": [[1.0, 0.0], [0.0, 1.0], [0.5, -0.25]],
+            },
+        },
+        "tensor_product": {"kind": "density"},
+        "catalogue": {
+            "ranks": [1, 2],
+            "nmax_per_rank": {1: 1, 2: 1},
+            "lmax_per_rank": {1: 0, 2: 0},
+            "source_block_partitions_by_rank": {1: [[1]], 2: [[2], [1, 1]]},
+        },
     },
-    "representation": {"source": "ordinary_density", "target_L": 0},
-    "runtime": {"backend": "torch", "device": "cpu", "dtype": torch.float64},
-    "model": None,
-    "targets": {"energy": None, "forces": None},
-    "validation": {"compare_embedded_to_one_hot_transform": True},
+    "runtime": {"evaluator": "torch", "neighbors": "ase",
+                "cache": {"mode": "auto"}, "dtype": "float64", "device": "cpu"},
+    "model": {}, "targets": {},
+    "validation": {"checks": ["rotation", "atom_order"]},
 }
 
+system = config["metadata"]["system"]
+atoms = Atoms(system["symbols"], positions=system["positions_A"])
+representation = YE3TRepresentation.from_config(config["representation"])
+basis = Basis.from_config(
+    config["basis"], representation=representation, runtime=config["runtime"],
+)
+descriptors = basis.create(atoms)
 
-class FixedChemicalKernel:
-    """Evaluate the Gram kernel of a fixed species embedding at an edge."""
+rotated = atoms.copy()
+rotated.rotate(37.0, "z", center=(0, 0, 0))
+np.testing.assert_allclose(basis.create(rotated), descriptors, rtol=1e-9, atol=1e-9)
+order = [2, 0, 1]
+np.testing.assert_allclose(basis.create(atoms[order]), descriptors[order],
+                           rtol=1e-9, atol=1e-9)
 
-    def __init__(self, embedding):
-        rows = torch.as_tensor(embedding, dtype=torch.float64)
-        if rows.ndim != 2 or rows.shape[0] < 1 or not torch.isfinite(rows).all():
-            raise ValueError("fixed_embedding_rows must be a finite species-by-channel matrix")
-        self.kernel = rows @ rows.T
-
-    def __call__(self, *, mu0_edge, mu_edge, mu0, mu, evaluator):
-        kernel = self.kernel.to(device=mu0_edge.device, dtype=evaluator.cfg.dtype)
-        return kernel[mu0_edge, mu0] * kernel[mu_edge, mu]
-
-
-elements = config["basis"]["elements"]
-basis = Basis(
-    elements=elements,
-    cutoff=config["basis"]["cutoff_A"],
-    max_rank=config["basis"]["max_rank"],
-    nmax=config["basis"]["nmax"],
-    lmax=config["basis"]["lmax"],
-    radial_decay=config["basis"]["radial_decay"],
-)
-print("one-hot descriptor columns", len(basis.labels))
-for label in basis.labels:
-    print(label.as_dict()["one_factor_channels"])
-
-site_config = SiteBasisConfig(
-    rc=[config["basis"]["cutoff_A"]],
-    lmbda=[config["basis"]["radial_decay"]],
-    nradmax=config["basis"]["nmax"],
-    lmax=config["basis"]["lmax"],
-    possible_types=tuple(range(len(elements))),
-    chemical_basis=config["basis"]["one_hot_chemical_basis"],
-    charge_mode="none",
-    atomic_base_normalization="none",
-    factor_normalization="none",
-    source_backend=config["runtime"]["backend"],
-    dtype=config["runtime"]["dtype"],
-    complex_dtype=torch.complex128,
-)
-channels = tuple(
-    SingleChannelLabel(mu0=0, mu=neighbor_type, kappa0=0, kappa=0,
-                       n=1, l=0, m=0)
-    for neighbor_type in range(len(elements))
-)
-vectors = torch.tensor(config["metadata"]["vectors_A"], dtype=config["runtime"]["dtype"])
-edges = torch.tensor(config["metadata"]["edge_index"], dtype=torch.long)
-types = torch.tensor(config["metadata"]["atom_types"], dtype=torch.long)
-
-one_hot = SiteBasisV2(site_config)
-embedding = FixedChemicalKernel(config["basis"]["fixed_embedding_rows"])
-embedded = SiteBasisV2(site_config, chemical_provider=embedding)
-identity = SiteBasisV2(
-    site_config, chemical_provider=FixedChemicalKernel(torch.eye(len(elements))),
-)
-_, one_hot_values = one_hot.compute_site_basis(
-    vectors, edges, types, channels, real_output=True,
-)
-_, embedded_values = embedded.compute_site_basis(
-    vectors, edges, types, channels, real_output=True,
-)
-_, identity_values = identity.compute_site_basis(
-    vectors, edges, types, channels, real_output=True,
-)
-kernel = embedding.kernel
-torch.testing.assert_close(identity_values, one_hot_values)
-torch.testing.assert_close(embedded_values[0], one_hot_values[0] @ kernel)
-_, one_hot_edges, one_hot_dx = one_hot.compute_channel_edges_with_dx(
-    vectors, edges, types, channels, real_output=True,
-)
-_, embedded_edges, embedded_dx = embedded.compute_channel_edges_with_dx(
-    vectors, edges, types, channels, real_output=True,
-)
-torch.testing.assert_close(embedded_edges, one_hot_edges @ kernel)
-torch.testing.assert_close(
-    embedded_dx, torch.einsum("eac,ab->ebc", one_hot_dx, kernel),
-)
-print("one-hot source", one_hot_values[0].tolist())
-print("fixed-kernel source", embedded_values[0].tolist())
-print("chemical_width", len(elements), "->", len(config["basis"]["fixed_embedding_rows"][0]))
+print("embedding species order", config["basis"]["single_factors"]["chemical"]["species_order"])
+print("embedding shape", np.shape(config["basis"]["single_factors"]["chemical"]["matrix"]))
+print("descriptor shape", descriptors.shape)
+print("compiler count per center", basis.catalogue.counts()["exact_total_per_center"])
+print("first descriptor", basis.labels[0])
+print("rotation and atom-order checks passed")

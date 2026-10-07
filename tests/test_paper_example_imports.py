@@ -14,7 +14,7 @@ def test_paper_drivers_use_available_ye3t_imports():
         for node in ast.walk(tree):
             if not isinstance(node, ast.ImportFrom):
                 continue
-            if not node.module or not node.module.startswith(("ye3t_ace", "ye3t.")):
+            if not node.module or not node.module.startswith(("ye3t_methods", "ye3t.")):
                 continue
             module = importlib.import_module(node.module)
             missing = [alias.name for alias in node.names if not hasattr(module, alias.name)]

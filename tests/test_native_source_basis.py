@@ -4,8 +4,8 @@ import pytest
 import torch
 
 from ye3t.runtime import native_execution_plan_capabilities
-from ye3t_ace.equivariant_calc.labeling import SingleChannelLabel
-from ye3t_ace.equivariant_calc.site_basis_v2 import (
+from ye3t_methods.atomistic.equivariant_calc.labeling import SingleChannelLabel
+from ye3t_methods.atomistic.equivariant_calc.site_basis_v2 import (
     SiteBasisConfig,
     SiteBasisV2,
 )

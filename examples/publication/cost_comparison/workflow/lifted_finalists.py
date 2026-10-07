@@ -16,8 +16,8 @@ import numpy as np
 
 import finalize_models as final
 import optimize_cached as study
-from ye3t_ace.ace.lammps_export import compile_ordinary_scalar_catalogue
-from ye3t_ace.ace.linear_ace import load_xyz_structures
+from ye3t_methods.atomistic.ace.lammps_export import compile_ordinary_scalar_catalogue
+from ye3t_methods.atomistic.ace.linear_ace import load_xyz_structures
 
 
 ORDINARY_COUNT = 70

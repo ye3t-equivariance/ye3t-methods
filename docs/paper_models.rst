@@ -18,6 +18,7 @@ The archive layout is:
      tagged_components.json      fixed-channel tagged requests
      systems/                    six editable element records
      run.py and workflow/        fitting and validation stages
+     reproduce_ni_rmse.py        pinned six-model Ni accuracy replay
      lammps/<element>/           model files, inputs, reference logs
    examples/data/mlearn/         fixed data snapshot and split records
 
@@ -29,6 +30,20 @@ package, then run from the extracted source archive:
    python examples/publication/cost_comparison/verify_models.py
    python examples/publication/cost_comparison/run.py --stage preflight --systems Li
    python examples/publication/cost_comparison/run.py --stage prepare --systems Li
+
+For the pinned Ni accuracy comparison, use the default native installation
+and run the complete 31-frame saved-model replay:
+
+.. code-block:: bash
+
+   python examples/publication/cost_comparison/reproduce_ni_rmse.py
+
+This command reports energy RMSE in eV/atom and force RMSE in eV/Å for the
+60-, 127-, and 149-feature ordinary ACE and tagged YE3T models. It checks the
+dataset, split, model, and manifest hashes, adds each saved ZBL overlay, and
+writes full-precision JSON. The paper example README gives the six reference
+values and ``--dataset-root``/``--output`` options. It replays saved models;
+it does not refit them or measure their LAMMPS speed.
 
 The prefit LAMMPS artifacts can be used without rerunning the fitting workflow.
 After building LAMMPS with ML-YE3T and, for the independent control, ML-PACE:
@@ -52,6 +67,7 @@ With ``ye3t`` already installed, run the editable examples:
    python examples/publication/cost_comparison/ase_native_density.py
    python examples/publication/cost_comparison/ase_native_tagged.py
    python examples/quickstart/paper_ni_ase.py
+   python examples/quickstart/paper_ni_portable_ase.py
 
 The two Li scripts have editable configurations and validate the 16-atom Li
 step-zero energy against the retained LAMMPS log. It reports forces, stress,
@@ -62,6 +78,14 @@ The ZBL overlay is zero on this example geometry.
 The Ni quickstart checks the 32-atom tagged model against its retained
 LAMMPS step-zero energy. A separate CMake build is described in
 :doc:`evaluators` when the pip-built library is not used.
+The portable Ni quickstart uses the source archive's single vetted Ni-127
+``.ye3t`` bundle through ``LinearModel.read``. It exposes 127 ordered
+``Basis.create`` rows and evaluates the complete ordinary, tagged, and ZBL
+energy with the CPU Torch ASE calculator. The bundle SHA-256 is
+``a57647406108a71273794e7786252147c93830d8954d8c44d9d7e813cb6502a2``;
+the source-archive model is the same bytes as the bounded conversion study.
+The installed wheel supplies the reader, while the source archive supplies
+the reference model and example. The old native path remains available.
 The ordinary ACE control is supplied as ``.yace`` and loads through
 ``YE3TYACENativeCalculator.from_artifact``. ``LinearModel.read`` reads compact
 Torch ``.pt`` bundles, not ``.yace`` files. See :doc:`evaluators` for the

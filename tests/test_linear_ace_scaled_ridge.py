@@ -50,7 +50,7 @@ def _objective():
 
 @pytest.mark.fast
 def test_structure_balanced_scaled_design_matches_independent_formula():
-    from ye3t_ace.ace.linear_ace import _structure_balanced_scaled_design
+    from ye3t_methods.atomistic.ace.linear_ace import _structure_balanced_scaled_design
 
     records = _records()
     X, y, metadata = _structure_balanced_scaled_design(records, _objective())
@@ -103,7 +103,7 @@ def test_structure_balanced_scaled_design_matches_independent_formula():
 @pytest.mark.fast
 @pytest.mark.parametrize("alpha", [0.0, 0.25])
 def test_augmented_svd_solver_matches_independent_lstsq_and_foldback(alpha):
-    from ye3t_ace.ace.linear_ace import (
+    from ye3t_methods.atomistic.ace.linear_ace import (
         _solve_structure_balanced_scaled_ridge,
         _structure_balanced_scaled_design,
     )
@@ -137,7 +137,7 @@ def test_augmented_svd_solver_matches_independent_lstsq_and_foldback(alpha):
 
 @pytest.mark.fast
 def test_scaled_objective_rejects_unknown_fields_and_invalid_shapes():
-    from ye3t_ace.ace.linear_ace import (
+    from ye3t_methods.atomistic.ace.linear_ace import (
         _normalize_linear_fit_objective,
         _structure_balanced_scaled_design,
     )
@@ -155,7 +155,7 @@ def test_scaled_objective_rejects_unknown_fields_and_invalid_shapes():
 @pytest.mark.fast
 @pytest.mark.parametrize("alpha", [0.0, 0.25])
 def test_streamed_scaled_normal_matches_dense_objective(alpha):
-    from ye3t_ace.ace.linear_ace import (
+    from ye3t_methods.atomistic.ace.linear_ace import (
         _accumulate_structure_balanced_scaled_normal,
         _solve_structure_balanced_scaled_ridge,
         _solve_structure_balanced_scaled_ridge_from_normal,
@@ -221,7 +221,7 @@ def test_streamed_scaled_normal_matches_dense_objective(alpha):
 
 @pytest.mark.fast
 def test_streamed_scaled_normal_applies_structure_weights_to_complete_blocks():
-    from ye3t_ace.ace.linear_ace import (
+    from ye3t_methods.atomistic.ace.linear_ace import (
         _accumulate_structure_balanced_scaled_normal,
         _structure_balanced_scale_metadata,
         _structure_balanced_scaled_design,
@@ -271,7 +271,7 @@ def test_streamed_scaled_normal_applies_structure_weights_to_complete_blocks():
 def test_ard_fit_records_a_usable_posterior(monkeypatch):
     sklearn = pytest.importorskip("sklearn")
     del sklearn
-    from ye3t_ace.ace import linear_ace
+    from ye3t_methods.atomistic.ace import linear_ace
 
     rng = np.random.default_rng(914)
     X = rng.normal(size=(40, 3))

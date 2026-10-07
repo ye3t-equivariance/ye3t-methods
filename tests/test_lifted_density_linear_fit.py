@@ -5,8 +5,8 @@ import torch
 from ase import Atoms
 from ase.calculators.singlepoint import SinglePointCalculator
 
-from ye3t_ace import YE3TDescriptors, YE3TModel, YE3TRepresentation
-from ye3t_ace.lifted_density import HybridACELiftedDensityCalculator, LiftedDensityChannel
+from ye3t_methods.atomistic import YE3TDescriptors, YE3TModel, YE3TRepresentation
+from ye3t_methods.atomistic.lifted_density import HybridACELiftedDensityCalculator, LiftedDensityChannel
 
 
 def test_descriptor_first_linear_a_s_fit_recovers_manufactured_predictions():

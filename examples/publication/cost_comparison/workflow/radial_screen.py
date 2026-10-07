@@ -16,17 +16,17 @@ from ase.neighborlist import neighbor_list
 import optimize_cached as study
 from ye3t.couplings import normalize_compact_label
 from ye3t.couplings.tagged_cauchy import _stable_free_moment_matrix
-from ye3t_ace import YE3TDescriptors, YE3TRepresentation
-from ye3t_ace.ace.linear_ace import load_xyz_structures
-from ye3t_ace.equivariant_calc import (
+from ye3t_methods.atomistic import YE3TDescriptors, YE3TRepresentation
+from ye3t_methods.atomistic.ace.linear_ace import load_xyz_structures
+from ye3t_methods.atomistic.equivariant_calc import (
     ACECovariantEvaluator,
     neighbor_data_from_ase_atoms,
 )
-from ye3t_ace.equivariant_calc.gradients import (
+from ye3t_methods.atomistic.equivariant_calc.gradients import (
     descriptor_sum_position_jacobian_analytic_product,
     edge_vectors_from_positions,
 )
-from ye3t_ace.tagged_cauchy_fit import (
+from ye3t_methods.atomistic.tagged_cauchy_fit import (
     build_streamed_merged_arm_from_catalogue,
 )
 

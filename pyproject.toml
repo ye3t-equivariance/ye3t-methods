@@ -24,7 +24,7 @@ where = ["."]
 include = ["ye3t_methods*", "ye3t_ace*"]
 
 [tool.setuptools.package-data]
-ye3t_ace = ["py.typed"]
+"ye3t_methods.atomistic" = ["py.typed"]
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]

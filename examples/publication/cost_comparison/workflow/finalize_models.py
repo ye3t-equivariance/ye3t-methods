@@ -13,20 +13,20 @@ import numpy as np
 
 import optimize_cached as study
 import radial_screen as radial
-from ye3t_ace.ace.lammps_export import export_scalar_bundle_to_lammps
-from ye3t_ace.ace.linear_ace import (
+from ye3t_methods.atomistic.ace.lammps_export import export_scalar_bundle_to_lammps
+from ye3t_methods.atomistic.ace.linear_ace import (
     LinearACEScalarModelBundle,
     export_scalar_bundle_to_yace,
     load_xyz_structures,
 )
-from ye3t_ace.linear_statistics import (
+from ye3t_methods.atomistic.linear_statistics import (
     score_linear_statistics,
     select_linear_statistics,
     structure_linear_statistics,
     sum_linear_statistics,
 )
-from ye3t_ace.tagged_cauchy_fit import arm_lammps_model
-from ye3t_ace.tagged_cauchy_linear import (
+from ye3t_methods.atomistic.tagged_cauchy_fit import arm_lammps_model
+from ye3t_methods.atomistic.tagged_cauchy_linear import (
     export_tagged_composite_model,
     export_tagged_model,
     load_tagged_model,

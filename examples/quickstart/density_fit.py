@@ -1,60 +1,97 @@
-"""Fit a scalar density model to ASE structures with energies and forces."""
+"""Fit a paper-informed scalar Ni ACE model from real labeled ASE structures.
 
+This short training subset demonstrates the interface. It uses the paper's
+radial source and radial counts through rank four, with smaller angular caps;
+it does not reproduce the selected 60/127/149-feature paper models or RMSE.
+"""
+
+import json
 from pathlib import Path
 
+import numpy as np
 from ase.io import read
+from ye3t import YE3TRepresentation
 from ye3t_methods import Basis, LinearModel
 
 
-fixtures = Path(__file__).with_name("fixtures")
-output_root = Path(__file__).resolve().parents[2].parent / "ye3t-workflows" / "quickstart_linear"
+dataset = Path(__file__).resolve().parents[1] / "data" / "mlearn" / "Ni"
 config = {
     "metadata": {
-        "name": "density_fit", "structures": fixtures / "cu2_training.extxyz",
+        "schema": "ye3t_config_v1", "name": "ni_density_fit", "status": "stable",
+        "training_structures": str(dataset / "ni_all.xyz"),
+        "evaluation_structure": str(dataset / "ni_all.xyz"),
+        "output_path": "../ye3t-workflows/quickstart_linear/ni_density_fit.pt",
+        "system": {"split_file": str(dataset / "moment_star_split.json"),
+                   "training_count": 12},
+    },
+    "representation": {
+        "group": "O3", "ranks": [1, 2, 3, 4],
+        "parent": {"young_lambda": "(N)", "L": 0, "parity": "even"},
+        "factorization": "cauchy", "subspace": "full",
+        "uncoupled_factor_inputs": {
+            "eta_count_per_rank": {1: 1, 2: 1, 3: 1, 4: 1},
+            "l_max_per_rank": {1: 0, 2: 1, 3: 1, 4: 1},
+        },
+        "intermediates": {
+            "young_kappa": "all_valid", "block_rotation": {"policy": "all_valid"},
+        },
     },
     "basis": {
-        "elements": ["Cu"], "source": "density", "cutoff": 3.5,
-        "max_rank": 4, "nmax": (2, 2, 2, 2), "lmax": (1, 1, 1, 1),
-        "radial_decay": 0.25,
+        "single_factors": {
+            "species": ["Ni"],
+            "radial": {"family": "pace_chebexp_cos", "cutoff_A": 4.638049165633364,
+                       "cutoff_width_A": 0.01, "lambda": 0.7928781217554153},
+            "chemical": {"kind": "explicit"},
+        },
+        "tensor_product": {"kind": "density"},
+        "catalogue": {
+            "ranks": [1, 2, 3, 4],
+            "nmax_per_rank": {1: 4, 2: 3, 3: 3, 4: 3},
+            "lmax_per_rank": {1: 0, 2: 1, 3: 1, 4: 1},
+            "source_block_partitions_by_rank": {
+                1: [[1]], 2: [[2]], 3: [[3]], 4: [[4]],
+            },
+        },
     },
-    "representation": {"parent_young": "trivial", "parent_L": 0},
-    "runtime": {
-        "basis_backend": "pytorch", "ase_backend": "pytorch",
-        "force_method": "autograd",
-        "output_path": output_root / "cu_density.pt",
+    "runtime": {"evaluator": "torch", "neighbors": "ase",
+                "cache": {"mode": "auto"}, "dtype": "float64", "device": "cpu"},
+    "model": {
+        "kind": "linear",
+        "fit": {"solver": "ridge", "alpha": 1e-8,
+                "weights": {"energy": 1.0, "forces": 1.0}},
+        "reference_energy": {"per_species_E0_eV": {"Ni": 0.0}, "fit_E0": True},
     },
-    "model": {"type": "linear", "regularization": 1e-8,
-              "energy_weight": 1.0, "force_weight": 1.0},
-    "targets": {"energy": "energy", "forces": "forces"},
-    "validation": {"evaluate_structure": fixtures / "cu2_structure.extxyz"},
+    "targets": {"energy": "energy", "forces": "forces", "stress": None},
+    "validation": {"checks": ["round_trip"]},
 }
-# Density products have a trivial global Young sector and this API builds L=0 scalars.
-if config["representation"] != {"parent_young": "trivial", "parent_L": 0}:
-    raise ValueError("This density example supports only the trivial Young sector and L=0.")
-
-structures = read(config["metadata"]["structures"], index=":")
-basis = Basis(**config["basis"], backend=config["runtime"]["basis_backend"])
-model = LinearModel(basis).fit(
-    structures,
-    regularization=config["model"]["regularization"],
-    energy_weight=config["model"]["energy_weight"],
-    force_weight=config["model"]["force_weight"],
-    energy_key=config["targets"]["energy"],
-    force_key=config["targets"]["forces"],
+frames = read(config["metadata"]["training_structures"], index=":")
+split = json.loads(Path(config["metadata"]["system"]["split_file"]).read_text(
+    encoding="utf-8"))
+train_indices = split["indices"]["train"]
+selected = np.linspace(0, len(train_indices) - 1,
+                       config["metadata"]["system"]["training_count"], dtype=int)
+structures = [frames[train_indices[index]] for index in selected]
+assert all(atoms.info["source_split"] == "training" for atoms in structures)
+representation = YE3TRepresentation.from_config(config["representation"])
+basis = Basis.from_config(
+    config["basis"], representation=representation, runtime=config["runtime"],
 )
-config["runtime"]["output_path"].parent.mkdir(parents=True, exist_ok=True)
-artifact = model.write(config["runtime"]["output_path"])
+model = LinearModel(basis).fit(structures, config=config)
+output_path = Path(config["metadata"]["output_path"])
+output_path.parent.mkdir(parents=True, exist_ok=True)
+artifact = model.write(output_path)
 restored = LinearModel.read(artifact)
-# "native_cpu" requires a radial basis that can be exported to YACE.
-atoms = read(config["validation"]["evaluate_structure"])
-calculator_options = {}
-if config["runtime"]["ase_backend"] == "pytorch":
-    calculator_options["force_method"] = config["runtime"]["force_method"]
-atoms.calc = restored.ase_calculator(backend=config["runtime"]["ase_backend"],
-                                     **calculator_options)
-print(basis)
+atoms = frames[split["indices"]["test"][0]].copy()
+reference_energy = frames[split["indices"]["test"][0]].get_potential_energy()
+atoms.calc = restored.ase_calculator(
+    evaluator=config["runtime"]["evaluator"],
+    neighbors=config["runtime"]["neighbors"],
+    force_method="autograd",
+)
+print(representation)
+print("features", len(basis.labels))
 print("training_structures", len(structures))
-print(model.describe(0))
 print("saved_model", artifact)
-print("energy_eV", atoms.get_potential_energy())
-print("forces_eV_per_A", atoms.get_forces())
+print("heldout_energy_reference_eV", reference_energy)
+print("heldout_energy_predicted_eV", atoms.get_potential_energy())
+print("heldout_maximum_force_eV_per_A", abs(atoms.get_forces()).max())

@@ -8,7 +8,7 @@ import pytest
 import torch
 import yaml
 
-from ye3t_ace.ace.yace import read_yace, write_yace
+from ye3t_methods.atomistic.ace.yace import read_yace, write_yace
 
 
 _FIXTURE = Path(__file__).parent / "fixtures" / "yace_minimal_linear_ta.yace"

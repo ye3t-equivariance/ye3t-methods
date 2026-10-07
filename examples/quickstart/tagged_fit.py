@@ -1,86 +1,134 @@
-"""Fit and evaluate a rank-four tagged Cauchy image model."""
+"""Fit rank-four tagged scalar descriptors with Young and angular intermediates.
 
+The bundled Ta labels are deterministic interface fixtures, not reference data
+for a physical Ta potential. Replace the input file for a scientific fit.
+"""
+
+import json
 from pathlib import Path
 
-from ase.io import read
+import numpy as np
+from ase.io import read, write
+from ye3t import YE3TRepresentation
 from ye3t_methods import Basis, LinearModel
 
 
 fixtures = Path(__file__).with_name("fixtures")
-output_root = Path(__file__).resolve().parents[2].parent / "ye3t-workflows" / "quickstart_linear"
 config = {
     "metadata": {
-        "name": "tagged_fit", "structures": fixtures / "ta3_training.extxyz",
+        "schema": "ye3t_config_v1", "name": "ta_tagged", "status": "stable",
+        "training_structures": str(fixtures / "ta3_training.extxyz"),
+        "evaluation_structure": str(fixtures / "ta3_structure.extxyz"),
+        "output_path": "../ye3t-workflows/quickstart_linear/ta_tagged_configured.ye3t.json",
+    },
+    "representation": {
+        "group": "O3", "ranks": [4],
+        "parent": {"young_lambda": "(N)", "L": 0, "parity": "even"},
+        "factorization": "cauchy", "subspace": "full",
+        "uncoupled_factor_inputs": {
+            "eta_count_per_rank": {4: 2}, "l_max_per_rank": {4: 1},
+        },
+        "intermediates": {
+            "young_kappa": "all_valid", "block_rotation": {"policy": "all_valid"},
+        },
     },
     "basis": {
-        "elements": ["Ta"], "source": "tagged_cauchy_image", "cutoff": 4.8,
-        "pair_cutoffs_A": {"Ta-Ta": 4.8},
-        "rank": 4, "tag_counts": (0, 2),
-        "nmax_per_rank": {4: 1}, "lmax_per_rank": {4: 1},
-        "source_block_partitions_by_rank": {4: ((4,),)},
-        "angular_patterns_by_rank": {4: ((1, 1, 1, 1),)},
+        "single_factors": {
+            "species": ["Ta"],
+            "radial": {"family": "shifted_jacobi", "cutoff_A": 4.8},
+            "chemical": {"kind": "explicit"},
+        },
+        "tensor_product": {"kind": "tagged", "tag_counts_per_rank": {4: [2]}},
+        "catalogue": {
+            "ranks": [4], "nmax_per_rank": {4: 2}, "lmax_per_rank": {4: 1},
+            "source_block_partitions_by_rank": {4: [[2, 2]]},
+            "angular_patterns_by_rank": {4: [[1, 1, 1, 1]]},
+        },
     },
-    "representation": {"parent_young": "trivial", "parent_L": 0},
-    "runtime": {
-        "ase_backend": "native_cpu", "native_library": None,
-        "execution_policy": "direct",
-        "output_path": output_root / "ta_tagged.ye3t.json",
+    "runtime": {"evaluator": "native_cpu", "neighbors": "ase",
+                "cache": {"mode": "auto"}, "dtype": "float64", "device": "cpu"},
+    "model": {
+        "kind": "linear",
+        "fit": {"solver": "ridge", "alpha": 1e-8,
+                "weights": {"energy": 1.0, "forces": 1.0, "stress": 0.1}},
+        "reference_energy": {"per_species_E0_eV": {"Ta": 0.0}, "fit_E0": False},
     },
-    "model": {"type": "linear", "regularization": 1e-8,
-              "energy_weight": 1.0, "force_weight": 1.0, "stress_weight": 0.1},
     "targets": {"energy": "energy", "forces": "forces", "stress": "stress"},
-    "validation": {
-        "evaluate_structure": fixtures / "ta3_structure.extxyz",
-        "expected_tag_count": 2,
-        "expected_source_block_young": (2, 2),
-    },
+    "validation": {"checks": ["round_trip"]},
 }
-if config["representation"] != {"parent_young": "trivial", "parent_L": 0}:
-    raise ValueError("This linear tagged readout supports only a scalar invariant parent.")
 
-structures = read(config["metadata"]["structures"], index=":")
-basis = Basis(**config["basis"])
-model = LinearModel(basis).fit(
-    structures, regularization=config["model"]["regularization"],
-    energy_weight=config["model"]["energy_weight"],
-    force_weight=config["model"]["force_weight"],
-    stress_weight=config["model"]["stress_weight"],
-    energy_key=config["targets"]["energy"],
-    force_key=config["targets"]["forces"],
-    stress_key=config["targets"]["stress"],
+structures = read(config["metadata"]["training_structures"], index=":")
+representation = YE3TRepresentation.from_config(config["representation"])
+basis = Basis.from_config(
+    config["basis"], representation=representation, runtime=config["runtime"],
 )
-config["runtime"]["output_path"].parent.mkdir(parents=True, exist_ok=True)
-artifact = model.write(config["runtime"]["output_path"])
-restored = LinearModel.read(artifact)
-# Choose "reference", "native_polynomial", or "native_cpu" for ASE evaluation.
-atoms = read(config["validation"]["evaluate_structure"])
-atoms.calc = restored.ase_calculator(
-    backend=config["runtime"]["ase_backend"],
-    native_library=config["runtime"]["native_library"],
-    execution_policy=config["runtime"]["execution_policy"],
-)
-# The general catalogue's source-block partition is distinct from the
-# bounded paper model's tag-sign and role Young labels.
-two_tag = next(label for label in basis.labels if any(
-    raw["tag_count"] == config["validation"]["expected_tag_count"]
-    and config["validation"]["expected_source_block_young"] in tuple(
-        tuple(partition) for partition in raw["label"]["block_kappas"]
-    )
+atoms = read(config["metadata"]["evaluation_structure"])
+descriptors = basis.create(atoms)
+rotated = atoms.copy()
+rotated.rotate(37.0, "z", center="COP")
+rotated_descriptors = basis.create(rotated)
+np.testing.assert_allclose(rotated_descriptors, descriptors,
+                           rtol=1e-9, atol=1e-9)
+order = [2, 0, 1]
+reordered_descriptors = basis.create(atoms[order])
+np.testing.assert_allclose(reordered_descriptors, descriptors[order],
+                           rtol=1e-9, atol=1e-9)
+joint = next(
+    (label, raw["label"])
+    for label in basis.labels
     for raw in label.as_dict()["compiler_raw_opportunities"]
-))
-print(basis)
+    if (tuple(tuple(partition) for partition in raw["label"]["block_kappas"])
+        == ((1, 1), (1, 1))
+        and tuple(raw["label"]["block_Lambdas"]) == (1, 1))
+)
+model = LinearModel(basis).fit(structures, config=config)
+output_path = Path(config["metadata"]["output_path"])
+output_path.parent.mkdir(parents=True, exist_ok=True)
+artifact = model.write(output_path)
+restored = LinearModel.read(artifact)
+lammps_model = restored.export_lammps(
+    output_path.with_name("ta_tagged_deploy.ye3t.json"))
+payload = json.loads(lammps_model.read_text(encoding="utf-8"))
+assert "tagged_execution_portfolio" in payload and "self_hash" in payload
+data_path = output_path.with_name("ta3.data")
+periodic = atoms.copy()
+periodic.pbc = True
+periodic.wrap()
+write(data_path, periodic, format="lammps-data", atom_style="atomic")
+input_path = output_path.with_name("in.ta_tagged_auto")
+input_path.write_text(
+    "units metal\natom_style atomic\nboundary p p p\nnewton on\n"
+    f"read_data {data_path.name}\nmass 1 {atoms.get_masses()[0]:.8f}\n"
+    "neighbor 0.3 bin\nneigh_modify every 1 delay 0 check yes\n"
+    "pair_style ye3t model_family tagged_cauchy block_policy auto\n"
+    f"pair_coeff * * {lammps_model.name} "
+    f"{config['basis']['single_factors']['species'][0]}\n"
+    "thermo_style custom step atoms pe\nthermo_modify norm no\n"
+    "run 0\nprint \"energy_eV $(pe:%.16g)\"\n",
+    encoding="utf-8",
+)
+atoms.calc = restored.ase_calculator(
+    evaluator=config["runtime"]["evaluator"],
+    neighbors=config["runtime"]["neighbors"],
+)
+
+print(representation)
+print("features", len(basis.labels))
+print("descriptor_rows", descriptors.shape)
+print("rotation_max_abs_error", np.max(abs(rotated_descriptors - descriptors)))
+print("atom_relabeling_max_abs_error",
+      np.max(abs(reordered_descriptors - descriptors[order])))
 print("training_structures", len(structures))
-print("two_tag_source_block_coordinate", two_tag.feature_index)
-print("tag_counts", sorted({
-    raw["tag_count"]
-    for raw in two_tag.as_dict()["compiler_raw_opportunities"]
-}))
-print("source_block_kappas", sorted({
-    tuple(tuple(partition) for partition in raw["label"]["block_kappas"])
-    for raw in two_tag.as_dict()["compiler_raw_opportunities"]
-}))
+print("joint_coordinate", joint[0].feature_index)
+print("joint_block_kappas", joint[1]["block_kappas"])
+print("joint_block_Lambdas", joint[1]["block_Lambdas"])
+print("parent_L", joint[0].as_dict()["L"])
 print("roundtrip_features", len(restored.labels))
 print("saved_model", artifact)
+print("lammps_model", lammps_model)
+print("lammps_schema", payload["schema"])
+print("lammps_input", input_path)
+print("lammps_data", data_path)
 print("energy_eV", atoms.get_potential_energy())
 print("forces_eV_per_A", atoms.get_forces())
 print("stress_eV_per_A3", atoms.get_stress())

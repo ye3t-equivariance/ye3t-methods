@@ -14,12 +14,12 @@ import torch
 from ye3t.couplings import normalize_compact_label
 from ye3t.couplings.lifted_cauchy_scalar import CompiledLiftedCauchyScalar
 from ye3t.couplings.tagged_cauchy import _stable_free_moment_matrix
-from ye3t_ace import YE3TDescriptors, YE3TRepresentation
-from ye3t_ace.ace.linear_ace import load_xyz_structures
-from ye3t_ace.equivariant_calc import ACECovariantEvaluator, neighbor_data_from_ase_atoms
-from ye3t_ace.equivariant_calc.gradients import descriptor_sum_position_jacobian_analytic_product
-from ye3t_ace.lifted_cauchy_linear import _artifact_channels
-from ye3t_ace.tagged_cauchy_fit import TaggedArmEvaluator, structure_row
+from ye3t_methods.atomistic import YE3TDescriptors, YE3TRepresentation
+from ye3t_methods.atomistic.ace.linear_ace import load_xyz_structures
+from ye3t_methods.atomistic.equivariant_calc import ACECovariantEvaluator, neighbor_data_from_ase_atoms
+from ye3t_methods.atomistic.equivariant_calc.gradients import descriptor_sum_position_jacobian_analytic_product
+from ye3t_methods.atomistic.lifted_cauchy_linear import _artifact_channels
+from ye3t_methods.atomistic.tagged_cauchy_fit import TaggedArmEvaluator, structure_row
 
 
 HERE = Path(__file__).resolve().parent

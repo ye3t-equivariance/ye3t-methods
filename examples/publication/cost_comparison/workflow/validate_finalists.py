@@ -15,9 +15,9 @@ from ase import Atoms
 import finalize_models as final
 import optimize_cached as study
 import radial_screen as radial
-from ye3t_ace import load_linear_ace_calculator, load_lifted_cauchy_linear_bundle
-from ye3t_ace.reference_potentials import evaluate_lammps_zbl_reference
-from ye3t_ace.tagged_cauchy_linear import energy_and_forces, load_tagged_model
+from ye3t_methods.atomistic import load_linear_ace_calculator, load_lifted_cauchy_linear_bundle
+from ye3t_methods.atomistic.reference_potentials import evaluate_lammps_zbl_reference
+from ye3t_methods.atomistic.tagged_cauchy_linear import energy_and_forces, load_tagged_model
 
 
 NUMDIFF_FORCE = re.compile(r"YE3T_NUMDIFF_FORCE_MAX_ABS=([0-9.eE+-]+)")

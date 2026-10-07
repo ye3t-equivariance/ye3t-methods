@@ -2,9 +2,9 @@
 
 import torch
 
-from ye3t_ace.linear_young_character import YE3TSavedDescriptorSetFeatureMap
-from ye3t_ace._record import record_replace
-from ye3t_ace.equivariant_calc.site_basis_v2 import SiteBasisV2
+from ye3t_methods.atomistic.linear_young_character import YE3TSavedDescriptorSetFeatureMap
+from ye3t_methods.atomistic._record import record_replace
+from ye3t_methods.atomistic.equivariant_calc.site_basis_v2 import SiteBasisV2
 
 
 def test_saved_nontrivial_young_scalar_is_a_fixed_invariant_column():

@@ -5,6 +5,7 @@ import math
 import os
 import subprocess
 import sys
+from collections import Counter
 from fractions import Fraction
 from pathlib import Path
 
@@ -29,7 +30,7 @@ from ye3t.couplings.orthogonal_shifted_jacobi import (
     shifted_jacobi_ladder_with_derivative,
     shifted_jacobi_power_coefficients,
 )
-from ye3t_ace.tagged_cauchy_image import (
+from ye3t_methods.atomistic.tagged_cauchy_image import (
     TaggedCauchyImageEvaluator,
     TaggedCauchyImageLinearModel,
     _payload_hash,
@@ -38,9 +39,9 @@ from ye3t_ace.tagged_cauchy_image import (
     realify_tagged_cauchy_image,
     tagged_cauchy_source_plan,
 )
-from ye3t_ace.ace.descriptors import YE3TDescriptors, YE3TModel
-from ye3t_ace.representations import YE3TRepresentation
-from ye3t_ace.tagged_cauchy_image_fit import (
+from ye3t_methods.atomistic.ace.descriptors import YE3TDescriptors, YE3TModel
+from ye3t_methods.atomistic.representations import YE3TRepresentation
+from ye3t_methods.atomistic.tagged_cauchy_image_fit import (
     build_tagged_cauchy_image_normal_equations,
     score_tagged_cauchy_image_model,
     tagged_cauchy_reference_target_metadata,
@@ -777,6 +778,181 @@ def test_native_ase_tagged_matches_reference(compiled_tagged_image):
             assert fast.calc.native_runtime.last_neighbor_backend == "scipy_ckdtree_nonperiodic"
 
 
+@pytest.mark.parametrize("neighbors", ("ase", "matscipy"))
+def test_native_tagged_adversarial_periodic_geometry_matches_reference(
+    compiled_tagged_image, neighbors,
+):
+    library = os.environ.get("YE3T_TAGGED_C_API_LIBRARY")
+    if not library:
+        pytest.skip("requires optional ye3t-lammps tagged C ABI library")
+    if neighbors == "matscipy":
+        pytest.importorskip("matscipy", reason="requires optional matscipy neighbor dependency")
+    evaluator = _evaluator(compiled_tagged_image)
+    model = TaggedCauchyImageLinearModel(
+        evaluator, {"Ta": torch.tensor([0.7, -0.2], dtype=torch.float64)},
+        {"Ta": -0.3},
+    )
+    positions = ((0.1, 0.2, 0.3), (1.6, 0.6, 0.5), (0.7, 2.2, 1.1))
+    cases = (
+        Atoms("Ta3", positions=positions,
+              cell=((3.2, 0, 0), (9.6, 3.2, 0), (0, 0, 7.0)), pbc=True),
+        Atoms("Ta3", positions=positions,
+              cell=((3.2, 0, 0), (0, 3.2, 0), (0, 0, 7.0)), pbc=True),
+        Atoms("Ta3", positions=positions, cell=(3.8, 3.9, 4.0), pbc=True),
+        Atoms("Ta3", positions=positions, cell=(3.8, 3.9, 8.0),
+              pbc=(True, False, True)),
+    )
+    from ase.neighborlist import neighbor_list
+    centers, neighbors_index, shifts = neighbor_list("ijS", cases[2], evaluator.cutoff)
+    repeated = shifts[(centers == 0) & (neighbors_index == 1)]
+    assert len({tuple(shift) for shift in repeated}) >= 2
+    values = []
+    for atoms in cases:
+        reference = atoms.copy()
+        reference.calc = model.ase_calculator(backend="reference")
+        native = atoms.copy()
+        native.calc = model.ase_calculator(
+            backend="native_cpu", native_library=library, neighbors=neighbors,
+        )
+        np.testing.assert_allclose(native.get_potential_energy(),
+                                   reference.get_potential_energy(), rtol=0, atol=2e-9)
+        np.testing.assert_allclose(native.get_forces(), reference.get_forces(),
+                                   rtol=0, atol=2e-8)
+        np.testing.assert_allclose(native.get_stress(), reference.get_stress(),
+                                   rtol=0, atol=2e-8)
+        values.append((native.get_potential_energy(), native.get_forces(),
+                       native.get_stress()))
+    np.testing.assert_allclose(values[0][0], values[1][0], rtol=0, atol=2e-9)
+    np.testing.assert_allclose(values[0][1], values[1][1], rtol=0, atol=2e-8)
+    np.testing.assert_allclose(values[0][2], values[1][2], rtol=0, atol=2e-8)
+
+
+def test_bruteforce_image_inventory_matches_ase_for_unwrapped_and_partial_cells():
+    from ase.neighborlist import neighbor_list
+    from ye3t_methods.atomistic.equivariant_calc.edge_geometry import directed_edges_all_images_bruteforce
+
+    positions = ((0.1, 0.2, 0.3), (11.2, 0.6, 0.5), (0.7, 2.2, 1.1))
+    cases = (
+        Atoms("Ta3", positions=positions,
+              cell=((3.2, 0, 0), (9.6, 3.2, 0), (0, 0, 7.0)), pbc=True),
+        Atoms("Ta3", positions=positions,
+              cell=((3.8, 0, 0), (0, 0, 0), (0, 0, 8.0)),
+              pbc=(True, False, True)),
+    )
+    for atoms in cases:
+        source, neighbor, displacement, _ = directed_edges_all_images_bruteforce(
+            torch.as_tensor(np.asarray(atoms.positions), dtype=torch.float64),
+            4.8, cell=torch.as_tensor(np.asarray(atoms.cell), dtype=torch.float64),
+            pbc=atoms.pbc,
+        )
+        ase_source, ase_neighbor, shifts = neighbor_list(
+            "ijS", atoms, 4.8, self_interaction=False)
+        ase_displacement = (atoms.positions[ase_neighbor] - atoms.positions[ase_source]
+                            + shifts @ atoms.cell.array)
+        identity = lambda i, j, row: (int(i), int(j), *(round(float(value), 8)
+                                                      for value in row))
+        reference_edges = Counter(identity(i, j, row) for i, j, row in zip(
+            source.tolist(), neighbor.tolist(), displacement.tolist()))
+        ase_edges = Counter(identity(i, j, row) for i, j, row in zip(
+            ase_source, ase_neighbor, ase_displacement))
+        assert reference_edges == ase_edges
+
+
+def test_bruteforce_periodic_images_fail_closed_on_ill_conditioned_or_huge_scan():
+    from ye3t_methods.atomistic.equivariant_calc.edge_geometry import (
+        directed_edges_all_images_bruteforce, periodic_shift_tuples,
+    )
+
+    positions = torch.tensor(((0, 0, 0), (0, 0, 0.0002)), dtype=torch.float64)
+    cell = torch.diag(torch.tensor((1e12, 1e12, 8e-4), dtype=torch.float64))
+    with pytest.raises(ValueError, match="ill-conditioned"):
+        directed_edges_all_images_bruteforce(positions, 0.003, cell=cell, pbc=True)
+    far = torch.tensor(((0, 0, 0), (600000, 0, 0)), dtype=torch.float64)
+    with pytest.raises(MemoryError, match="one million shifts"):
+        directed_edges_all_images_bruteforce(
+            far, 1.0, cell=torch.eye(3, dtype=torch.float64),
+            pbc=(True, False, False),
+        )
+    huge_origin = np.array(((1e20, 0, 0), (1e20 + 16384, 0, 0)))
+    shifts = periodic_shift_tuples(
+        np.diag((0.3, 1.0, 1.0)), (True, False, False), 0.2,
+        huge_origin,
+    )
+    required = -int(round((huge_origin[1, 0] - huge_origin[0, 0]) / 0.3))
+    assert abs(huge_origin[1, 0] - huge_origin[0, 0] + required * 0.3) < 0.2
+    assert required in {int(shift[0]) for shift in shifts}
+
+
+@pytest.mark.parametrize("neighbors,selected", (
+    ("ase", "ase_neighbor_list"),
+    ("matscipy", "matscipy_neighbor_list"),
+))
+def test_native_tagged_explicit_neighbor_policy_matches_reference(
+    compiled_tagged_image, tmp_path, neighbors, selected,
+):
+    library = os.environ.get("YE3T_TAGGED_C_API_LIBRARY")
+    if not library:
+        pytest.skip("requires optional ye3t-lammps tagged C ABI library")
+    if neighbors == "matscipy":
+        pytest.importorskip("matscipy", reason="requires optional matscipy neighbor dependency")
+    evaluator = _evaluator(compiled_tagged_image)
+    model = TaggedCauchyImageLinearModel(
+        evaluator, {"Ta": torch.tensor([0.7, -0.2], dtype=torch.float64)},
+        {"Ta": -0.3},
+    )
+    artifact = tmp_path / "tagged.ye3t.json"
+    export_tagged_cauchy_image_model(artifact, model)
+    from ye3t_methods.atomistic.tagged_cauchy_image import YE3TTaggedCauchyCalculator
+    from ye3t_methods import LinearModel
+
+    atoms = Atoms("Ta4", positions=(
+        (0.0, 0.0, 0.0), (1.1, 0.2, -0.1), (-0.4, 1.3, 0.5),
+        (0.3, -0.7, 1.5),
+    ), cell=(9.0, 9.0, 9.0), pbc=True)
+    reference = atoms.copy()
+    reference.calc = model.ase_calculator(backend="reference")
+    native = atoms.copy()
+    native.calc = YE3TTaggedCauchyCalculator.from_artifact(
+        artifact, native_library=library, neighbors=neighbors,
+    )
+    np.testing.assert_allclose(native.get_potential_energy(),
+                               reference.get_potential_energy(), rtol=2e-10, atol=2e-10)
+    np.testing.assert_allclose(native.get_forces(), reference.get_forces(),
+                               rtol=2e-9, atol=2e-9)
+    np.testing.assert_allclose(native.get_stress(), reference.get_stress(),
+                               rtol=2e-9, atol=2e-9)
+    public = atoms.copy()
+    public.calc = LinearModel.read(artifact).ase_calculator(
+        evaluator="auto", neighbors=neighbors, native_library=library,
+    )
+    np.testing.assert_allclose(public.get_potential_energy(),
+                               reference.get_potential_energy(), rtol=2e-10, atol=2e-10)
+    np.testing.assert_allclose(public.get_forces(), reference.get_forces(),
+                               rtol=2e-9, atol=2e-9)
+    np.testing.assert_allclose(public.get_stress(), reference.get_stress(),
+                               rtol=2e-9, atol=2e-9)
+    assert public.calc.native_runtime.neighbors == neighbors
+    runtime = native.calc.native_runtime
+    assert runtime.neighbors == neighbors
+    assert runtime.last_neighbor_backend == selected
+    rebuilds = runtime.topology_rebuilds
+    native.positions[0, 0] += 0.01
+    reference.positions[0, 0] += 0.01
+    np.testing.assert_allclose(native.get_forces(), reference.get_forces(),
+                               rtol=2e-9, atol=2e-9)
+    assert runtime.topology_rebuilds == rebuilds
+
+
+def test_native_tagged_explicit_neighbors_error_without_dependency(monkeypatch):
+    from ye3t_methods.atomistic.tagged_cauchy_native import _TaggedCauchyNativeRuntime
+
+    monkeypatch.setitem(sys.modules, "matscipy.neighbours", None)
+    with pytest.raises(ImportError, match="neighbors='matscipy'"):
+        _TaggedCauchyNativeRuntime("unused.ye3t.json", neighbors="matscipy")
+    with pytest.raises(ValueError, match="neighbors must be auto, ase, or matscipy"):
+        _TaggedCauchyNativeRuntime("unused.ye3t.json", neighbors="unknown")
+
+
 def test_native_per_atom_features_match_compiled_python():
     library = os.environ.get("YE3T_TAGGED_C_API_LIBRARY")
     if not library:
@@ -799,6 +975,150 @@ def test_native_per_atom_features_match_compiled_python():
                                    execution_policy=policy)
         np.testing.assert_allclose(actual, expected, rtol=2.0e-9, atol=2.0e-9)
     assert len(descriptor.metadata["_tagged_native_descriptor_runtimes"]) == 2
+
+
+def test_rank_four_two_block_angular_sectors_native_symmetry_and_derivatives():
+    from ase.stress import voigt_6_to_full_3x3_stress
+    from ye3t.couplings import count as count_coupling
+
+    library = os.environ.get("YE3T_TAGGED_C_API_LIBRARY")
+    if not library or not os.path.isfile(library):
+        pytest.skip("requires YE3T_TAGGED_C_API_LIBRARY pointing to the compiled native library")
+    catalogue = {
+        "nmax_per_rank": {4: 2}, "lmax_per_rank": {4: 1},
+        "source_block_partitions_by_rank": {4: [[2, 2]]},
+        "angular_patterns_by_rank": {4: [[1, 1, 1, 1]]},
+        "tag_counts_by_rank": {4: [2]},
+        "max_records_per_rank": 1, "max_features_per_rank": 2,
+    }
+    report = count_coupling(tagged_cauchy_image_request(
+        species=["Ni"], catalogue=catalogue))
+    routes = {}
+    for row in report.labels:
+        label = row["label"]
+        if (label["block_sizes"] == (2, 2)
+                and label["block_channel_indices"] == (0, 1)
+                and label["block_kappas"] == ((2,), (2,))
+                and label["role_copy_indices"] == (0, 3)
+                and label["block_Lambdas"] in ((0, 0), (2, 2))):
+            assert label["block_Lambdas"] not in routes
+            routes[label["block_Lambdas"]] = row["coordinate_id"]
+    assert set(routes) == {(0, 0), (2, 2)}
+    selected_ids = (routes[(0, 0)], routes[(2, 2)])
+    selected_catalogue = {**catalogue,
+                          "selected_basis_coordinates_by_rank": {4: selected_ids}}
+    compiled = compile_coupling(plan_coupling(tagged_cauchy_image_request(
+        species=["Ni"], catalogue=selected_catalogue)))
+    selected = compiled.payload["image_coordinate_provenance"]
+    assert tuple(row["coordinate_id"] for row in selected) == selected_ids
+    assert tuple(row["label"]["block_Lambdas"] for row in selected) == ((0, 0), (2, 2))
+    assert compiled.validation_report["exact_image_dimension"] == 2
+
+    evaluator = _evaluator(compiled)
+    assert evaluator.feature_count == 2
+    atoms = Atoms("Ni5", positions=((0.0, 0.0, 0.0), (1.4, 0.2, 0.3),
+                                     (-0.5, 1.5, 0.6), (0.7, -0.6, 1.8),
+                                     (1.2, 1.3, -0.8)),
+                  cell=(8.5, 8.5, 8.5), pbc=True)
+    def feature_rows(structure):
+        values, _jacobian = evaluator.features_and_position_jacobian(
+            torch.as_tensor(structure.positions, dtype=torch.float64),
+            torch.zeros(len(structure), dtype=torch.long),
+            cell=torch.as_tensor(structure.cell.array, dtype=torch.float64),
+            pbc=structure.pbc)
+        return values.detach().numpy()
+
+    rows = feature_rows(atoms)
+    assert np.linalg.matrix_rank(rows, tol=1e-10) == 2
+    model = TaggedCauchyImageLinearModel(
+        evaluator, {"Ni": torch.tensor((0.7, -0.4), dtype=torch.float64)},
+        {"Ni": -0.2})
+    reference = atoms.copy()
+    reference.calc = model.ase_calculator(backend="reference")
+    native_calc = model.ase_calculator(
+        backend="native_cpu", native_library=library, neighbors="ase")
+    native = atoms.copy()
+    native.calc = native_calc
+    try:
+        energy = native.get_potential_energy()
+        forces = native.get_forces()
+        stress = native.get_stress()
+        np.testing.assert_allclose(energy, reference.get_potential_energy(), rtol=0, atol=1e-9)
+        np.testing.assert_allclose(forces, reference.get_forces(), rtol=0, atol=1e-8)
+        np.testing.assert_allclose(stress, reference.get_stress(), rtol=0, atol=1e-8)
+        np.testing.assert_allclose(native_calc.native_runtime.evaluate_atoms(
+            atoms, return_features=True)[4], rows, rtol=0, atol=1e-8)
+
+        axis = np.array((1.0, 2.0, 3.0))
+        axis /= np.linalg.norm(axis)
+        cross = np.array(((0.0, -axis[2], axis[1]),
+                          (axis[2], 0.0, -axis[0]),
+                          (-axis[1], axis[0], 0.0)))
+        angle = np.deg2rad(37.0)
+        rotation = np.eye(3) + np.sin(angle) * cross + (1.0 - np.cos(angle)) * (cross @ cross)
+        rotated = atoms.copy()
+        rotated.positions[:] = atoms.positions @ rotation.T
+        rotated.set_cell(np.asarray(atoms.cell) @ rotation.T, scale_atoms=False)
+        rotated.calc = native_calc
+        np.testing.assert_allclose(feature_rows(rotated), rows, rtol=0, atol=1e-9)
+        np.testing.assert_allclose(native_calc.native_runtime.evaluate_atoms(
+            rotated, return_features=True)[4], rows, rtol=0, atol=1e-8)
+        np.testing.assert_allclose(rotated.get_potential_energy(), energy, rtol=0, atol=1e-9)
+        np.testing.assert_allclose(rotated.get_forces(), forces @ rotation.T, rtol=0, atol=1e-8)
+        np.testing.assert_allclose(voigt_6_to_full_3x3_stress(rotated.get_stress()),
+                                   rotation @ voigt_6_to_full_3x3_stress(stress) @ rotation.T,
+                                   rtol=0, atol=1e-8)
+        inverted = atoms.copy()
+        inverted.positions *= -1
+        inverted.calc = native_calc
+        np.testing.assert_allclose(feature_rows(inverted), rows, rtol=0, atol=1e-9)
+        np.testing.assert_allclose(native_calc.native_runtime.evaluate_atoms(
+            inverted, return_features=True)[4], rows, rtol=0, atol=1e-8)
+        np.testing.assert_allclose(inverted.get_potential_energy(), energy, rtol=0, atol=1e-9)
+        np.testing.assert_allclose(inverted.get_forces(), -forces, rtol=0, atol=1e-8)
+        np.testing.assert_allclose(inverted.get_stress(), stress, rtol=0, atol=1e-8)
+        reordered = atoms[[2, 0, 4, 1, 3]]
+        reordered.calc = native_calc
+        np.testing.assert_allclose(feature_rows(reordered), rows[[2, 0, 4, 1, 3]],
+                                   rtol=0, atol=1e-9)
+        np.testing.assert_allclose(native_calc.native_runtime.evaluate_atoms(
+            reordered, return_features=True)[4], rows[[2, 0, 4, 1, 3]],
+                                   rtol=0, atol=1e-8)
+        np.testing.assert_allclose(reordered.get_potential_energy(), energy, rtol=0, atol=1e-9)
+        np.testing.assert_allclose(reordered.get_forces(), forces[[2, 0, 4, 1, 3]],
+                                   rtol=0, atol=1e-8)
+        np.testing.assert_allclose(reordered.get_stress(), stress, rtol=0, atol=1e-8)
+
+        step = 1e-5
+        assert abs(forces[1, 0]) > 1e-5
+        energies = []
+        for direction in (-1, 1):
+            displaced = atoms.copy()
+            displaced.positions[1, 0] += direction * step
+            displaced.calc = native_calc
+            energies.append(displaced.get_potential_energy())
+        np.testing.assert_allclose(forces[1, 0], -(energies[1] - energies[0]) / (2 * step),
+                                   rtol=0, atol=5e-6)
+        assert np.min(np.abs(stress)) > 1e-7
+        for index, (first, second) in enumerate(((0, 0), (1, 1), (2, 2),
+                                                  (1, 2), (0, 2), (0, 1))):
+            strained_energies = []
+            for direction in (-1, 1):
+                strain = np.zeros((3, 3))
+                strain[first, second] = direction * step
+                if first != second:
+                    strain[second, first] = direction * step
+                deformed = atoms.copy()
+                deformed.set_cell(np.asarray(atoms.cell) @ (np.eye(3) + strain),
+                                  scale_atoms=True)
+                deformed.calc = native_calc
+                strained_energies.append(deformed.get_potential_energy())
+            multiplier = 2 if first != second else 1
+            derivative = (strained_energies[1] - strained_energies[0]) / (
+                2 * step * atoms.get_volume() * multiplier)
+            np.testing.assert_allclose(stress[index], derivative, rtol=0, atol=5e-6)
+    finally:
+        native_calc.native_runtime.close()
 
 
 def test_bounded_compiler_cache_reuses_exact_artifact(tmp_path, monkeypatch):

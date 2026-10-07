@@ -42,7 +42,7 @@ def _compiled_all_nontrivial():
 def _compiled_joint(channel_count=3):
     from ye3t.couplings import compile as compile_coupling
     from ye3t.couplings import first_lifted_cauchy_scalar_request
-    from ye3t_ace.lifted_cauchy_linear import (
+    from ye3t_methods.atomistic.lifted_cauchy_linear import (
         LIFTED_CAUCHY_JOINT_SOURCE_FAMILY,
     )
 
@@ -61,7 +61,7 @@ def _compiled_joint(channel_count=3):
 def _compiled_mixed_l():
     from ye3t.couplings import compile as compile_coupling
     from ye3t.couplings import lifted_cauchy_fixed_content_scalar_request
-    from ye3t_ace.lifted_cauchy_linear import (
+    from ye3t_methods.atomistic.lifted_cauchy_linear import (
         LIFTED_CAUCHY_MIXED_L_SOURCE_FAMILY,
     )
 
@@ -101,7 +101,7 @@ def _compiled_mixed_l():
 def _compiled_mixed_l_scalar():
     from ye3t.couplings import compile as compile_coupling
     from ye3t.couplings import lifted_cauchy_fixed_content_scalar_request
-    from ye3t_ace.lifted_cauchy_linear import (
+    from ye3t_methods.atomistic.lifted_cauchy_linear import (
         LIFTED_CAUCHY_MIXED_L_SOURCE_FAMILY,
     )
 
@@ -127,7 +127,7 @@ def _compiled_mixed_l_scalar():
 def _compiled_mixed_l_l0_rank2():
     from ye3t.couplings import compile as compile_coupling
     from ye3t.couplings import lifted_cauchy_fixed_content_scalar_request
-    from ye3t_ace.lifted_cauchy_linear import (
+    from ye3t_methods.atomistic.lifted_cauchy_linear import (
         LIFTED_CAUCHY_MIXED_L_SOURCE_FAMILY,
     )
 
@@ -236,7 +236,7 @@ def _random_rotation(seed=17):
 
 
 def test_lifted_cauchy_representation_and_descriptor_public_flow():
-    from ye3t_ace import YE3TDescriptors, YE3TRepresentation
+    from ye3t_methods.atomistic import YE3TDescriptors, YE3TRepresentation
 
     representation = YE3TRepresentation.lifted_cauchy_scalar()
     restored = YE3TRepresentation.from_config(representation.as_dict())
@@ -262,7 +262,7 @@ def test_lifted_cauchy_representation_and_descriptor_public_flow():
 
 
 def test_lifted_fit_preflight_reports_size_without_compilation_or_data_access():
-    from ye3t_ace import lifted_cauchy_linear_fit_preflight
+    from ye3t_methods.atomistic import lifted_cauchy_linear_fit_preflight
 
     preflight = lifted_cauchy_linear_fit_preflight(
         _compiled().plan.report,
@@ -299,7 +299,7 @@ def test_lifted_fit_preflight_reports_size_without_compilation_or_data_access():
 
 
 def test_lifted_feature_chunk_auto_policy_is_dataset_free_and_bounded():
-    from ye3t_ace.lifted_cauchy_linear import (
+    from ye3t_methods.atomistic.lifted_cauchy_linear import (
         resolve_lifted_cauchy_feature_chunk_size,
     )
 
@@ -324,7 +324,7 @@ def test_lifted_feature_chunk_auto_policy_is_dataset_free_and_bounded():
 
 
 def test_streamed_ridge_transports_identity_metric_through_feature_scaling():
-    from ye3t_ace.lifted_cauchy_linear import (
+    from ye3t_methods.atomistic.lifted_cauchy_linear import (
         solve_lifted_cauchy_normal_equations,
     )
 
@@ -360,7 +360,7 @@ def test_streamed_ridge_transports_identity_metric_through_feature_scaling():
 
 
 def test_streamed_ridge_reports_unregularized_design_rank_separately():
-    from ye3t_ace.lifted_cauchy_linear import (
+    from ye3t_methods.atomistic.lifted_cauchy_linear import (
         solve_lifted_cauchy_normal_equations,
     )
 
@@ -389,14 +389,14 @@ def test_streamed_ridge_reports_unregularized_design_rank_separately():
 
 
 def test_lifted_cauchy_representation_rejects_reserved_semantic_override():
-    from ye3t_ace import YE3TRepresentation
+    from ye3t_methods.atomistic import YE3TRepresentation
 
     with pytest.raises(ValueError, match="cannot override target_L_R"):
         YE3TRepresentation.lifted_cauchy_scalar(metadata={"target_L_R": 2})
 
 
 def test_polynomial_source_exposes_both_radial_and_role_derivatives():
-    from ye3t_ace.lifted_cauchy_linear import LiftedCauchyPolynomialSource
+    from ye3t_methods.atomistic.lifted_cauchy_linear import LiftedCauchyPolynomialSource
 
     source = LiftedCauchyPolynomialSource(
         _compiled(), source_config=_source_config(), type_map={"Ta": 0}
@@ -419,7 +419,7 @@ def test_polynomial_source_exposes_both_radial_and_role_derivatives():
 
 @pytest.mark.parametrize("channel_count", (2, 3))
 def test_joint_source_has_exact_identity_radial_gram(channel_count):
-    from ye3t_ace.lifted_cauchy_linear import LiftedCauchyPolynomialSource
+    from ye3t_methods.atomistic.lifted_cauchy_linear import LiftedCauchyPolynomialSource
 
     source = LiftedCauchyPolynomialSource(
         _compiled_joint(channel_count),
@@ -487,7 +487,7 @@ def test_joint_source_has_exact_identity_radial_gram(channel_count):
 
 @pytest.mark.parametrize("channel_count", (2, 3))
 def test_joint_source_direct_and_factorized_values_and_vjp_match(channel_count):
-    from ye3t_ace.lifted_cauchy_linear import LiftedCauchyPolynomialSource
+    from ye3t_methods.atomistic.lifted_cauchy_linear import LiftedCauchyPolynomialSource
 
     compiled = _compiled_joint(channel_count)
     direct = LiftedCauchyPolynomialSource(
@@ -531,7 +531,7 @@ def test_joint_source_direct_and_factorized_values_and_vjp_match(channel_count):
 
 
 def test_joint_source_direct_edge_derivative_matches_finite_difference():
-    from ye3t_ace.lifted_cauchy_linear import LiftedCauchyPolynomialSource
+    from ye3t_methods.atomistic.lifted_cauchy_linear import LiftedCauchyPolynomialSource
 
     source = LiftedCauchyPolynomialSource(
         _compiled_joint(2),
@@ -560,7 +560,7 @@ def test_joint_source_direct_edge_derivative_matches_finite_difference():
 
 
 def test_mixed_l_source_and_evaluator_match_factorized_vjp_and_finite_difference():
-    from ye3t_ace.lifted_cauchy_linear import (
+    from ye3t_methods.atomistic.lifted_cauchy_linear import (
         LiftedCauchyPolynomialSource,
         LiftedCauchyTorchEvaluator,
     )
@@ -632,12 +632,12 @@ def test_mixed_l_source_and_evaluator_match_factorized_vjp_and_finite_difference
 
 
 def test_mixed_l_bundle_exports_packed_native_values_and_forces(tmp_path):
-    from ye3t_ace import (
+    from ye3t_methods.atomistic import (
         YE3TDescriptors,
         export_lifted_cauchy_linear_bundle,
         load_lifted_cauchy_linear_bundle,
     )
-    from ye3t_ace.lifted_cauchy_linear import lifted_cauchy_model_from_descriptor
+    from ye3t_methods.atomistic.lifted_cauchy_linear import lifted_cauchy_model_from_descriptor
 
     compiled = _compiled_mixed_l()
     descriptor = YE3TDescriptors.ye3t_basis(
@@ -703,8 +703,8 @@ def test_mixed_l_bundle_exports_packed_native_values_and_forces(tmp_path):
 def test_composite_mixed_l_model_shares_source_and_matches_component_rows():
     from ase import Atoms
 
-    from ye3t_ace import YE3TDescriptors
-    from ye3t_ace.lifted_cauchy_linear import (
+    from ye3t_methods.atomistic import YE3TDescriptors
+    from ye3t_methods.atomistic.lifted_cauchy_linear import (
         _fit_coordinate_lowering,
         lifted_cauchy_model_from_descriptor,
     )
@@ -825,12 +825,12 @@ def test_composite_mixed_l_model_shares_source_and_matches_component_rows():
 def test_composite_bundle_flattens_components_and_round_trips_native_polynomial(
     tmp_path,
 ):
-    from ye3t_ace import (
+    from ye3t_methods.atomistic import (
         YE3TDescriptors,
         export_lifted_cauchy_linear_bundle,
         load_lifted_cauchy_linear_bundle,
     )
-    from ye3t_ace.lifted_cauchy_linear import lifted_cauchy_model_from_descriptor
+    from ye3t_methods.atomistic.lifted_cauchy_linear import lifted_cauchy_model_from_descriptor
 
     compiled = (_compiled_mixed_l_scalar(), _compiled_mixed_l_l0_rank2())
     descriptor = YE3TDescriptors.ye3t_basis(
@@ -906,8 +906,8 @@ def test_composite_uses_hash_bound_precomputed_orthogonal_plans(monkeypatch):
     import ye3t.couplings
 
     from ye3t.couplings import lifted_cauchy_orthogonal_output_plan
-    from ye3t_ace import YE3TDescriptors
-    import ye3t_ace.lifted_cauchy_linear as linear
+    from ye3t_methods.atomistic import YE3TDescriptors
+    import ye3t_methods.atomistic.lifted_cauchy_linear as linear
 
     compiled = (_compiled_mixed_l_scalar(), _compiled_mixed_l_l0_rank2())
     plans = tuple(
@@ -971,8 +971,8 @@ def test_composite_uses_hash_bound_precomputed_orthogonal_plans(monkeypatch):
 def test_composite_parent_row_cache_matches_direct_gram_and_solution(tmp_path):
     from ase import Atoms
 
-    from ye3t_ace import YE3TDescriptors
-    from ye3t_ace.cache import (
+    from ye3t_methods.atomistic import YE3TDescriptors
+    from ye3t_methods.atomistic.cache import (
         LinearCacheValidationError,
         load_lifted_cauchy_geometry_row_cache,
         load_lifted_cauchy_normal_equations,
@@ -981,7 +981,7 @@ def test_composite_parent_row_cache_matches_direct_gram_and_solution(tmp_path):
         persist_lifted_cauchy_normal_equations,
         persist_lifted_cauchy_target_cache,
     )
-    from ye3t_ace.lifted_cauchy_linear import (
+    from ye3t_methods.atomistic.lifted_cauchy_linear import (
         _lifted_cauchy_cached_runtime_parameters,
         build_lifted_cauchy_normal_equations,
         build_lifted_cauchy_normal_equations_from_geometry_and_targets,
@@ -1300,7 +1300,7 @@ def test_composite_parent_row_cache_matches_direct_gram_and_solution(tmp_path):
 
 
 def test_composite_component_identity_rejects_overlapping_sectors():
-    from ye3t_ace import YE3TDescriptors
+    from ye3t_methods.atomistic import YE3TDescriptors
 
     compiled = _compiled_mixed_l_scalar()
     first = _composite_binding(compiled, "first")
@@ -1323,8 +1323,8 @@ def test_composite_component_identity_rejects_overlapping_sectors():
 def test_cached_descriptor_coordinate_selection_expands_all_central_heads():
     from ase import Atoms
 
-    from ye3t_ace import YE3TDescriptors
-    from ye3t_ace.lifted_cauchy_linear import (
+    from ye3t_methods.atomistic import YE3TDescriptors
+    from ye3t_methods.atomistic.lifted_cauchy_linear import (
         build_lifted_cauchy_normal_equations_from_row_cache,
         lifted_cauchy_model_from_descriptor,
         materialize_lifted_cauchy_regression_row_cache,
@@ -1358,7 +1358,7 @@ def test_cached_descriptor_coordinate_selection_expands_all_central_heads():
 
 
 def test_joint_source_has_the_regular_solid_harmonic_origin_derivative():
-    from ye3t_ace.lifted_cauchy_linear import LiftedCauchyPolynomialSource
+    from ye3t_methods.atomistic.lifted_cauchy_linear import LiftedCauchyPolynomialSource
 
     compiled = _compiled_joint(2)
     direct = LiftedCauchyPolynomialSource(
@@ -1415,7 +1415,7 @@ def test_joint_source_has_the_regular_solid_harmonic_origin_derivative():
 
 
 def test_joint_source_plan_hash_rejects_semantic_tampering():
-    from ye3t_ace.lifted_cauchy_linear import LiftedCauchyPolynomialSource
+    from ye3t_methods.atomistic.lifted_cauchy_linear import LiftedCauchyPolynomialSource
 
     compiled = _compiled_joint(2)
     source = LiftedCauchyPolynomialSource(
@@ -1434,7 +1434,7 @@ def test_joint_source_plan_hash_rejects_semantic_tampering():
 
 
 def test_polynomial_source_radial_and_tangential_directional_derivatives():
-    from ye3t_ace.lifted_cauchy_linear import LiftedCauchyPolynomialSource
+    from ye3t_methods.atomistic.lifted_cauchy_linear import LiftedCauchyPolynomialSource
 
     source = LiftedCauchyPolynomialSource(
         _compiled(), source_config=_source_config(), type_map={"Ta": 0}
@@ -1463,7 +1463,7 @@ def test_polynomial_source_radial_and_tangential_directional_derivatives():
 
 
 def test_polynomial_role_sum_recovers_unweighted_source_and_derivative():
-    from ye3t_ace.lifted_cauchy_linear import LiftedCauchyPolynomialSource
+    from ye3t_methods.atomistic.lifted_cauchy_linear import LiftedCauchyPolynomialSource
 
     source = LiftedCauchyPolynomialSource(
         _compiled(), source_config=_source_config(), type_map={"Ta": 0}
@@ -1504,7 +1504,7 @@ def test_polynomial_role_sum_recovers_unweighted_source_and_derivative():
 def test_polynomial_source_rejects_unimplemented_source_identity_and_radial_map():
     from ye3t.couplings import compile as compile_coupling
     from ye3t.couplings import first_lifted_cauchy_scalar_request
-    from ye3t_ace.lifted_cauchy_linear import LiftedCauchyPolynomialSource
+    from ye3t_methods.atomistic.lifted_cauchy_linear import LiftedCauchyPolynomialSource
 
     wrong_family = first_lifted_cauchy_scalar_request(
         1,
@@ -1533,7 +1533,7 @@ def test_polynomial_source_rejects_unimplemented_source_identity_and_radial_map(
 
 
 def test_polynomial_source_enforces_periodic_image_mode():
-    from ye3t_ace.lifted_cauchy_linear import LiftedCauchyPolynomialSource
+    from ye3t_methods.atomistic.lifted_cauchy_linear import LiftedCauchyPolynomialSource
 
     atom_types = torch.zeros(4, dtype=torch.long)
     nonperiodic = LiftedCauchyPolynomialSource(
@@ -1551,7 +1551,7 @@ def test_polynomial_source_enforces_periodic_image_mode():
 
 
 def test_polynomial_source_explicit_vjp_matches_autograd_and_strain():
-    from ye3t_ace.lifted_cauchy_linear import LiftedCauchyPolynomialSource
+    from ye3t_methods.atomistic.lifted_cauchy_linear import LiftedCauchyPolynomialSource
 
     source = LiftedCauchyPolynomialSource(
         _compiled(), source_config=_source_config(), type_map={"Ta": 0}
@@ -1582,7 +1582,7 @@ def test_polynomial_source_explicit_vjp_matches_autograd_and_strain():
 
 
 def test_polynomial_source_shifted_periodic_edge_vjp_and_strain():
-    from ye3t_ace.lifted_cauchy_linear import LiftedCauchyPolynomialSource
+    from ye3t_methods.atomistic.lifted_cauchy_linear import LiftedCauchyPolynomialSource
 
     config = {**_source_config(), "periodic_image_mode": "all_images"}
     source = LiftedCauchyPolynomialSource(
@@ -1634,7 +1634,7 @@ def test_polynomial_source_shifted_periodic_edge_vjp_and_strain():
 @pytest.mark.parametrize("realization", ("canonical", "factored"))
 def test_torch_evaluator_matches_compiler_reference_value_and_vjp(realization):
     from ye3t.couplings import evaluate_lifted_cauchy_scalar
-    from ye3t_ace.lifted_cauchy_linear import LiftedCauchyTorchEvaluator
+    from ye3t_methods.atomistic.lifted_cauchy_linear import LiftedCauchyTorchEvaluator
 
     generator = torch.Generator().manual_seed(47)
     density = torch.randn(
@@ -1691,7 +1691,7 @@ def test_torch_evaluator_matches_compiler_reference_value_and_vjp(realization):
 
 
 def test_canonical_and_symmetric_power_block_paths_match_on_geometry():
-    from ye3t_ace.lifted_cauchy_linear import (
+    from ye3t_methods.atomistic.lifted_cauchy_linear import (
         LiftedCauchyPolynomialSource,
         LiftedCauchyTorchEvaluator,
     )
@@ -1719,7 +1719,7 @@ def test_canonical_and_symmetric_power_block_paths_match_on_geometry():
 def test_lifted_cauchy_scalar_geometry_symmetries_and_neighbor_permutation(
     source_kind,
 ):
-    from ye3t_ace.lifted_cauchy_linear import (
+    from ye3t_methods.atomistic.lifted_cauchy_linear import (
         LiftedCauchyPolynomialSource,
         LiftedCauchyTorchEvaluator,
     )
@@ -1777,7 +1777,7 @@ def test_lifted_cauchy_scalar_geometry_symmetries_and_neighbor_permutation(
 
 
 def test_explicit_edge_storage_order_does_not_change_values_or_source_vjp():
-    from ye3t_ace.lifted_cauchy_linear import (
+    from ye3t_methods.atomistic.lifted_cauchy_linear import (
         LiftedCauchyPolynomialSource,
         LiftedCauchyTorchEvaluator,
     )
@@ -1820,7 +1820,7 @@ def test_explicit_edge_storage_order_does_not_change_values_or_source_vjp():
 
 
 def test_all_nontrivial_families_canonical_factored_and_role_collapse_tangent():
-    from ye3t_ace.lifted_cauchy_linear import LiftedCauchyTorchEvaluator
+    from ye3t_methods.atomistic.lifted_cauchy_linear import LiftedCauchyTorchEvaluator
 
     compiled = _compiled_all_nontrivial()
     evaluator = LiftedCauchyTorchEvaluator(compiled)
@@ -1881,7 +1881,7 @@ def test_all_nontrivial_families_canonical_factored_and_role_collapse_tangent():
 def test_source_keeps_neighbor_species_blocks_separate():
     from ye3t.couplings import compile as compile_coupling
     from ye3t.couplings import first_lifted_cauchy_scalar_request
-    from ye3t_ace.lifted_cauchy_linear import LiftedCauchyPolynomialSource
+    from ye3t_methods.atomistic.lifted_cauchy_linear import LiftedCauchyPolynomialSource
 
     request = first_lifted_cauchy_scalar_request(
         1, element="Ta", family_ids=("NT_NU4_K22_L0",)
@@ -1911,8 +1911,8 @@ def test_source_keeps_neighbor_species_blocks_separate():
 
 
 def test_central_species_heads_survive_numeric_type_remapping():
-    from ye3t_ace import YE3TDescriptors
-    from ye3t_ace.lifted_cauchy_linear import lifted_cauchy_model_from_descriptor
+    from ye3t_methods.atomistic import YE3TDescriptors
+    from ye3t_methods.atomistic.lifted_cauchy_linear import lifted_cauchy_model_from_descriptor
 
     def descriptor(type_map):
         return YE3TDescriptors.ye3t_basis(
@@ -1950,8 +1950,8 @@ def test_central_species_heads_survive_numeric_type_remapping():
 
 def test_public_linear_fit_recovers_synthetic_energies_forces_and_force_sign(tmp_path):
     ase = pytest.importorskip("ase")
-    from ye3t_ace import YE3TDescriptors, YE3TModel
-    from ye3t_ace.lifted_cauchy_linear import lifted_cauchy_model_from_descriptor
+    from ye3t_methods.atomistic import YE3TDescriptors, YE3TModel
+    from ye3t_methods.atomistic.lifted_cauchy_linear import lifted_cauchy_model_from_descriptor
 
     descriptor = YE3TDescriptors.ye3t_basis(
         {
@@ -2068,7 +2068,7 @@ def test_public_linear_fit_recovers_synthetic_energies_forces_and_force_sign(tmp
             "backend": "pytorch",
         }
     )
-    from ye3t_ace.lifted_cauchy_linear import (
+    from ye3t_methods.atomistic.lifted_cauchy_linear import (
         build_ordinary_lifted_cauchy_normal_equations,
         build_ordinary_lifted_cauchy_regression_problem,
     )
@@ -2147,7 +2147,7 @@ def test_public_linear_fit_recovers_synthetic_energies_forces_and_force_sign(tmp
             )
         ).item() < 3.0e-8
 
-    from ye3t_ace import (
+    from ye3t_methods.atomistic import (
         export_lifted_cauchy_linear_bundle,
         load_lifted_cauchy_linear_bundle,
     )
@@ -2195,8 +2195,8 @@ def test_public_linear_fit_recovers_synthetic_energies_forces_and_force_sign(tmp
 
 def test_streamed_lifted_gram_matches_dense_reference_and_structure_weights():
     ase = pytest.importorskip("ase")
-    from ye3t_ace import YE3TDescriptors
-    from ye3t_ace.lifted_cauchy_linear import (
+    from ye3t_methods.atomistic import YE3TDescriptors
+    from ye3t_methods.atomistic.lifted_cauchy_linear import (
         build_lifted_cauchy_normal_equations,
         build_lifted_cauchy_regression_problem,
         lifted_cauchy_model_from_descriptor,
@@ -2281,8 +2281,8 @@ def test_streamed_lifted_gram_matches_dense_reference_and_structure_weights():
 
 def test_complete_periodic_shifted_image_energy_strain_derivative():
     ase = pytest.importorskip("ase")
-    from ye3t_ace import YE3TDescriptors
-    from ye3t_ace.lifted_cauchy_linear import lifted_cauchy_model_from_descriptor
+    from ye3t_methods.atomistic import YE3TDescriptors
+    from ye3t_methods.atomistic.lifted_cauchy_linear import lifted_cauchy_model_from_descriptor
 
     source_config = _source_config()
     source_config["periodic_image_mode"] = "all_images"
@@ -2338,12 +2338,12 @@ def test_complete_periodic_shifted_image_energy_strain_derivative():
 
 
 def test_lifted_cauchy_bundle_round_trip_and_tamper_rejection(tmp_path):
-    from ye3t_ace import (
+    from ye3t_methods.atomistic import (
         YE3TDescriptors,
         export_lifted_cauchy_linear_bundle,
         load_lifted_cauchy_linear_bundle,
     )
-    from ye3t_ace.lifted_cauchy_linear import lifted_cauchy_model_from_descriptor
+    from ye3t_methods.atomistic.lifted_cauchy_linear import lifted_cauchy_model_from_descriptor
 
     descriptor = YE3TDescriptors.ye3t_basis(
         {
@@ -2386,12 +2386,12 @@ def test_lifted_cauchy_bundle_round_trip_and_tamper_rejection(tmp_path):
 
 
 def test_joint_source_bundle_round_trip_can_switch_exact_source_backend(tmp_path):
-    from ye3t_ace import (
+    from ye3t_methods.atomistic import (
         YE3TDescriptors,
         export_lifted_cauchy_linear_bundle,
         load_lifted_cauchy_linear_bundle,
     )
-    from ye3t_ace.lifted_cauchy_linear import lifted_cauchy_model_from_descriptor
+    from ye3t_methods.atomistic.lifted_cauchy_linear import lifted_cauchy_model_from_descriptor
 
     compiled = _compiled_joint(2)
     descriptor = YE3TDescriptors.ye3t_basis(

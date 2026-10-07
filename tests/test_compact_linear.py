@@ -5,7 +5,7 @@ from ase import Atoms
 from ase.calculators.singlepoint import SinglePointCalculator
 
 from ye3t_methods import Basis, LinearModel
-from ye3t_ace.ace.linear_ace import LinearACEScalarCalculator, LinearACEScalarModelBundle
+from ye3t_methods.atomistic.ace.linear_ace import LinearACEScalarCalculator, LinearACEScalarModelBundle
 
 
 def _density_basis():
@@ -99,7 +99,7 @@ def test_density_sklearn_lasso_and_ard_uncertainty_survive_reload(tmp_path):
     assert result["total_energy_std_eV"] >= 0.0
     posterior = ard._fitted.fit_metadata["predictive_uncertainty"]
     assert posterior["variance_formula"] == "x_active @ sigma @ x_active.T (epistemic readout only)"
-    design = np.column_stack((basis.create(query).detach().cpu().numpy(), np.ones(len(query))))
+    design = np.column_stack((basis.create(query), np.ones(len(query))))
     active = posterior["active_column_indices"]
     covariance = np.asarray(posterior["coefficient_covariance_active"])
     selected = design[:, active]
@@ -144,7 +144,7 @@ def test_density_labels_follow_one_hot_columns_and_force_derivatives():
     assert len(basis.labels) == 2
     assert tuple(label.as_dict()["radial_indices"] for label in basis.labels) == ((1,), (2,))
     atoms = Atoms("Cu3", positions=[[0, 0, 0], [1.4, 0.1, 0], [0.2, 1.1, 0.3]])
-    features = basis.create(atoms).detach().cpu().numpy()
+    features = basis.create(atoms)
     rotation = np.array([[0.0, -1.0, 0.0], [1.0, 0.0, 0.0], [0.0, 0.0, 1.0]])
     order = [2, 0, 1]
     for column in range(2):

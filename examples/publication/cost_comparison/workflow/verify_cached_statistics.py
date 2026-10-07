@@ -8,7 +8,7 @@ import json
 import numpy as np
 
 import optimize_cached as study
-from ye3t_ace.ace.linear_ace import load_xyz_structures
+from ye3t_methods.atomistic.ace.linear_ace import load_xyz_structures
 
 
 def direct_score(system, model_name):

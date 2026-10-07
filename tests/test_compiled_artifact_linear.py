@@ -11,12 +11,12 @@ from ye3t.couplings import (
     plan as coupling_plan,
 )
 from ye3t.runtime import native_execution_plan_capabilities
-from ye3t_ace.execution_plan import (
+from ye3t_methods.atomistic.execution_plan import (
     YE3TCompiledArtifactCalculator,
     YE3TCompiledModelArtifact,
     YE3TCompiledSourceEvaluator,
 )
-from ye3t_ace.equivariant_calc.site_basis_v2 import SiteBasisConfig, SiteBasisV2
+from ye3t_methods.atomistic.equivariant_calc.site_basis_v2 import SiteBasisConfig, SiteBasisV2
 
 
 def _artifact():
