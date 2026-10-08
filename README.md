@@ -3,9 +3,38 @@
 `ye3t-methods` provides fixed-feature linear atomistic models using the
 separate `ye3t` representation compiler. Its import name is `ye3t_methods`.
 Energies, forces, and ASE stress use eV, eV/Å, and eV/Å³. The package includes
-the established `ye3t_ace` module path for compatible saved linear models;
-new compact workflows start with `ye3t_methods.Basis` and `LinearModel`.
-For ordinary scalar ACE descriptors from ASE, the compact constructor is:
+the `ye3t_ace` import shim for compatible saved linear models. New workflows
+use `ye3t_methods.Basis` and `LinearModel`.
+
+## Installation
+
+Clone `ye3t` and `ye3t-methods` into the same directory. From that directory,
+install PyTorch and the build tools before the two packages:
+
+```bash
+git clone https://github.com/ye3t-equivariance/ye3t.git
+git clone https://github.com/ye3t-equivariance/ye3t-methods.git
+python -m pip install torch 'setuptools>=77,<82' wheel cmake
+python -m pip install --no-build-isolation ./ye3t
+python -m pip install --no-build-isolation './ye3t-methods[examples]'
+cd ye3t-methods
+```
+
+Both package installs must use the same Python interpreter. Building `ye3t`
+requires a C++20 compiler; the `ye3t-methods` native ASE evaluators require
+C++17 and CMake 3.20 or newer.
+The `ye3t` compiler is a runtime dependency and is installed first so its
+Torch extension can build without isolation.
+
+Optional extras are `fit` for scikit-learn fitters and `neighbors` for
+matscipy neighbor lists. Install both from the `ye3t-methods` directory with
+`python -m pip install --no-build-isolation '.[fit,neighbors]'`. ASE neighbor
+construction works without matscipy. See [C++ evaluators](#c-evaluators) for
+Python-only and native build options.
+
+## First ASE descriptors
+
+For ordinary scalar ACE descriptors from ASE, use the compact constructor:
 
 ```python
 from ase.build import bulk
@@ -31,25 +60,28 @@ basis = Basis(elements=["H", "O"], cutoff=4.0, max_rank=2,
 water_descriptors = basis.create(atoms)  # (3, 24)
 ```
 
-This compact constructor retains the original ChebExpCos source settings;
-it does not recreate a PACE paper model's radial channels. Use the complete
-configured route or read the saved model when exact physical source identity
-matters.
+This constructor uses ChebExpCos radial settings. To reproduce a PACE paper
+model's radial channels, use its full config or read the saved model.
+
+## Configured descriptors and models
 
 The complete representation selector and seven-section config are shown in
 [`ase_descriptors.py`](examples/quickstart/ase_descriptors.py). Use that route
 to select a non-scalar O(3) parent, exact catalogue constraints, or a different
 physical factor source. Both routes obtain valid labels and coefficients from
 `ye3t.couplings`.
-The full example constructs the
-`ye3t.YE3TRepresentation` and basis from its visible config, then calls
+The example constructs `ye3t.YE3TRepresentation` and a basis from its config,
+then calls
 `descriptors = basis.create(atoms)`. The returned real NumPy array has one row
 per atom and one column per compiler-selected scalar descriptor.
+
+### Tagged and supplied factors
+
 For tagged scalar ASE rows with nontrivial local Young and angular
 intermediates, use
 [`tagged_descriptors.py`](examples/quickstart/tagged_descriptors.py).
-It uses the same public representation and basis objects and checks the
-two-block local `(1,1)` Young and `L=1` angular coupling witness.
+It uses the same public representation and basis objects and shows local
+`(1,1)` Young and `L=1` angular intermediates.
 For non-scalar properties, [`ase_octupole_descriptors.py`](examples/quickstart/ase_octupole_descriptors.py)
 uses the same interface with an `L=3` parent and returns seven real-tesseral
 components per feature.
@@ -65,58 +97,65 @@ derivatives before coupling. It does not fit a scalar interatomic potential.
 An intrinsic `parity` may be set per supplied factor type; omitting it uses
 the polar spherical-harmonic value `(-1)^l`. Existing atomistic channel fields
 remain accepted for saved-model compatibility.
+
+### Linear model examples
+
 For fitting, use the same core representation and `Basis.from_config`, then
 fit `LinearModel(basis)`. The rank-four
 [`density_fit.py`](examples/quickstart/density_fit.py) and
 [`tagged_fit.py`](examples/quickstart/tagged_fit.py) quickstarts demonstrate
 the configured representation → basis → model path. The tagged example
-explicitly selects its previous seven-column angular pattern.
+uses a seven-column angular pattern.
 [`combined_density_tagged_fit.py`](examples/quickstart/combined_density_tagged_fit.py)
 uses one named-component basis with separate radial sources, one fit, and one
 saved model.
-The `YE3TRepresentation` re-export from `ye3t_methods` is the older
-descriptor-first selector; it is not interchangeable with the core class used
-by `Basis.from_config`.
+The `YE3TRepresentation` re-export from `ye3t_methods` serves the
+descriptor-first API and is not interchangeable with the core class used by
+`Basis.from_config`.
 For the configured workflow, import `YE3TRepresentation` from `ye3t`.
 To refit the exact selected 127-column Ni paper basis and evaluate the
 published held-out split, run the full
 [`refit_paper_ni.py`](examples/publication/cost_comparison/refit_paper_ni.py)
-example. Its visible config supplies the saved source, paper loss weights,
-training data, and output paths. The 60/149 saved tiers are available beside
-it. A refit writes a new Torch ASE archive; the original native plan is not
-reused for changed coefficients.
-Maintained model code imports from `ye3t_methods`; a small `ye3t_ace` import
-shim remains only to read models saved under historical module names. Do not
-install the historical `ye3t-ace` distribution alongside `ye3t-methods` in
+example. Its config supplies the saved source, paper loss weights, training
+data, and output paths. The 60- and 149-column models are in the same
+directory. A refit writes a new Torch ASE archive; changed coefficients
+require a new native plan for LAMMPS export.
+Model code imports from `ye3t_methods`; the `ye3t_ace` import shim reads
+models saved under the old module name. Do not install the separate
+`ye3t-ace` distribution alongside `ye3t-methods` in
 one environment, because both supply that saved-model import path.
 The tagged compiler's exact coefficient materialization uses SymPy, so SymPy
 is a base dependency here even though `ye3t` offers it as a reference extra.
 
-## Install and run
+## Fit a linear model
 
-Install the separate `ye3t` compiler and then the local methods distribution.
-The methods metadata declares `ye3t>=0.1.0` as a runtime dependency; it
-does not vendor the compiler. With sibling source checkouts, install PyTorch,
-setuptools, and wheel first, then install `ye3t` without build isolation so its
-build can import the installed PyTorch:
+The [runnable density quickstart](examples/quickstart/density_fit.py) shows the
+full config, labeled ASE structures, fit, saved model, and calculator. Its main
+calls are:
 
-```bash
-python -m pip install torch 'setuptools>=77,<82' wheel cmake
-python -m pip install --no-build-isolation ../ye3t
-python -m pip install --no-build-isolation '.[examples]'
+```python
+representation = YE3TRepresentation.from_config(config["representation"])
+basis = Basis.from_config(
+    config["basis"], representation=representation, runtime=config["runtime"]
+)
+model = LinearModel(basis).fit(structures, config=config)
+artifact = model.write(config["metadata"]["output_path"])
+restored = LinearModel.read(artifact)
+atoms = structures[0].copy()
+atoms.calc = restored.ase_calculator(evaluator="torch", neighbors="ase")
 ```
 
-Optional packages are selected with pip extras after installing the local
-`ye3t` checkout:
+Training structures must already contain energy and force labels. `fit` reads
+their stored labels and does not ask attached calculators to generate missing
+data. The [tagged fit](examples/quickstart/tagged_fit.py) also configures
+physical tag counts, radial degrees, tensor order, and angular degree.
+Experimental `bar_phi` fitting requires motif templates and channels; see
+[`phi_fit.py`](examples/experimental/phi_fit.py).
 
-| Extra | Install from the `ye3t-methods` source directory | Adds |
-| --- | --- | --- |
-| `fit` | `python -m pip install --no-build-isolation '.[fit]'` | scikit-learn for LASSO, ARDRegression, and other optional linear fitters |
-| `neighbors` | `python -m pip install --no-build-isolation '.[neighbors]'` | matscipy for faster neighbor rebuilds on eligible general cells |
-| `examples` | `python -m pip install --no-build-isolation '.[examples]'` | plotting and example utilities |
-
-Install all three with `python -m pip install --no-build-isolation '.[examples,fit,neighbors]'`.
-ASE remains available for neighbor construction without matscipy.
+`print(basis)`, `print(model)`, `basis.labels[j].as_dict()`, and
+`basis.describe(j, format="latex")` inspect descriptor columns. `feature_index`
+is the zero-based column ordinal; the structured label stores the compiler
+identity. Saved models are read from artifacts, not reconstructed from text.
 
 ## C++ evaluators
 
@@ -185,15 +224,16 @@ Native source-built wheels include the compiled library for their build
 platform; the Python-only option produces a pure wheel.
 
 Alternatively, with a compatible `ye3t` distribution available to pip,
-install the local wheel:
+install a built wheel:
 
 ```bash
 python -m pip install ye3t_methods-0.1.0-*.whl
 ```
 
-The source archive contains the complete scripts and their deterministic
-fixtures. From its extracted `ye3t_methods-0.1.0` directory, start with one
-workflow:
+## Runnable examples
+
+From the `ye3t-methods` source directory, run one of these independent
+workflows:
 
 ```bash
 python examples/quickstart/ase_descriptors.py             # ASE Atoms to NumPy rows
@@ -217,12 +257,12 @@ independent scalar columns from ranks through eight. The chemical examples
 show a fixed two-channel mixture for three species and a one-channel source
 that excludes Na neighbors while retaining Na centers. They follow the
 configured representation → basis → descriptor workflow.
-The Ni ASE quickstart loads the promoted tagged paper model, adds its ZBL
-reference, and checks the 32-atom energy against the retained LAMMPS result.
+The Ni ASE quickstart loads the bundled tagged paper model, adds its ZBL
+reference, and checks the 32-atom energy against the bundled LAMMPS result.
 It requires the native C++ library installed by the default or ASE-only build.
-The portable Ni quickstart reads the vetted 127-column `.ye3t` archive from
-the source archive, exposes its ordered descriptor rows, and checks the same
-energy with the CPU Torch evaluator and the archived ZBL specification. Its
+The portable Ni quickstart reads the SHA-256-checked 127-column `.ye3t` archive,
+exposes its ordered descriptor rows, and checks the same energy with the CPU
+Torch evaluator and the saved ZBL specification. Its
 model bytes have SHA-256
 `a57647406108a71273794e7786252147c93830d8954d8c44d9d7e813cb6502a2`.
 
@@ -239,14 +279,13 @@ a per-atom `L=1` model plus a ready-to-run LAMMPS property input. It exercises
 rank-three and rank-four repeated-content ACE coordinates. The analytic
 site-vector labels demonstrate the workflow; they are not measured Cu labels.
 
-The source archive now also contains the [six-element paper linear
-models](examples/publication/cost_comparison/README.md): editable fitting
-settings, the fixed mlearn snapshot, exact promoted ACE/tagged YE3T model
-files, and LAMMPS input decks for Li, Mo, Cu, Ni, Si, and Ge. Verify the
-bundled bytes with
+The [six-element paper examples](examples/publication/cost_comparison/README.md)
+include editable fitting settings, the fixed mlearn snapshot, bundled
+ACE/tagged YE3T model files, and LAMMPS inputs for Li, Mo, Cu, Ni, Si, and Ge.
+Verify the bundled bytes with
 `python examples/publication/cost_comparison/verify_models.py`. The wheel
-installs the Python APIs; the paper examples and data are source-archive
-assets.
+installs the Python APIs; the paper examples and data are in the source
+distribution.
 To recompute the saved Ni 60/127/149-model held-out energy and force RMSE
 from the bundled 31-frame split, run
 `python examples/publication/cost_comparison/reproduce_ni_rmse.py` after a
@@ -276,69 +315,56 @@ readout uncertainty API.
 The [basis input guide](docs/basis_inputs.rst) explains how compact requests
 are validated by `ye3t.couplings` and how core notation represents resolved
 labels.
-The [parent-type guide](docs/parent_types.rst) shows a bounded, exact rank-eight
-coupling plan and states the current geometry-materialization limit.
-With Sphinx installed, build the guide using `python -m sphinx -b html docs
-docs/_build/html` from an extracted source archive.
+The [parent-type guide](docs/parent_types.rst) shows an exact rank-eight
+coupling plan and its geometry-materialization limits.
+With Sphinx installed, build the guide from the source directory:
 
-## Compact linear workflow
-
-The [runnable density quickstart](examples/quickstart/density_fit.py) keeps the
-basis and ASE evaluator selections in its visible `config`:
-
-```python
-representation = YE3TRepresentation.from_config(config["representation"])
-basis = Basis.from_config(
-    config["basis"], representation=representation, runtime=config["runtime"]
-)
-model = LinearModel(basis).fit(structures, config=config)
-artifact = model.write(config["metadata"]["output_path"])
-restored = LinearModel.read(artifact)
-atoms = structures[0].copy()
-atoms.calc = restored.ase_calculator(evaluator="torch", neighbors="ase")
+```bash
+python -m sphinx -b html docs docs/_build/html
 ```
-
-Training structures must already contain energy and force labels. `fit` reads
-their stored labels and does not invoke attached calculators to obtain missing
-data. Tagged models additionally require the physical tag counts, radial
-degrees, tensor order, and angular degree shown in `tagged_fit.py`. Explicit
-cluster `bar_phi` models require motif templates and channels as shown in the
-retained experimental `examples/experimental/phi_fit.py`.
-
-`print(basis)`, `print(model)`, `basis.labels[j].as_dict()`,
-`basis.describe(j)`, and `basis.describe(j, format="latex")` inspect actual
-descriptor columns. `feature_index` is the zero-based public column ordinal;
-it is not a multiplicity-copy index. The full compiler identity is retained in
-the structured label. Text output is bounded and never used to reconstruct a
-saved model.
 
 ## Supported paths and files
 
 | Source | Compact fit, read, ASE | File | Deployment |
 | --- | --- | --- | --- |
-| Ordinary density `A`/coupled `B` | Energy, forces, stress | `.pt` | Strict `.yace` only for representable PACE radial specifications; native compiled artifact path is available through the retained low-level API. |
-| Tagged physical image | Energy, forces, stress; genuinely nontrivial tag/role sectors | `.ye3t.json` | Hash-bound native tagged export; CPU C ABI when built. |
-| Density full-M `L>0` | Per-atom mean and optional ARD component covariance | `.ye3t.json` v2 | ASE CPU evaluator tested through `L=3`; LAMMPS CPU property compute qualified for natural-parity `L=1,2`. |
-| Tagged full-M `L>0` | Per-atom mean and optional ARD component covariance | `.ye3t.json` v2 | ASE CPU evaluator, tested through `L=3`; separate LAMMPS CPU mean-property compute is qualified for `L=1,2`, with a bounded experimental Kokkos device path for tagged means. |
+| Ordinary density `A`/coupled `B` | Energy, forces, stress | `.pt` | Strict `.yace` only for representable PACE radial specifications; a native compiled artifact path is available through the low-level API. |
+| Tagged physical image | Energy, forces, stress; nontrivial tag/role sectors | `.ye3t.json` | Hash-bound native tagged export; CPU C ABI when built. |
+| Density full-M `L>0` | Per-atom mean and optional ARD component covariance | `.ye3t.json` v2 | ASE CPU evaluator tested through `L=3`; LAMMPS CPU property compute tested for natural-parity `L=1,2`. |
+| Tagged full-M `L>0` | Per-atom mean and optional ARD component covariance | `.ye3t.json` v2 | ASE CPU evaluator tested through `L=3`; LAMMPS CPU mean-property compute tested for `L=1,2`, with an experimental Kokkos device path for tagged means. |
 | Configured density plus tagged scalar | Energy, forces, stress | indexed `.ye3t` bundle | Torch and native CPU ASE with one species E0 map. |
 | Legacy tagged-plus-ACE composite | Read and ASE energy, forces, stress; saved compiler labels unavailable | colocated `model.ye3t.json` files or trusted single-file `.ye3t` compatibility archive | Native CPU composite with one ZBL overlay; the `.ye3t` archive is a compatibility format, not portable coupling-array execution. |
-| Vetted Ni portable scalar composite | Ordered ordinary/tagged rows; ASE energy, forces, stress | SHA-256-pinned single-file `.ye3t` | CPU Torch ordinary + tagged + saved ZBL; exact 60/127/149/196 candidates only. |
+| SHA-256-pinned Ni portable scalar composite | Ordered ordinary/tagged rows; ASE energy, forces, stress | single-file `.ye3t` | CPU Torch ordinary + tagged + saved ZBL; portable 60/127/149 models. |
 | Explicit motif `bar_phi` | Energy, forces, stress | `.phi.pt` | ASE reference evaluator; no LAMMPS schema. |
-| Filtered role density `A_s`, lifted Cauchy, saved fixed Young descriptor sets | Retained low-level linear APIs | Existing formats where supported | The verified slot-trivial `A_s` fit is primarily a radial-channel change or expansion; compare radial-matched ACE before claiming a distinct benefit. |
+| Filtered role density `A_s`, lifted Cauchy, saved fixed Young descriptor sets | Low-level linear APIs | Source-specific formats | The tested trivial-Young `A_s` fit primarily changes or expands radial channels; compare radial-matched ACE before claiming a distinct benefit. |
 
-The compact density fit accepts stress rows with a positive cell volume. A density `.pt` or Phi
-`.phi.pt` file is a Torch artifact; load it only from a trusted source. Tagged
-scalar and lifted Cauchy JSON retain their versioned schema and hashes.
-The legacy `.ye3t` archive checks internal byte consistency; compare its digest
-with an independently retained value when model origin matters.
-The bounded Ni portable reader pins the full archive SHA-256 and saved
+The compact density fit accepts stress rows with a positive cell volume. A
+density `.pt` or Phi `.phi.pt` file is a Torch artifact; load it only from a
+trusted source. Tagged scalar and lifted Cauchy JSON include versioned schemas
+and hashes. The compatibility `.ye3t` archive checks internal byte consistency;
+compare its digest with an independently recorded value when model origin
+matters. The Ni portable reader pins the full archive SHA-256 and saved
 69-column tagged program. It exposes `basis.create(atoms)` and
 `model.ase_calculator(evaluator="torch")`. It does not provide native or
-LAMMPS export from portable members; the retained native composite remains
-available for those uses.
+LAMMPS export from portable members; use the native composite for those
+routes.
 The [evaluator guide](docs/evaluators.rst) lists supported ASE backends and
-the [paper-model guide](docs/paper_models.rst) identifies the promoted
+the [paper-model guide](docs/paper_models.rst) identifies the bundled
 artifacts and their validation inputs.
+
+## Tests
+
+Install the `dev` extra to run the Python suite:
+
+```bash
+python -m pip install --no-build-isolation '.[dev]'
+python -m pytest
+```
+
+This installation builds the native library. To run tests directly from a
+checkout without installing the package, install pytest and run
+`python setup.py build_ext --inplace` first.
+Tests requiring optional fit or neighbor backends skip unless those extras
+are installed.
 
 ## Citation
 

@@ -40,7 +40,7 @@ from compiler content IDs.
 A fixed matrix acts on neighbor species before density aggregation; each
 independent matrix column is one physical chemical channel. The matrix and
 species row order are saved with the source and change its resolution hash.
-The current physical-content binding uses scalar no-charge factors. Native
+Physical-content binding uses scalar factors without charge channels. Native
 CPU and YACE export of bound multi-species or fixed-embedding density are
 unavailable; an explicit request raises an error.
 
@@ -51,8 +51,8 @@ Torch/ASE route. ``Basis.create(atoms)`` returns
 identifies one compiler multiplicity coordinate and all of its magnetic
 components. The exact count preview and the compiled feature axis must agree
 at each rank. Repeated radial/angular content is compiled by composing
-certified symmetric-block polynomials with the full magnetic angular
-schedule, including every valid multiplicity copy. The current route supports
+validated symmetric-block polynomials with the full magnetic angular
+schedule, including every valid multiplicity copy. This route supports
 explicit, one-hot, and fixed chemical embeddings; periodic image
 displacements use the ASE neighbor builder's Cartesian vectors. Rotational
 and inversion tests cover ranks
@@ -73,7 +73,7 @@ the ASE property calculator.
 ``LinearModel.write`` saves the full-M density model as a hashed
 ``.ye3t.json`` artifact containing all compiled magnetic specifications,
 site-basis settings, coordinate order, real-form convention, coefficient
-metric, and fit data. New writes include a v2 native property plan bound to
+metric, and fit data. The writer includes a v2 native property plan bound to
 the saved compiler blocks and fitted readout. ``LinearModel.read`` validates
 these records and replays the saved coefficient basis without running the
 coupling compiler. The separate LAMMPS CPU
@@ -128,11 +128,11 @@ uses normal equations; optional LASSO and ARD use the same stress rows through
 the compact ``LinearModel.fit`` interface. A positive cell volume is required.
 
 The compact fit solves ridge normal equations over the selected descriptor
-columns. Repeated fits to an identical fixed dataset may use the retained
-low-level training-side design-matrix cache. That cache represents the selected
+columns. Repeated fits to an identical fixed dataset may use the
+training-side design-matrix cache. That cache represents the selected
 ``X`` and targets ``y``; it does not cache site-basis values across MD steps.
 
-The retained descriptor-first flow uses ``YE3TDescriptors.ace(config)`` and
+The descriptor-first compatibility flow uses ``YE3TDescriptors.ace(config)`` and
 ``YE3TModel.linear(descriptor, fit_config, structures=structures)``. It exposes
 settings such as explicit ``manual_labels``, charge channels, training matrix
 caches, and specialized fast paths. A manual label is a full coordinate request
@@ -140,7 +140,7 @@ including its multiplicity key; it is validated by the compiler. It must not
 be assembled by taking an unconstrained Cartesian product of radial, angular,
 and Young choices.
 
-The retained low-level fitting surface can also select a scikit-learn ridge
+The low-level fitting interface can also select a scikit-learn ridge
 solve with ``fit_method="ridge"`` and ``sklearn_params={"alpha": ...}`` after
 descriptor rows are built. Install the optional ``fit`` extra for that route.
 The compact ``LinearModel.fit`` uses its stated normal-equation ridge path;
@@ -154,7 +154,7 @@ kernels and gives an explicit analytic-force example.
 Lifted density (experimental)
 -----------------------------
 
-The retained low-level lifted-Cauchy scalar route constructs a source with an
+The experimental lifted-Cauchy scalar route constructs a source with an
 explicit role coordinate and compiler-issued coupling data. Its tested joint
 source has direct and factorized shifted-Jacobi radial realizations with source
 derivatives. Much of the observed change from ordinary density can be a

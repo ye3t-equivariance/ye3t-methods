@@ -2,9 +2,9 @@ Nontrivial parent types
 =======================
 
 The final parent type of a rank-``N`` descriptor is a Young partition of
-``N`` tensor positions together with a rotation irrep ``L``. These are
+``N`` tensor factors together with a rotation irrep ``L``. These are
 different from the tag and role partitions of a tagged source and from the
-filter-slot group carried by a role density. A scalar energy feature has a
+filter-role group carried by a role density. A scalar energy feature has a
 trivial final parent and ``L=0``; a nontrivial parent plan supplies covariant
 coordinates for a separate observable or a later invariant coupling.
 
@@ -26,12 +26,10 @@ and the example does not compute that carrier from atom positions.
 .. literalinclude:: ../examples/quickstart/parent_coefficient.py
    :language: python
 
-The rank-eight example is a coupling plan, not an evaluated atomistic
-descriptor. The current
-stable application API does not materialize an arbitrary nontrivial formal
-parent type from geometry. Its role-density evaluator can expose a
-nontrivial *filter-slot* Specht sector with angular components, but that
-sector is not a global rank-``N`` parent Young irrep. The source example
-marks the missing geometry path as a TODO. Generic fixed-content
-``count/plan`` reports alone should not be used to certify a requested
-nontrivial parent partition; use a sector-specific validated compiler plan.
+The rank-eight example produces a coupling plan. Materializing an arbitrary
+nontrivial parent type from atom positions requires a suitable physical factor
+source. The role-density evaluator exposes some nontrivial *filter-role*
+Specht sectors with angular components; those sectors differ from the global
+rank-``N`` parent Young irrep. The source example marks the missing geometry
+path as a TODO. Check a nontrivial parent request against a sector-specific
+compiled and validated plan before evaluating it.

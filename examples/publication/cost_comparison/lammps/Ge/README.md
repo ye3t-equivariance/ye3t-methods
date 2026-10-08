@@ -1,6 +1,6 @@
 # Ge linear ACE / tagged YE3T comparison
 
-This directory contains the exact promoted model bytes for the fixed published
+This directory contains the bundled model files for the fixed published
 `mlearn` split. `ace_127` is the matched ordinary ACE control and
 `ye3t_tagged_127` is the 59 ordinary + 68 tagged YE3T comparison. Both models
 are residuals to the LAMMPS ZBL reference and must use the included
@@ -29,7 +29,7 @@ also exist for the PACE control.
 The ordinary model is a standard `.yace`. The tagged model is a composite of
 `ordinary_backbone.yace` and `tagged_correction.ye3t.json`; the nontrivial
 correction cannot be represented by ordinary PACE alone.
-`model_manifest.json` records every promoted model hash, and each
+`model_manifest.json` records SHA-256 for every bundled model, and each
 `models/<model>/model_manifest.json` records the fit configuration, held-out
 metrics, and ZBL reference. The compact six-element evidence is in
 [canonical ye3t-lammps results](https://github.com/ye3t-equivariance/ye3t-lammps/tree/main/docs/results/cost_comparison_three_way_auto_v3_20260921).

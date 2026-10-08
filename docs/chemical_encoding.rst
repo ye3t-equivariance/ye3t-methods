@@ -62,8 +62,8 @@ rejects it. Trainable embeddings would make source features depend on
 parameters and require a separate fit and derivative contract.
 
 Chemical channels also appear in ``Phi`` motifs and tagged physical
-source schedules. Their slot/role semantics differ from ordinary density:
+source schedules. Their factor-role semantics differ from ordinary density:
 do not apply an ordinary-density channel mix to a tagged or role-resolved
-carrier without preserving the declared group action. The core
+carrier without preserving the specified group action. The core
 ``ye3t.couplings`` report determines valid coupling labels after the
 source channels are specified.

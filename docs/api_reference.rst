@@ -13,7 +13,7 @@ they are validated as strings but excluded from fitted-model identity.
 For scalar tagged catalogues, optional
 ``basis.catalogue.angular_patterns_by_rank`` restricts the requested input
 angular tuples before compiler counting and materialization. The rank-four
-tagged quickstart uses it to preserve its earlier seven-column selection.
+tagged quickstart uses it to select its intended input angular patterns.
 
 ``ye3t_methods.FeatureLabel`` represents an actual fitted descriptor column.
 Maintained low-level modules live under ``ye3t_methods.atomistic``. The
@@ -94,9 +94,9 @@ original label display convention and neighbor-selection behavior.
 ``ye3t_legacy_compat_archive_v1``. This compatibility format embeds and checks
 a legacy composite, ordinary YACE model, tagged correction, portfolio upgrade,
 and model manifest for internal consistency. Supply a trusted archive or check
-its SHA-256 against an independently retained value; the embedded hashes do not
-authenticate the model's origin. Once loaded, the calculator no longer
-needs the archive file or neighboring component files. It retains the legacy
+its SHA-256 against an independently stored value; embedded hashes check
+internal consistency without authenticating the model's origin. The loaded
+calculator keeps the necessary model data in memory. It retains the legacy
 composite source and can evaluate energy, forces, and stress with the supported
 native evaluator. It does not expose compiler labels or the coupling-array
 execution interface of the separate bounded Ni archive reader.
@@ -108,13 +108,13 @@ ordinary, tagged, and ZBL terms with ``evaluator="torch"`` on CPU. Loading
 and repeated ASE evaluation use saved coupling products without recompiling.
 The reader rejects other model identities or changed archive bytes. This
 bounded route has no native evaluator, LAMMPS export, or general checkpoint
-certificate yet; use the retained native composite for those supported tasks.
+validation record yet; use the native composite for those supported tasks.
 
 The low-level descriptor-first flow is
-``YE3TRepresentation -> YE3TDescriptors -> YE3TModel``. Use it for retained
+``YE3TRepresentation -> YE3TDescriptors -> YE3TModel``. Use it for
 ``A_s`` fitting, lifted Cauchy models, fixed Young descriptor sets, manual ACE
 coordinate requests, and specialized runtime controls. It accepts compiler
-plans and validated labels rather than locally invented coupling paths.
+plans and validated labels from the ``ye3t`` compiler.
 Its ``YE3TRepresentation`` is the legacy selector also re-exported by
 ``ye3t_methods``; it is distinct from ``ye3t.YE3TRepresentation`` and is not
 an input to ``Basis.from_config``.

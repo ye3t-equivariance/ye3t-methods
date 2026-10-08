@@ -41,8 +41,7 @@ physical radial source for each component. The vector example also writes a
 LAMMPS input.
 The Ni saved-model example reads a pinned paper model and checks its reference
 energy. The NVE example runs 100 ASE Velocity-Verlet steps near equilibrium
-and writes every energy sample to CSV; this short run does not establish
-stability of the potential at compressed geometries.
+and writes every energy sample to CSV.
 For an exact selected-basis Ni refit, use the long publication example:
 
 .. code-block:: console
@@ -65,9 +64,8 @@ focused inspection, solver, tagged-source, and saved-model examples:
    python examples/quickstart/sklearn_fit.py
    python examples/quickstart/saved_ase_export.py
 
-These retained experimental scripts use source-specific or older
-descriptor-first interfaces. Run them for the stated method; use the configured
-quickstarts above as templates for a new density or tagged model:
+These experimental scripts use source-specific descriptor-first interfaces.
+Use the configured quickstarts above as templates for a density or tagged model:
 
 .. code-block:: console
 
@@ -85,9 +83,9 @@ They do not take an ASE ``Atoms`` object or produce a fitted model:
 
 ``phi_fit.py`` and ``phi_depth2.py`` use the tested scalar ``bar_phi`` motif
 route with fixed signed magnetic channels; see :doc:`phi_basis` for its
-rotation and deployment limits. ``role_density_fit.py`` uses the retained
+rotation and deployment limits. ``role_density_fit.py`` uses the
 descriptor-first lifted-density path; see :doc:`role_density` for its
-slot-sector limits. ``chemical_encoding.py`` uses the configured physical
+role-sector limits. ``chemical_encoding.py`` uses the configured physical
 fixed-embedding source with ASE and checks scalar symmetries, while
 ``chemical_channel_selection.py`` masks excluded neighbor species with a
 fixed zero embedding row;
@@ -150,8 +148,7 @@ Use the full representation and basis config when the target symmetry,
 physical factor source, or catalogue policy is part of the calculation.
 ``ase_octupole_descriptors.py`` uses the same public objects for an ``L=3``
 odd-parity output. Its rows have seven real-tesseral components per feature.
-The displaced Ni atom ensures a nonzero demonstration; this is a descriptor
-example rather than a fitted material property.
+The displaced Ni atom gives a nonzero descriptor example.
 
 ``density_fit.py`` is the first configured linear fit example. It constructs
 ``ye3t.YE3TRepresentation``, passes it to ``Basis.from_config``, fits through
@@ -176,7 +173,7 @@ families, descriptor shape, and restored ASE prediction.
 exercise the workflow; they are not measured material properties. Change
 ``metadata.system`` for a different ASE crystal setup. The model output is
 real-tesseral order, so compare the LAMMPS dump with
-``reference_real_tesseral.txt`` rather than Cartesian components. To run the
+``reference_real_tesseral.txt`` in real-tesseral order. To run the
 native half of the example, use an ML-YE3T-enabled LAMMPS executable from the
 generated output directory:
 
@@ -209,10 +206,10 @@ run needs the tagged C ABI library installed or
 The Ni script evaluates a four-atom fcc cell and its displaced copy. Its
 ``validation`` settings inspect internal tag and role Young types supplied by
 the compiler; the tagged basis keeps a fixed symmetric scalar parent.
-``examples/publication/cost_comparison/ase_native_ni.py`` instead loads the
-promoted Ni tagged potential, adds its
-ZBL overlay, and checks the energy of the 32-atom reference cell against the
-retained LAMMPS result. It needs a native C++ installation.
+``examples/publication/cost_comparison/ase_native_ni.py`` loads the saved Ni
+tagged potential, adds its ZBL overlay, and checks the energy of the 32-atom
+reference cell against the recorded LAMMPS result. It needs a native C++
+installation.
 ``paper_ni_portable_ase.py`` reads the portable model through
 ``LinearModel.read`` and verifies the same step-zero energy through the
 Python/ASE route. Its basis and representation are recovered from the saved
@@ -230,9 +227,9 @@ short descriptor scripts show their inputs directly.
 Change ``elements``, ``cutoff``, basis settings, and input structures for a new
 system; the fixture configurations are deliberately small for a quick
 numerical check. See :doc:`evaluators` for all supported choices.
-The manufactured Cu, Ta, and H scripts verify fitting interfaces; they are
-not paper-result reproductions. The promoted Li, Mo, Cu, Ni, Si, and Ge model
-artifacts and their inputs are described in :doc:`paper_models`.
+The manufactured Cu, Ta, and H scripts check the fitting interfaces. The Li,
+Mo, Cu, Ni, Si, and Ge paper-model artifacts and their inputs are described in
+:doc:`paper_models`.
 
 Ordinary density fit
 --------------------

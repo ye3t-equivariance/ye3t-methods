@@ -84,8 +84,7 @@ The ordinary low-level contraction selector also accepts ``auto``, ``triton``,
 and ``openequivariance``. Those names select internal contraction paths where
 supported. Use ``native_cpu`` explicitly for the standalone C++ evaluator;
 ``backend="native"`` is only a core contraction alias and may still run through
-Torch. Strict requests for unsupported low-level paths fail rather than
-silently using Torch.
+Torch. Strict requests for unsupported low-level paths raise an error.
 
 Ordinary and Phi examples
 -------------------------
@@ -184,7 +183,7 @@ raises on numerically ill-conditioned periodic cells or a scan exceeding one
 million candidate shifts; the native ASE/matscipy routes build neighbor lists
 without that brute-force scan.
 
-``LinearModel.read`` also accepts the promoted legacy Ni composite
+``LinearModel.read`` also accepts the saved Ni composite
 ``model.ye3t.json`` when its verified v4 ``model_manifest.json`` and component
 files are colocated. Its ASE calculator applies the recorded ZBL term. The
 legacy composite has no serialized ordered compiler labels, so standalone
@@ -329,5 +328,5 @@ manifest with ``SumCalculator`` as in the tagged example above. The runnable
 Li model and its step-zero reference. ``LinearModel.read`` accepts ordinary
 ``.pt`` bundles, not ``.yace``; use ``YE3TYACENativeCalculator.from_artifact``
 for a saved YACE file. The paper's composite tagged schema likewise uses its
-dedicated native adapter. Newly fitted compact density, tagged, and Phi models
-retain the Torch ASE routes above.
+dedicated native adapter. Compact density, tagged, and Phi models fitted through
+``LinearModel`` use the Torch ASE routes above.

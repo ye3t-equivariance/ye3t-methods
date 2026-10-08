@@ -60,7 +60,7 @@ atom-count bias. For the older direct combined fit, an omitted ``fit_E0``
 defaults to fixed offsets if a reference map was supplied, or fitted offsets
 otherwise.
 Fitting offsets requires a positive energy weight and at least one training
-atom of each declared species.
+atom of each specified species.
 With density or combined-scalar LASSO or ARD, the supplied E0 map is the prior origin:
 the solver penalizes descriptor coefficients and E0 corrections together.
 Changing that supplied map can change the fitted result. The fitted map and

@@ -1,6 +1,6 @@
 # Ni linear ACE / tagged YE3T comparison
 
-This directory contains the exact promoted model bytes for the fixed published
+This directory contains the bundled model files for the fixed published
 `mlearn` split. The complete three-way curve contains 60-, 127-, and
 149-descriptor ordinary controls (`ace_60`, `ace_127`, `ace_149`) and tagged
 YE3T models (`ye3t_tagged_60`, `ye3t_tagged_127`, `ye3t_tagged_149`) with
@@ -34,6 +34,6 @@ direct fallbacks.
 The ordinary model is a standard `.yace`. A tagged model is a composite of
 `ordinary_backbone.yace` and `tagged_correction.ye3t.json`; the nontrivial
 correction cannot be represented by ordinary PACE alone.
-`model_manifest.json` records every promoted model hash. Compact held-out
+`model_manifest.json` records SHA-256 for every bundled model. Compact held-out
 accuracy, timing, equation-of-state, elastic, dimer, and stability evidence
 for the Ni curve is under `evidence/`.

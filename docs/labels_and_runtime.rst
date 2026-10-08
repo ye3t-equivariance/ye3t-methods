@@ -34,7 +34,7 @@ the explicit product rule. A repeated component monomial obeys
    =c_\alpha\alpha_q\prod_p A_p^{\alpha_p-\delta_{pq}}.
 
 The descriptor adjoint is then passed through the site-basis derivative and
-normalization record to positions. The retained CYprime path uses explicit
+normalization record to positions. The CYprime path uses explicit
 forward/backward products. An eligible repeated-block globally trivial ACE
 sector may use the compiler-owned symmetric-power plan; unsupported blocks
 use the validated general product path. A fast path is an evaluation choice,
@@ -54,7 +54,7 @@ records accepted labels and mathematical provenance; calculator ``results``
 records physical energy/force/stress outputs. Neither a shape check nor a
 finite training error alone establishes equivariance or physical accuracy.
 
-The retained low-level linear families also include a fitted lifted Cauchy
+The low-level linear families include a fitted lifted Cauchy
 scalar model with direct/factorized source derivatives and a saved native
 bundle, and an evaluator for fixed Young descriptor sets. The release record
 states their actual tested operations. They do not have compact ``Basis`` fit

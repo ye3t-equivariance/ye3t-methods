@@ -14,7 +14,7 @@ Model persistence
      - Evaluation
    * - Ordinary density
      - ``.pt`` Torch bundle
-     - ASE energy/forces; retained low-level native and strict PACE routes
+     - ASE energy/forces; low-level native and strict PACE routes
    * - Density or selected tagged ``L>0`` per-atom multiplets
      - versioned, hash-bound ``.ye3t.json`` with saved all-M coefficients
      - ASE real-tesseral mean and optional ARD component covariance
@@ -56,7 +56,7 @@ features. The indexed combined and bounded Ni portable bundles also retain
 standalone ``basis.create(atoms)`` rows; for older single-component bundles,
 construct a new ``Basis`` for that operation.
 
-New tagged full-M writes use the v2 JSON schema. They include a separate,
+Tagged full-M writes use the v2 JSON schema. They include a separate,
 hash-bound native property plan with compiler schedules and the fitted
 species/feature coefficient order. For two tagged occurrences, the plan uses
 the compiler's exact one-edge marginalization; writing fails if its retained
@@ -74,7 +74,7 @@ Its property kernels use device data; final per-atom values are copied to
 host for LAMMPS consumers. Density v2 artifacts are rejected by that device
 consumer.
 
-New density full-M writes also use a v2 JSON schema with a native property
+Density full-M writes use a v2 JSON schema with a native property
 plan. It binds the saved all-M coefficient blocks, PACE site source,
 coordinate order, real-form transform, and fitted readout. The Python reader
 still accepts v1 density full-M files. The separate ``ye3t-lammps`` CPU
@@ -91,7 +91,7 @@ The indexed combined writer requires configured PACE density and
 shifted-Jacobi tagged scalar components, built separately with ``Basis.combine``
 or through one named ``basis.components`` request with component-local sources.
 It stores verified source records,
-selected ordinary coupling arrays, a certified tagged image, ordered labels,
+selected ordinary coupling arrays, a validated tagged image, ordered labels,
 readout weights, and optional ARD posterior arrays. Its loader verifies all
 member hashes and source/compiler bindings, and reconstructs the ordinary
 runtime from saved coordinates without recompiling couplings. Explicit Torch
@@ -104,8 +104,8 @@ bytes for the 60, 127, 149, and augmented 196 models. It restores ordered
 adds the saved ordinary, tagged, and ZBL energies once. ``model.write`` copies
 the verified archive bytes. An explicit native evaluator or LAMMPS export
 request rejects because this archive route has no validated native lowering.
-Other portable checkpoint identities require a future trusted certificate
-route and are not accepted by this bounded reader.
+The bounded reader accepts only the pinned checkpoint identities listed above.
+Other checkpoint formats need an explicit integrity and compatibility check.
 
 ASE stress convention
 ---------------------
@@ -145,22 +145,22 @@ Strict YACE export
 requires a representable PACE radial/angular source and scalar invariant
 channels. The compact density constructor's default explicit radial source
 does not satisfy that strict representation and export fails closed. The
-retained low-level ACE API can build an appropriate PACE-compatible source.
+low-level ACE API can build an appropriate PACE-compatible source.
 Do not treat a readable ``.yace`` descriptor file as proof that a fitted model
 matches a LAMMPS-PACE runtime convention.
 
-The retained ``ye3t_methods.atomistic.ace.yace`` helpers ``YACEFunction``, ``read_yace``,
+The ``ye3t_methods.atomistic.ace.yace`` helpers ``YACEFunction``, ``read_yace``,
 ``read_yace_functions``, and ``write_yace`` handle the normalized descriptor
 file representation. A function records its central type ``mu0``, rank,
 neighbor types ``mus``, radial indices ``ns``, angular indices ``ls``, magnetic
 combinations ``ms_combs``, and coefficients ``ctildes``. The strict exporter
 folds fitted linear weights into emitted C-tilde rows after validating the
-source and descriptor sector. The retained strict YACE tests cover positive
+source and descriptor sector. The strict YACE tests cover positive
 and rejected cases.
 
 For a tagged artifact, the separate ``ye3t-lammps`` consumer supplies the
 ``pair_style ye3t`` implementation. The quickstart's JSON export does not
-install a LAMMPS pair style. The promoted CPU examples and model inputs are in
+install a LAMMPS pair style. The CPU examples and model inputs are in
 :doc:`paper_models`; check the consumer's documentation for its supported GPU
 scope. Any additive reference potential in a scientific workflow must be
 configured consistently in fitting and deployment.

@@ -9,15 +9,14 @@ copy/paste example is ``examples/quickstart/ase_descriptors.py``; its
 descriptors. The compiler selects the labels, and ``basis.labels`` and
 ``basis.catalogue.counts()`` expose their identity and count.
 
-The retained direct ``Basis`` constructor takes an ordered ``elements`` list,
+The direct ``Basis`` constructor takes an ordered ``elements`` list,
 physical cutoff, source family, and short radial/angular truncation schedule.
 For ordinary density, ``max_rank``, ``nmax``, and ``lmax`` are the inputs;
 ``nmax`` and ``lmax`` may each be a scalar or a value for every rank.
 These values determine candidate source channels. The compact default uses
-the original ChebExpCos radial source; it does not
-reconstruct the separately configured PACE spline source or a saved paper
-model's channel definition. For exact replay, read the model artifact.
-The retained
+ChebExpCos radial functions. Load a saved model artifact to reproduce its
+specific channel definition and fitted coefficients.
+The
 ``YE3TRepresentation -> YE3TDescriptors -> YE3TModel`` route accepts
 additional fixed catalogues and source policies.
 
@@ -76,7 +75,7 @@ valid product labels and coupling coefficients. A new radial function with
 the same channel counts can reuse that representation calculation, but its
 values, derivatives, fitted weights, source hash, and saved artifact must be
 revalidated. A new tag, role, orbital, or other factor source may also change
-the carrier action or physical image; it must declare that action before
+the carrier action or physical image; it must specify that action before
 compiler count/plan/compile. Ordinary density summation alone has only the
 globally trivial Young sector.
 
@@ -87,22 +86,22 @@ the capability report of the selected evaluator. The low-level
 for in-memory research use. A custom radial provider must supply finite,
 JSON-serializable convention metadata with a stable provider identity; its
 values, derivatives, and normalization bound enter the same source contract.
-Process-specific object IDs are rejected as cache identities. An arbitrary
-provider is not a portable
-``Basis.from_config`` source and cannot be saved or sent to LAMMPS through the
-stable model format.
+Process-specific object IDs are rejected as cache identities. Portable
+``Basis.from_config`` sources require a serializable provider contract and
+deployment support. In-memory custom providers serve research calculations
+through ``SiteBasisV2``.
 The focused ``test_radial_provider_extension.py`` check injects a radial
 provider at this low-level boundary and verifies both edge values and
 Cartesian derivatives, including an ``l=3`` finite difference, plus summed
 site channels through ``l=3``. It uses
-a scaled existing radial source, so it does not certify a new radial family.
+a scaled existing radial source, so it does not validate a new radial family.
 
-To certify another physical source in this interface, its implementation
+To validate another physical source in this interface, its implementation
 needs a strict config and source identity, value and analytic derivative
 checks at and near the cutoff, a tested backend capability, and a model
 writer/reader that reproduces the same channel order without recompilation.
 Energy models also need force and stress checks; covariant properties need
 rotation, inversion, and physical atom-relabeling checks. Native CPU or
-Kokkos availability is declared separately from Python/ASE availability.
+Kokkos availability is specified separately from Python/ASE availability.
 This boundary lets source families be added without copying representation
 logic into ``ye3t-methods``.

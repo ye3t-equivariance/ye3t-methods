@@ -5,8 +5,8 @@ The source archive includes the six-element fixed-feature comparison of
 ordinary ACE/PACE and tagged YE3T described in
 `arXiv:2609.31895v1, section IV.3
 <https://arxiv.org/abs/2609.31895>`_. Li, Mo, Cu, Ni, Si, and Ge each
-have the matched 127-feature models. The archive also retains Ni's additional
-model-size tiers. These are the promoted model bytes and LAMMPS inputs from
+have the matched 127-feature models. The archive also contains Ni's additional
+model-size tiers. The model bytes and LAMMPS inputs come from
 the separate ``ye3t-lammps`` deployment repository.
 
 The archive layout is:
@@ -57,13 +57,13 @@ The script's visible seven-section config fixes the source bundle hash,
 published 263-frame training partition, ZBL reference, and selected paper
 hyperparameters. It saves a new Torch ASE artifact and evaluates all 31
 held-out frames. Change the source archive, hash, feature count, and frozen
-selected fit hyperparameters to use the retained 60- or 149-column basis.
+selected fit hyperparameters to use the saved 60- or 149-column basis.
 The completed Ni-127 run gave 0.000677664 eV/atom energy RMSE and
-0.039417111 eV/Å force RMSE, close to the retained model's 0.0006774455
+0.039417111 eV/Å force RMSE, close to the saved model's 0.0006774455
 and 0.0394175951. The selected basis and source are fixed; catalogue
-selection and hyperparameter search are separate workflows. The new archive
-cannot use LAMMPS AUTO until a native plan for its changed coefficients is
-validated. The fit is ill-conditioned, so compare predictions and RMSE rather
+selection and hyperparameter search are separate workflows. The refit archive
+requires a validated native plan for its coefficients before LAMMPS AUTO
+evaluation. The fit is ill-conditioned, so compare predictions and RMSE rather
 than raw coefficient bytes; the publication example README records the
 numerical details.
 
@@ -107,7 +107,8 @@ energy with the CPU Torch ASE calculator. The bundle SHA-256 is
 ``a57647406108a71273794e7786252147c93830d8954d8c44d9d7e813cb6502a2``;
 the source-archive model is the same bytes as the bounded conversion study.
 The installed wheel supplies the reader, while the source archive supplies
-the reference model and example. The old native path remains available.
+the reference model and example. The native composite evaluator supports its
+corresponding artifacts.
 The ordinary ACE control is supplied as ``.yace`` and loads through
 ``YE3TYACENativeCalculator.from_artifact``. ``LinearModel.read`` reads compact
 Torch ``.pt`` bundles, not ``.yace`` files. See :doc:`evaluators` for the
@@ -117,8 +118,8 @@ The inputs supply the ZBL overlay used in training. Read the
 ``examples/publication/cost_comparison/README.md`` and the local LAMMPS
 README before running other systems or numerical-difference/NVE checks.
 The original full paper study and LAMMPS replay require a suitable LAMMPS build
-and more time than the quickstart tests. The retained logs are previous promoted
-evidence; copying them into the source archive is not a fresh validation.
+and more time than the quickstart tests. The reference logs document recorded
+runs. Reproduction requires executing the model and comparison inputs.
 
 The published elemental models use one-hot chemical channels. See
 :doc:`chemical_encoding` for the stable one-hot semantics and the

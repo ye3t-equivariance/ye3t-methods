@@ -1,11 +1,12 @@
 Tagged physical-image basis
 ===========================
 
-The tagged route retains explicitly selected neighbor roles before the
-compiler forms globally invariant scalar coordinates. It is available through
-``Basis(source="tagged_cauchy_image")`` and the retained
-``YE3TRepresentation.tagged_cauchy_image()`` descriptor-first route. This is
-the ``tag`` family in the linear release.
+The tagged route keeps explicitly selected neighbor roles through coupling
+and constructs globally invariant scalar coordinates. For a configured linear
+fit, use ``ye3t.YE3TRepresentation`` with ``Basis.from_config`` and
+``LinearModel``. The direct ``Basis(source="tagged_cauchy_image")`` constructor
+and ``YE3TRepresentation.tagged_cauchy_image()`` descriptor-first route support
+specialized catalogue inspection and compatible models.
 
 What the basis distinguishes
 ----------------------------
@@ -19,7 +20,7 @@ the application does not enumerate them independently.
 The explicit tag positions use distinct ordered neighbor occurrences. The
 remaining density factors are inclusive: they may use a tagged neighbor or
 reuse a neighbor used by another density factor. The compiler's collision
-reduction, rather than a blanket ``1/s!`` factor, defines this physical image.
+reduction determines the multiplicity weights in this physical image.
 Summing over physical tag tuples requires a globally trivial tag output; an
 overall tag-odd coordinate vanishes. The compact fitted route here is scalar.
 The exact selected full-``M`` physical-image basis and a per-atom linear fit
@@ -40,7 +41,7 @@ bases only. Omitting it asks the compiler for every permitted pattern up to
 the angular cap and can change the fitted column set. The example's
 ``native_cpu`` evaluator requires the installed tagged C ABI library.
 
-For the certified homogeneous two-tag witness, ``N=4``, input ``l=1``, and
+For the tested homogeneous two-tag case, ``N=4``, input ``l=1``, and
 ``s=2``, the compiler includes a nontrivial tag sector
 ``tag_kappa=(1,1)`` with a ``role_kappa=(2,1,1)`` companion. The compiler
 maps selected raw opportunities into the exact physical image and removes
@@ -49,11 +50,10 @@ therefore combine multiple raw opportunities. Its printed tag summary is not
 a claim that it is one pure tag partition. The tested example shows how to
 inspect the full contributing records.
 
-For the same-source inclusive-density construction in the retained Ta
-diagnostic, the selected one-tag row aliases the ordinary zero-tag row. This
-is a bounded source identity, not a general rule for all one-tag sources.
-Other requested orders, contents, angular channels, and tag counts remain
-subject to compiler validation; the N=4 witness does not certify them.
+For the same-source inclusive-density Ta case, the selected one-tag row
+aliases the ordinary zero-tag row. Other source families require their own
+identity check. The compiler validates requested orders, contents, angular
+channels, and tag counts separately.
 
 Ordered tagged carriers
 -----------------------
@@ -67,9 +67,10 @@ These carrier values are not fitted scalar energy coordinates.
 ``descriptor.create(atoms, descriptor_evaluation="pooled_carriers")`` sums
 each complete magnetic carrier over distinct ordered neighbor-image supports
 at its center. It retains compiler labels and reports the schedule hashes and
-pooling convention. The result is an unreduced per-center orbit sum: zero or
-linearly dependent coordinates may remain. It is not yet a certified
-independent physical-image basis and does not provide a fit or derivatives.
+pooling convention. The result is an unreduced per-center orbit sum that may
+contain zero or linearly dependent coordinates. This mode provides values for
+inspection. The physical-image route below reduces those coordinates and has
+focused value and derivative checks.
 The integrated physical checks currently cover zero, one, and two tags.
 
 ``descriptor.create(atoms, descriptor_evaluation="physical_image")`` first
@@ -91,11 +92,11 @@ fields as the scalar config, with the desired ``parent.L`` and parity. Its
 ``Basis.create(atoms)`` result has shape
 ``(n_atoms, n_selected_multiplets, 2*L+1)`` in real-tesseral signed-``M``
 order. ``basis.labels`` holds the original compiler coordinate IDs and
-physical-image plan hash. The current route accepts per-rank zero/one/two tag
+physical-image plan hash. This route accepts per-rank zero/one/two tag
 count sets, explicit or one-hot chemistry, CPU ``reference`` evaluation, ASE
 neighbors, and cache mode ``auto`` or ``off``. It reports unsupported native,
-CUDA, or tag counts above two before materialization. The scalar tagged
-``Basis.create`` and saved paper-model route retain their existing 2D rows.
+CUDA, or tag counts above two before materialization. Scalar tagged
+``Basis.create`` and saved paper-model evaluation return 2D rows.
 When more than one rank is requested, the compiler combines rankwise
 compiled source records into one exact pooled physical O(3) image. The saved
 labels retain each rank and its selected original coordinate ID. Exact
@@ -156,9 +157,9 @@ tesseral phase convention.
 ``nmax_per_rank`` and ``lmax_per_rank`` are exact maps covering every requested
 rank. ``cutoff_A`` bounds the neighbor list, while ``pair_cutoffs_A`` sets the
 radial cutoff for each ordered species pair and cannot exceed ``cutoff_A``.
-The certified source is the fixed origin-regular shifted-Jacobi family. It
+The validated source is the fixed origin-regular shifted-Jacobi family. It
 has no ``radial_lambda`` or ordinary-density ``radial_decay`` parameter;
-unsupported settings are rejected rather than ignored.
+unsupported settings raise an error.
 
 ``tag_character=-1`` on a two-tag label denotes odd exchange of the two
 ordered tags. ``target_L`` identifies that carrier's rotation irrep. Neither
@@ -194,76 +195,49 @@ component uses shifted-Jacobi radial factors, two tags, a rank-four
 ``l=1`` angular pattern, and the symmetric scalar parent. The selected
 two-block route has local Young types ``(1,1)`` and block angular values
 ``(1,1)`` which couple to global ``L=0``; its global Young parent remains
-``(4)``. The retained
-lower-level descriptor-first interface accepts the same general catalogue:
-
-.. code-block:: python
-
-   from ye3t_methods import YE3TDescriptors
-
-   config = {
-       "metadata": {"name": "ni_tagged_catalogue"},
-       "basis": {
-           "type": "tagged_cauchy_image", "species": ["Ni"], "cutoff_A": 4.8,
-           "pair_cutoffs_A": {"Ni-Ni": 4.8},
-           "catalogue": {
-               "nmax_per_rank": {4: 1}, "lmax_per_rank": {4: 1},
-               "source_block_partitions_by_rank": {4: ((4,),)},
-               "angular_patterns_by_rank": {4: ((1, 1, 1, 1),)},
-               "angular_basis_backend": "exact_weight_space_v1",
-               "tag_counts_by_rank": {4: (0, 2)},
-           },
-       },
-       "representation": {
-           "carrier": "A_s", "target": {"permutation": "trivial", "L": 0},
-           "mode": "tagged_cauchy_image",
-       },
-       "runtime": {"backend": "auto"},
-       "model": {}, "targets": {}, "validation": {},
-   }
-   descriptors = YE3TDescriptors.ye3t_basis(config)
-   print(len(descriptors.feature_labels))
+``(4)``. For existing descriptor-first code,
+``YE3TDescriptors.ye3t_basis(config)`` accepts the lower-level catalogue
+format described in :doc:`api_reference`.
 
 Configured ``tag_counts_per_rank`` and lower-level ``tag_counts_by_rank`` select
 raw tag-count opportunities before the exact image is formed. ``rank`` fixes
-the tensor order in the older direct ``Basis`` constructor; the configured
+the tensor order in the direct ``Basis`` constructor; the configured
 catalogue states ranks explicitly.
 ``nmax_per_rank`` and
 ``lmax_per_rank`` are explicit maps from rank to radial and angular caps.
 ``angular_patterns_by_rank`` restricts the rank-four source factors to four
 ``l=1`` channels; the angular cap alone would also permit ``l=0``.
 ``source_block_partitions_by_rank`` requests one four-factor source block.
-This general catalogue request has a different column inventory from the older
-bounded rank-four witness stored in paper artifacts. ``cutoff`` is the global
+This general catalogue request has a different column inventory from the
+bounded rank-four paper artifact. ``cutoff`` is the global
 neighbor cutoff in angstroms. Optional ``pair_cutoffs_A`` sets radial cutoffs
 for a complete ordered species-pair map; each value must be at most ``cutoff``.
-The certified shifted-Jacobi radial source has no
-adjustable radial lambda; requesting one would require a different compiler
-source. The coefficient catalogue is compiled exactly and cached. General
+The shifted-Jacobi radial source has no adjustable ``radial_lambda`` parameter.
+A different radial family requires a separate compiler source. The coefficient catalogue
+is compiled exactly and cached. General
 tagged scalar catalogues use YE3T's exact requested-weight angular compiler.
 Set ``angular_basis_backend="legacy_exact"`` in ``Basis`` or its catalogue
 to use the full-sector exact oracle. Saved models retain their compiled
 coefficient convention.
 It checks that final real-tesseral scalar coefficients have no imaginary part.
 Imaginary entries in the intermediate complex-to-real basis matrix are
-expected and do not imply complex descriptor values. The older direct tagged
+expected and do not imply complex descriptor values. The direct tagged
 ``Basis`` constructor selects a native polynomial evaluator when available and
 reports it in ``basis.resolved["polynomial_backend"]``. The configured route
 records its requested evaluator in ``basis.resolved["runtime"]["evaluator"]``.
 Its backend setting is separate from coefficient compilation. The generic
-``numeric_cached`` subduction and fast Clebsch--Gordan route is not yet wired
-to this tagged-image request. Cold rank-four Ni compilation can take tens of
+``numeric_cached`` subduction and fast Clebsch--Gordan route is unavailable
+for this tagged-image request. Cold rank-four Ni compilation can take tens of
 seconds; a repeated request reloads the persistent cache more quickly.
 The example's ``expected_source_block_young`` checks the compiled general
-catalogue; it is not the tag or role Young partition of the older bounded
-construction and does not select a different global parent. The tagged
-constructor currently fixes
+catalogue. It identifies a source-block type and leaves the global parent
+unchanged. The tagged direct constructor fixes
 that parent to the symmetric partition ``(N)`` with ``L=0`` and even parity.
 An explicit ``angular_patterns_by_rank`` entry with odd total angular degree
 is rejected for this scalar catalogue.
 ``max_rank`` belongs to ordinary density and is rejected here. Inspect the
 actual column count and each label's ``compiler_coordinate_provenance`` and
-``compiler_raw_opportunities`` rather than inferring columns from the request.
+``compiler_raw_opportunities`` to identify the columns after image reduction.
 The ``tag_kappa`` and ``role_kappa`` fields identify the compiler carriers on
 which those partitions act; they are not interchangeable with a parent
 ``lambda`` or with the public column ordinal.
@@ -284,12 +258,12 @@ Choose ``reference``, ``native_polynomial``, or ``native_cpu`` with
 argument, optional neighbor-list speedup, and the paper composite loader.
 
 The tagged source uses a cutoff Jacobi radial/angular realization. Its exact
-source algebra and floating evaluator are recorded in compiler artifacts; a
-compiler certificate does not establish accuracy for a physical material.
-Exact overlap is outside the certified source domain. The separate
+source algebra and floating evaluator are recorded in compiler artifacts.
+Physical accuracy depends on training and validation for the intended system.
+Exact overlap is outside the tested source domain. The separate
 ``ye3t-lammps`` consumer defines its own CPU and Kokkos deployment scope.
 
-Certified rank-four construction
+Rank-four reference construction
 --------------------------------
 
 For fixed tensor order and source content, the repeated source blocks follow
@@ -300,23 +274,24 @@ the Cauchy decomposition
    \operatorname{Sym}^{k}(W \otimes V_l)
    = \bigoplus_{\kappa \vdash k} S_\kappa(W) \otimes S_\kappa(V_l).
 
-The certified two-tag placement carrier has ordered basis vectors
+The two-tag placement carrier has ordered basis vectors
 ``e_(i,j)`` for ``i != j`` and dimension ``N(N-1)``. Formal tensor-position
 permutations act on the left, while swapping the two tag labels acts on the
 right. The sign tag type ``(1,1)`` survives final scalar coupling only with a
-matching physical source carrier. In the retained witness, ``N=4``, ``s=2``,
+matching physical source carrier. In the tested case, ``N=4``, ``s=2``,
 ``placement_parent_lambda=(3,1)``, ``role_kappa=(2,1,1)``, and
 ``angular_kappa=(2,2)``. Each input has ``l=1`` and the final ``L=0``.
 Physical-neighbor relabeling is a separate action. These labels and their
 intertwiner come from ``ye3t``; they are not assembled by the methods package.
 
 The exact physical-image map reduces selected raw rows to one commutative
-moment algebra. With ``M[alpha] = sum_j product_(q in alpha) phi_(j,q)``, its
+moment algebra. With ``M[gamma] = sum_j product_(q in gamma) phi_(j,q)``, where
+``gamma`` is a source-channel multiset, its
 two-tag distinct-neighbor term is
 
 .. code-block:: text
 
-   (M[g_1] M[g_2] - M[g_1 union g_2]) product_a M[q_a]
+   (M[g_1] M[g_2] - M[g_1 union g_2]) product_h M[q_h]
 
 Residual density factors may still include tagged neighbors. The raw rows
 are selected before forming their exact physical image; selecting columns
@@ -328,13 +303,13 @@ image. The exact coefficient metric gives a moment monomial of occupations
 compiler coordinates, not a fitted-data Gram matrix or a configuration-space
 ``L2`` claim.
 
-The certified one-neighbor source uses a cutoff Jacobi radial function with
-factor ``x^l (1-x)^2 P_q^(4,2l+2)(2x-1)``, where ``x=r/r_c``. The current
+The one-neighbor source uses a cutoff Jacobi radial function with
+factor ``x^l (1-x)^2 P_q^(4,2l+2)(2x-1)``, where ``x=r/r_c``. The
 numerical source plan evaluates the Jacobi polynomial and derivative through
 a differentiated three-term recurrence. Exact expanded coefficients remain
 in the compiler artifact for provenance. The cutoff value and first radial
-derivative vanish, but every channel is not certified Cartesian ``C1`` at
-exact overlap. Native source parity is qualified for ``r > 1e-12`` Å;
+derivative vanish. Cartesian ``C1`` behavior at exact overlap lies outside the
+tested domain. Native source parity is qualified for ``r > 1e-12`` Å;
 ``r=0`` is rejected. The archived Ta fit is a residual to a ZBL reference,
 which must be restored during deployment, as in the paper ASE and LAMMPS
 examples.

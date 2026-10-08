@@ -3,13 +3,13 @@ Explicit motif ``bar_phi`` basis
 
 Ordinary density sums individual neighbor contributions before forming
 products. ``bar_phi`` instead selects an explicit cluster motif, assigns
-channels to its slots, and evaluates the motif over the local geometry. Its
+channels to its factor positions, and evaluates the motif over the local geometry. Its
 ``N`` counts motif vertices; it must not automatically be read as the physical
 body order of an ordinary ACE density product. The compiler supplies the
 fixed motif coupling plan and validates the scalar target.
 
-This existing ``bar_phi`` route is a weighted average over ordered motif
-embeddings, with distinct **atom indices** in its slots. The evaluator weights
+The ``bar_phi`` route is a weighted average over ordered motif
+embeddings, with distinct **atom indices** at its factor positions. The evaluator weights
 each embedding and divides its sum by the decorated motif automorphism count.
 By default it also divides by the correspondingly weighted sum at each center.
 It excludes self edges and excludes two images of the
@@ -19,11 +19,12 @@ edges but still enforces distinct atom indices within a motif. It does not
 accept an explicit ordered ``(atom_index, cell_shift)`` list.
 
 Each ``PhiSlotChannel`` selects one fixed signed ``m``. The physical evaluator
-multiplies those selected scalar edge values and does not apply the full Young
-and angular coefficient map returned by ``phi_motif_coupling_report``. That
-report establishes label and carrier provenance for the requested motif; it
-does not certify that these averaged columns form a full rotation multiplet
-or a nontrivial Young image. Use the route only within its tested scalar
+multiplies those selected scalar edge values. The full Young and angular
+coefficient map returned by ``phi_motif_coupling_report`` is not applied during
+this evaluation. The report identifies labels and carrier conventions for the
+requested motif. The tested output consists of scalar averaged columns; it
+does not establish a full rotation multiplet or nontrivial Young image. Use
+the route within this tested scalar
 scope. The ordered rank-eight ``Phi`` path below uses a separate compiled
 physical contraction and returns all 14 tableau by five magnetic outputs.
 
@@ -33,7 +34,7 @@ three-vertex star on a manufactured H3 fixture. It fits energies, forces, and
 ASE stress, writes a ``.phi.pt`` bundle, reloads it, and evaluates through an
 ASE calculator. ``motif_family``, ``edge_cutoff``, ``periodic_image_mode``, and
 ``normalize_motif_features`` are explicit basis controls. The label dictionary
-records the motif name, template, channel list, slot orbit, normalization, and
+records the motif name, template, channel list, factor orbit, normalization, and
 compiler plan.
 
 The compact Phi evaluator uses PyTorch. It has no per-species reference-energy
@@ -54,7 +55,7 @@ For a four-vertex depth-two tree, use
 ``examples/experimental/phi_depth2.py``. Its edges ``(0,1)``, ``(1,2)``,
 and ``(1,3)`` specify the motif directly; the script builds and evaluates
 one descriptor without fitting a model. The motif's vertex count and
-slot-channel pattern remain visible in the editable input.
+factor-channel pattern remain visible in the editable input.
 
 .. literalinclude:: ../examples/experimental/phi_depth2.py
    :language: python
@@ -75,8 +76,8 @@ fitting, forces, stress, or a native evaluator.
 
 The public call uses a fixed factor order: its first four records use radial
 index zero and its last four use radial index one. Moving a neighbor across
-that boundary changes its radial factor. The compiler's separate slot test
-checks the formal permutation action when factor identities move with slots.
+that boundary changes its radial factor. The compiler's separate factor-action
+test checks the formal permutation when factor identities move with positions.
 
 The rank-eight Young map is numeric. Its rank gap, generator residuals,
 projector, and an independently constructed subgroup-invariant direction are

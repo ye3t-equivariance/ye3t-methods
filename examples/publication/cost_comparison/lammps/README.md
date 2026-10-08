@@ -52,21 +52,19 @@ The `.numdiff` inputs run LAMMPS `fix numdiff` and `fix numdiff/virial`
 followed by 10,000 NVE steps and write a trajectory. Each input has a
 `log.<date>.<name>.g++.1` and `.g++.4` reference log beside it.
 
-`model_manifest.json` in each element directory lists every promoted model
+`model_manifest.json` in each element directory lists every bundled model
 file with its size and SHA-256, and each `models/<model>/model_manifest.json`
 records the fit configuration, held-out metrics, and ZBL reference of that
-model. From the extracted ye3t-methods source archive, verify every copied
+model. From the ye3t-methods source directory, verify every included
 model and data file with:
 
 ```bash
 python examples/publication/cost_comparison/verify_models.py
 ```
 
-The compact accuracy, timing, parity, and qualification evidence and figures
-remain in the canonical
+The compact accuracy, timing, parity, and model-validation results are in the
 [ye3t-lammps result directory](https://github.com/ye3t-equivariance/ye3t-lammps/tree/main/docs/results/cost_comparison_three_way_auto_v3_20260921).
 Ni also keeps compact per-model evidence tables under `Ni/evidence/`. The
 training workflow, editable catalogue/radial/fit configuration, and the
 `mlearn` split references are alongside this copy in the ye3t-methods source
-archive. The model files themselves are byte-identical to the promoted
-ye3t-lammps bundle.
+distribution. The model files match the ye3t-lammps bundle byte-for-byte.
