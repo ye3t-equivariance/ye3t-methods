@@ -2,6 +2,7 @@
 
 import ctypes
 import ctypes.util
+import importlib.machinery
 import json
 import os
 import tempfile
@@ -12,6 +13,18 @@ import numpy as np
 from ase.neighborlist import neighbor_list
 
 from ye3t_methods.atomistic.tagged_cauchy_image import export_tagged_cauchy_image_model
+
+
+def _bundled_native_library_path():
+    directory = Path(__file__).resolve().parent
+    suffix = ".dll" if os.name == "nt" else (".dylib" if os.sys.platform == "darwin" else ".so")
+    names = ("libye3t_tagged_c_api" + suffix,
+             "ye3t_tagged_c_api" + suffix) + tuple(
+        "libye3t_tagged_c_api" + extension_suffix
+        for extension_suffix in importlib.machinery.EXTENSION_SUFFIXES
+    )
+    return next((str(directory / name) for name in names
+                 if (directory / name).is_file()), None)
 
 
 class _TaggedCauchyNativeRuntime:
@@ -34,9 +47,7 @@ class _TaggedCauchyNativeRuntime:
             self._matscipy_neighbor_list = neighbour_list
         candidate = library_path or os.environ.get("YE3T_TAGGED_C_API_LIBRARY")
         if candidate is None:
-            suffix = ".dll" if os.name == "nt" else (".dylib" if os.sys.platform == "darwin" else ".so")
-            bundled = Path(__file__).resolve().parent / f"libye3t_tagged_c_api{suffix}"
-            candidate = str(bundled) if bundled.is_file() else None
+            candidate = _bundled_native_library_path()
         if candidate is None:
             candidate = ctypes.util.find_library("ye3t_tagged_c_api")
         if not candidate:

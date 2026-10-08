@@ -5,6 +5,7 @@ __pycache__/
 .ruff_cache/
 build/
 dist/
+ye3t_methods/atomistic/libye3t_tagged_c_api*
 *.egg-info/
 docs/_build/
 .venv/

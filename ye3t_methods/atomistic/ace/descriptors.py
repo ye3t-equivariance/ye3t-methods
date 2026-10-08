@@ -429,7 +429,8 @@ def _a_s_matrix_unit_global_coupler_compatibility_report(sector, carrier):
             "coefficient_hash": coupler.certificate.coefficient_hash,
             "coefficient_table_kind": table.get("kind"),
             "coefficient_table_shape": tuple(int(value) for value in table.get("shape", ())),
-            "alpha_label_count": int(len(coupler.labels)),
+            "alpha_label_count": int(len(coupler.alpha_labels())),
+            "global_label_group_count": int(len(coupler.labels)),
             "block_maps": tuple(dict(block) for block in coupler.block_maps),
             "balanced_tree_certificate_passed": bool(balanced_certificate.get("passed", False)),
             "balanced_tree_node_ledger": tuple(
@@ -3658,6 +3659,10 @@ class YE3TDescriptorSet:
                 label.to_dict() if hasattr(label, "to_dict") else label
                 for label in getattr(sector_eval.coupler, "labels", tuple())
             )
+            alpha_labels = tuple(
+                label.to_dict() if hasattr(label, "to_dict") else label
+                for label in sector_eval.coupler.alpha_labels()
+            )
             sector_slices.append(
                 {
                     "sector_index": int(sector_index),
@@ -3670,7 +3675,9 @@ class YE3TDescriptorSet:
                         else "not_resolved_in_coefficient_view"
                     ),
                     "global_labels": global_labels,
-                    "alpha_label_count": int(len(global_labels)),
+                    "alpha_labels": alpha_labels,
+                    "alpha_label_count": int(len(alpha_labels)),
+                    "global_label_group_count": int(len(global_labels)),
                     "start": int(start),
                     "stop": int(stop),
                     "width": int(width),
@@ -3784,6 +3791,10 @@ class YE3TDescriptorSet:
             label.to_dict() if hasattr(label, "to_dict") else label
             for label in getattr(evaluation.coupler, "labels", tuple())
         )
+        alpha_labels = tuple(
+            label.to_dict() if hasattr(label, "to_dict") else label
+            for label in evaluation.coupler.alpha_labels()
+        )
         sector_slice = {
             "sector_index": 0,
             "target_partition": target_partition,
@@ -3795,7 +3806,9 @@ class YE3TDescriptorSet:
                 else "not_resolved_in_coefficient_view"
             ),
             "global_labels": global_labels,
-            "alpha_label_count": int(len(global_labels)),
+            "alpha_labels": alpha_labels,
+            "alpha_label_count": int(len(alpha_labels)),
+            "global_label_group_count": int(len(global_labels)),
             "start": 0,
             "stop": int(width),
             "width": int(width),

@@ -9,7 +9,9 @@ from pathlib import Path
 import numpy as np
 from ase.calculators.calculator import Calculator, all_changes
 
-from ye3t_methods.atomistic.tagged_cauchy_native import _TaggedCauchyNativeRuntime
+from ye3t_methods.atomistic.tagged_cauchy_native import (
+    _TaggedCauchyNativeRuntime, _bundled_native_library_path,
+)
 
 
 class _YACENativeRuntime(_TaggedCauchyNativeRuntime):
@@ -31,9 +33,7 @@ class _YACENativeRuntime(_TaggedCauchyNativeRuntime):
             self._matscipy_neighbor_list = neighbour_list
         candidate = library_path or os.environ.get("YE3T_TAGGED_C_API_LIBRARY")
         if candidate is None:
-            suffix = ".dll" if os.name == "nt" else (".dylib" if os.sys.platform == "darwin" else ".so")
-            bundled = Path(__file__).resolve().parent / f"libye3t_tagged_c_api{suffix}"
-            candidate = str(bundled) if bundled.is_file() else None
+            candidate = _bundled_native_library_path()
         if candidate is None:
             candidate = ctypes.util.find_library("ye3t_tagged_c_api")
         if not candidate:

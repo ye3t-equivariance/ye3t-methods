@@ -39,6 +39,60 @@ def _config(parent, L):
     }
 
 
+def test_a_s_compatibility_report_counts_resolved_multiplicity_copies():
+    from ye3t_methods.atomistic.ace.descriptors import (
+        _a_s_matrix_unit_global_coupler_compatibility_report,
+    )
+
+    report = _a_s_matrix_unit_global_coupler_compatibility_report(
+        {"slot_specht_partition": (2, 1), "power": 3,
+         "target_L_R": 1, "l_in": 1},
+        np.zeros((1, 3)),
+    )
+    candidate = report["slot_resolved_product_slot_candidate"]
+    assert candidate["available"]
+    assert candidate["alpha_label_count"] > candidate["global_label_group_count"]
+
+
+def test_coefficient_descriptor_views_report_resolved_alpha_copies():
+    from ye3t import CompileGlobalYE3TCouplers, YE3TRotationTarget, YE3TSpec
+    from ye3t_methods.atomistic.ace.descriptors import YE3TDescriptorSet
+
+    common = dict(
+        content=(1, 2, 3), target_rotation=YE3TRotationTarget(L_R=0),
+        carrier="external_tensor", coefficient_backend="global_coupler",
+        runtime_status="planned_not_public", metadata={"input_Ls": (0, 0, 0)},
+    )
+    concrete = YE3TSpec(target_permutation="young:2,1", **common)
+    coupler = CompileGlobalYE3TCouplers(concrete)
+    assert len(coupler.alpha_labels()) > len(coupler.labels)
+    values = torch.ones((1, coupler.sparse_coefficient_tables[0]["shape"][1]), dtype=torch.float64)
+
+    descriptor = YE3TDescriptorSet(
+        None, None, (), {}, 0.0, None, metadata={"ye3t_spec": concrete.to_dict()}
+    )
+    single = descriptor.evaluate_ye3t_coefficient_descriptor_view(values)
+    record = single.sector_slices[0]
+    assert record["alpha_label_count"] == len(coupler.alpha_labels())
+    assert len(record["alpha_labels"]) == len(coupler.alpha_labels())
+    assert record["global_label_group_count"] == len(coupler.labels)
+
+    family_spec = YE3TSpec(target_permutation="full_irrep_decomposition", **common)
+    descriptor.metadata = {"ye3t_spec": family_spec.to_dict()}
+    family = descriptor.compile_global_coupler_family()
+    sector_values = {
+        partition: torch.ones((1, sector.sparse_coefficient_tables[0]["shape"][1]),
+                              dtype=torch.float64)
+        for partition, sector in zip(family.target_partitions, family.couplers, strict=True)
+    }
+    family_view = descriptor.evaluate_ye3t_coefficient_descriptor_view(sector_values)
+    mixed = next(row for row in family_view.sector_slices
+                 if row["target_partition"] == (2, 1))
+    assert mixed["alpha_label_count"] == len(coupler.alpha_labels())
+    assert len(mixed["alpha_labels"]) == len(coupler.alpha_labels())
+    assert mixed["global_label_group_count"] == len(coupler.labels)
+
+
 @pytest.mark.parametrize("parent,L", [("(3)", 1), ("(1,1,1)", 0), ("(2,1)", 1)])
 def test_supplied_factor_basis_counts_actions_and_compiled_plan(parent, L):
     cfg = _config(parent, L)

@@ -19,8 +19,8 @@ from ye3t_methods.atomistic import (
     YE3TDescriptors,
     YE3TModel,
     YE3TRepresentation,
-    load_xyz_structures,
 )
+from ye3t_methods.atomistic.ace.linear_ace import load_xyz_structures
 from ye3t_methods.atomistic.reference_potentials import (
     evaluate_lammps_zbl_reference,
     lammps_zbl_reference_config,

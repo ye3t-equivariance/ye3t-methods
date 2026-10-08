@@ -44,6 +44,8 @@ class CMakeBuild(build_ext):
             f"-DYE3T_RUNTIME_SOURCE={source}",
             f"-DCMAKE_LIBRARY_OUTPUT_DIRECTORY={output_dir}",
             f"-DCMAKE_RUNTIME_OUTPUT_DIRECTORY={output_dir}",
+            f"-DCMAKE_LIBRARY_OUTPUT_DIRECTORY_RELEASE={output_dir}",
+            f"-DCMAKE_RUNTIME_OUTPUT_DIRECTORY_RELEASE={output_dir}",
             f"-DCMAKE_PREFIX_PATH={sys.prefix}",
         ]
         for name in ("YE3T_NATIVE_CPU", "YE3T_ENABLE_IPO", "YE3T_USE_SYSTEM_YAML_CPP"):
@@ -57,12 +59,30 @@ class CMakeBuild(build_ext):
         ])
         if sys.platform.startswith("linux"):
             library = output_dir / "libye3t_tagged_c_api.so"
+        elif sys.platform == "darwin":
+            library = output_dir / "libye3t_tagged_c_api.dylib"
+        elif os.name == "nt":
+            library = output_dir / "ye3t_tagged_c_api.dll"
+        else:
+            raise RuntimeError(f"Unsupported native evaluator build platform: {sys.platform}")
+        if not library.is_file():
+            release_library = output_dir / "Release" / library.name
+            if release_library.is_file():
+                library = release_library
+        if sys.platform.startswith("linux"):
             patchelf = shutil.which("patchelf")
             if patchelf is None:
                 local_patchelf = Path(sys.prefix) / "bin" / "patchelf"
                 patchelf = str(local_patchelf) if local_patchelf.is_file() else None
             if patchelf is not None and library.is_file():
                 subprocess.check_call([patchelf, "--remove-rpath", str(library)])
+        if not library.is_file():
+            raise RuntimeError("CMake did not produce the tagged C API library.")
+        extension_path = Path(self.get_ext_fullpath(ext.name)).resolve()
+        extension_path.parent.mkdir(parents=True, exist_ok=True)
+        if extension_path != library:
+            shutil.copy2(library, extension_path)
+            library.unlink()
 
 
 native_setting = os.environ.get("YE3T_METHODS_BUILD_NATIVE", "1").strip()
