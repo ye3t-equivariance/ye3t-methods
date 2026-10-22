@@ -1,13 +1,12 @@
 Role-resolved density ``A_s``
 =============================
 
-.. warning::
-
-   In the tested role-trivial linear fit, filtering ``A`` into ``A_s`` mainly
-   changes or expands the effective radial channel basis. Compare its accuracy
-   with an ordinary ACE basis of matched radial capacity when assessing a
-   permutation effect. A nontrivial role-sector readout requires a carrier
-   with the corresponding permutation action and symmetry validation.
+The configured shell-density workflow is
+``YE3TRepresentation`` → ``Basis`` → ``LinearModel`` with
+``basis.tensor_product.kind="shell_density"``. It retains shell-role actions
+while constructing invariant scalar energy features. Use
+``examples/quickstart/shell_density_fit.py`` and :doc:`shell_linear` for the
+complete fitting and ASE workflow.
 
 The descriptor-first linear path represents a center ``i`` with a
 role coordinate ``s``. For chemical/radial channel ``eta`` and angular
@@ -61,10 +60,9 @@ across ordered pair types. Variable active roles can be used for the restricted
 role-trivial scalar readout. Zero padding unlike carriers does not create one
 shared nontrivial permutation representation.
 
-The installed-package :doc:`quickstart` includes a complete manufactured
-``A_s`` fit using ``YE3TRepresentation.filtered_A_s`` followed by
-``YE3TDescriptors.ye3t_basis`` and ``YE3TModel.linear``. It checks energy and
-force predictions through ``HybridACELiftedDensityCalculator``. This
-descriptor-first route is tested. The compact ``Basis`` class has no ``A_s``
-adapter. The aqueous KCl comparison and model-selection records are historical
-research material in the application archive.
+The historical descriptor-first ``filtered_A_s`` fit is preserved in
+``tools/legacy_examples/role_density_fit.py`` and checked by
+``tests/test_lifted_density_linear_fit.py``. Its scalar readout choices describe
+that compatibility implementation. New linear workflows use the canonical
+shell source in :doc:`shell_linear`, with complete internal rotation/permutation
+couplings, position derivatives, stress rows and saved ASE models.

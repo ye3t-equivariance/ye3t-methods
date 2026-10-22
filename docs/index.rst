@@ -17,9 +17,10 @@ Python/ASE property path is tested through ``L=3``; native LAMMPS property
 capabilities are narrower and documented in :doc:`density` and
 :doc:`tagged_basis`.
 
-The quickstarts use manufactured labels to check descriptor evaluation and
-fitting. Fitted paper models and their validation inputs are in the
-paper-model examples.
+The scalar fitting quickstarts use a recorded subset of real Ni energy/force
+labels. The vector-property quickstart uses an analytic covariant fixture.
+Fitted paper models and complete accuracy comparisons are in the publication
+examples.
 
 .. toctree::
    :maxdepth: 2
@@ -36,6 +37,7 @@ paper-model examples.
    tagged_basis
    phi_basis
    role_density
+   shell_linear
    labels_and_runtime
    deployment
    api_reference

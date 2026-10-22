@@ -8,8 +8,8 @@ From a `ye3t-methods` source checkout, the bounded preflight runs without the
 archived Ta dataset:
 
 ```bash
-python examples/publication/ta_tagged_cauchy_image_linear/train_export.py \
-  --config examples/publication/ta_tagged_cauchy_image_linear/config_quick.json \
+python tools/publication/ta_tagged_cauchy_image_linear/train_export.py \
+  --config tools/publication/ta_tagged_cauchy_image_linear/config_quick.json \
   --preflight-only
 ```
 

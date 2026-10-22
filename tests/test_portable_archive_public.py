@@ -97,8 +97,9 @@ def test_portable_reader_exposes_ordered_rows_and_roundtrips_bytes(tmp_path, mon
     saved = model.write(tmp_path / "copy")
     assert saved.read_bytes() == path.read_bytes()
     assert len(LinearModel.read(saved).labels) == 127
-    with pytest.raises(ValueError, match="Torch evaluator"):
-        model.ase_calculator(evaluator="native_cpu")
+    exported = model.export_lammps(tmp_path / "native_export")
+    assert exported["model"].is_file()
+    assert exported["tagged_model"].is_file()
     with pytest.raises(ValueError, match="ARD posterior"):
         model.predict_uncertainty(atoms)
 

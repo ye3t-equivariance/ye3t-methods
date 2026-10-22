@@ -1397,7 +1397,7 @@ def test_public_tagged_preflight_is_cwd_independent_and_fail_closed(tmp_path):
     repository = Path(__file__).resolve().parents[1]
     example = (
         repository
-        / "examples"
+        / "tools"
         / "publication"
         / "ta_tagged_cauchy_image_linear"
     )

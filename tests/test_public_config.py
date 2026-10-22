@@ -3129,12 +3129,14 @@ def test_configured_tagged_native_auto_matches_reference(monkeypatch, tmp_path):
         actual.calc.native_runtime.close()
 
 
-@pytest.mark.parametrize("runtime_change", (
-    {"device": "cuda:0"},
-    {"neighbors": "ase"},
-    {"cache": {"mode": "off"}},
+@pytest.mark.parametrize("runtime_change,available", (
+    ({"device": "cuda:0"}, False),
+    ({"neighbors": "ase"}, False),
+    ({"cache": {"mode": "read_only"}}, False),
+    ({"cache": {"mode": "refresh"}}, False),
+    ({"cache": {"mode": "off"}}, True),
 ))
-def test_tagged_config_explicit_unintegrated_runtime_fails_closed(runtime_change):
+def test_tagged_config_runtime_capabilities(runtime_change, available, tmp_path, monkeypatch):
     rep, config, _ = _config()
     config["single_factors"]["species"] = ["Ni"]
     config["single_factors"]["radial"] = {"family": "shifted_jacobi", "cutoff_A": 4.5}
@@ -3146,10 +3148,23 @@ def test_tagged_config_explicit_unintegrated_runtime_fails_closed(runtime_change
     runtime = {"evaluator": "reference", "neighbors": "auto",
                "cache": {"mode": "auto"}, "dtype": "float64", "device": "cpu"}
     runtime.update(runtime_change)
+    directory = tmp_path/'application_cache'
+    monkeypatch.setenv('YE3T_ACE_CACHE_DIR', str(directory))
     basis = Basis.from_config(config, representation=rep, runtime=runtime)
-    assert basis.resolution.capability_report["basis_create_available"] is False
-    with pytest.raises(RuntimeError, match="P2 evaluator integration"):
-        basis.create(Atoms("Ni", positions=((0, 0, 0),)))
+    assert basis.resolution.capability_report["basis_create_available"] is available
+    atoms = Atoms('Ni2', positions=((0, 0, 0), (1.7, .2, .1)))
+    if not available:
+        with pytest.raises(RuntimeError, match="P2 evaluator integration"):
+            basis.create(atoms)
+        return
+    uncached = basis.create(atoms)
+    assert uncached.shape == (2, 1)
+    assert np.linalg.norm(uncached) > 1e-12
+    assert not directory.exists()
+    runtime['cache']['mode'] = 'auto'
+    cached_basis = Basis.from_config(config, representation=rep, runtime=runtime)
+    np.testing.assert_allclose(cached_basis.create(atoms), uncached, atol=1e-12, rtol=1e-12)
+    assert [label.identity for label in cached_basis.labels] == [label.identity for label in basis.labels]
 
 
 def test_tagged_raw_preview_is_not_physical_image_dimension(monkeypatch, tmp_path):

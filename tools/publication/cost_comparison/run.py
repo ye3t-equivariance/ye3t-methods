@@ -982,7 +982,7 @@ def main():
     parser.add_argument(
         "--dataset-root",
         type=Path,
-        default=HERE.parents[1] / "data" / "mlearn",
+        default=HERE.parents[2] / "examples" / "data" / "mlearn",
         help="mlearn snapshot directory (default: bundled examples/data/mlearn)",
     )
     parser.add_argument("--lammps", type=Path)

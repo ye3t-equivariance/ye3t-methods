@@ -17,7 +17,15 @@ from ye3t.couplings import (
     shifted_jacobi_ladder_with_derivative,
     shifted_jacobi_normalization_squared,
 )
-from ye3t.runtime.execution_plan import symmetric_power_shared_sparse_monomial_contraction
+from ye3t.couplings.chebyshev_c2 import (
+    CHEBYSHEV_C2_SOURCE_FAMILY, shifted_chebyshev_ladder_with_derivative,
+)
+from ye3t.couplings.orthogonal_shifted_jacobi import ORTHOGONAL_SHIFTED_JACOBI_SOURCE_FAMILY
+from ye3t.couplings.shell_filtered_radial import (
+    is_shell_filtered_family, shell_filtered_radial_values, validate_shell_filtered_source_plan,
+)
+from ye3t.runtime.execution_plan import (
+    symmetric_power_shared_sparse_monomial_contraction, symmetric_power_shared_monomial_contraction)
 from ye3t.backends.triton_joint import SparseBilinearTable, sparse_bilinear_forward
 from ye3t.backends._indexed_tagged_pair import indexed_tagged_pair
 from ye3t.backends._deterministic_polynomial import polynomial_plan, deterministic_polynomial
@@ -91,6 +99,9 @@ class _TaggedCauchyPolynomialSchedule(torch.nn.Module):
                 table = factor[stage]
                 self._register_deterministic(stage, bilinear_plan(table["left_index"], table["right_index"],
                     table["output_index"], *widths, table["output_width"]))
+        self._cpu_polynomial_programs = programs
+        for stage in programs:
+            self.register_buffer("cpu_counts_"+stage, None, persistent=False)
         if self.backend == "native":
             for stage, (program, input_width, output_width) in programs.items():
                 self._register_deterministic(stage, polynomial_plan(*(program[name] for name in
@@ -111,6 +122,16 @@ class _TaggedCauchyPolynomialSchedule(torch.nn.Module):
     def _polynomial(self, stage, values):
         prefix = "factor_density_" if stage == "density" else ""
         buffers = tuple(getattr(self, prefix + name) for name in self._buffer_names)
+        if self.backend == "native" and values.device.type == "cpu":
+            if getattr(self, "cpu_counts_"+stage) is None:
+                program, input_width, _ = self._cpu_polynomial_programs[stage]
+                counts = torch.zeros((len(program["term_offsets"])-1, input_width), dtype=torch.long)
+                for term, (begin, end) in enumerate(zip(program["term_offsets"][:-1], program["term_offsets"][1:])):
+                    for entry in range(begin, end):
+                        counts[term, program["term_components"][entry]] += program["term_exponents"][entry]
+                setattr(self, "cpu_counts_"+stage, counts)
+            return symmetric_power_shared_monomial_contraction(values, getattr(self, "cpu_counts_"+stage),
+                *buffers[3:], backend="native")
         if self.backend == "native" and torch.are_deterministic_algorithms_enabled():
             return deterministic_polynomial(values, buffers[-1].to(values.dtype),
                 self._deterministic_tables(stage), self._deterministic_sizes[stage])
@@ -204,12 +225,24 @@ class _TaggedCauchyOccurrenceSource(torch.nn.Module):
             raise ValueError("source schedules must have unique support tag counts")
         self.backend = str(backend)
         self.channels = []
+        # Frozen shell-filtered radial plans by family id; their transform
+        # tensors are cached per dtype/device at evaluation time.
+        self.source_family_plans = {}
+        self._shell_transforms = {}
         by_key = {}
         for key, program in self.programs.items():
             selected = []
+            radial_source = program.schedule.get("radial_source") or {}
             for channel in program.schedule["channels"]:
-                if channel["source_family_id"] != "orthogonal_shifted_jacobi_origin_regular_v1":
-                    raise ValueError("tagged occurrence sources require the certified origin-regular shifted-Jacobi family")
+                family = channel["source_family_id"]
+                if is_shell_filtered_family(family):
+                    if radial_source.get("family_id") != family:
+                        raise ValueError("Shell-filtered channels require their frozen radial source plan in the schedule")
+                    if family not in self.source_family_plans:
+                        validate_shell_filtered_source_plan(radial_source)
+                        self.source_family_plans[family] = radial_source
+                elif family not in {ORTHOGONAL_SHIFTED_JACOBI_SOURCE_FAMILY, CHEBYSHEV_C2_SOURCE_FAMILY}:
+                    raise ValueError("Unsupported radial family for tagged occurrence evaluation")
                 identity = (channel["neighbor_species"], int(channel["radial_channel"]),
                             int(channel["l"]), channel["source_family_id"])
                 if identity not in by_key:
@@ -220,7 +253,9 @@ class _TaggedCauchyOccurrenceSource(torch.nn.Module):
             self.register_buffer("primitive_indices_" + key, torch.tensor(selected, dtype=torch.long))
         self.channels = tuple(self.channels)
         self.radial_normalizations = tuple(math.sqrt(float(shifted_jacobi_normalization_squared(
-            int(channel["radial_channel"]), int(channel["l"])))) for channel in self.channels)
+            int(channel["radial_channel"]), int(channel["l"]))))
+            if channel["source_family_id"] == ORTHOGONAL_SHIFTED_JACOBI_SOURCE_FAMILY else 1.
+            for channel in self.channels)
         self.source_output_normalization_kind = "training_rms"
         normalization = dict(source_output_normalization or {})
         self.scale_policy = normalization.get("scale_policy", "unit_rms")
@@ -274,8 +309,22 @@ class _TaggedCauchyOccurrenceSource(torch.nn.Module):
                                   self.source_output_scales.detach().cpu().tolist(), strict=True))}
 
     def primitive_values(self, displacements, central_types, neighbor_types):
+        return self.evaluate_primitive_channels(displacements, central_types, neighbor_types,
+            self.channels, self.pair_cutoffs, self.species, self.radial_normalizations,
+            source_family_plans=self.source_family_plans, transform_cache=self._shell_transforms)
+
+    @staticmethod
+    def evaluate_primitive_channels(displacements, central_types, neighbor_types,
+                                    channels, pair_cutoffs, species, radial_normalizations,
+                                    source_family_plans=None, transform_cache=None):
+        """Evaluate the same polynomial factors for density and tagged products.
+
+        Shell-filtered channels use the frozen plan of their family: window
+        times base radial values on every edge, mapped by the stored transform
+        before any sum, so reverse derivatives are the transpose through autograd.
+        """
         distance = torch.linalg.vector_norm(displacements, dim=-1)
-        cutoff = self.pair_cutoffs[central_types, neighbor_types]
+        cutoff = pair_cutoffs[central_types, neighbor_types]
         # Graph builders reject coincident atoms. A finite inactive evaluation
         # point also prevents 0/0 from unused padded/outside-cutoff edges.
         active = (distance > 0) & (distance < cutoff)
@@ -286,16 +335,39 @@ class _TaggedCauchyOccurrenceSource(torch.nn.Module):
         fallback[:, 0] = 1
         unit = torch.where(active[:, None], unit, fallback)
         geometry = (x[:, None] * unit, neighbor_types, x, unit, active, 1.0)
-        angular, jacobi = {}, {}
+        angular, radial_polynomials = {}, {}
         values = []
-        for channel, normalization in zip(self.channels, self.radial_normalizations, strict=True):
+        for channel, normalization in zip(channels, radial_normalizations, strict=True):
             l, q = int(channel["l"]), int(channel["radial_channel"])
             if l not in angular:
-                angular[l] = LiftedCauchyPolynomialSource._compiler_ordered_regular_solid(l, geometry)[0]
-                maximum_q = max(int(record["radial_channel"]) for record in self.channels if int(record["l"]) == l)
-                jacobi[l] = shifted_jacobi_ladder_with_derivative(maximum_q, 4, 2 * l + 2, x)[0]
-            radial = normalization * (1 - x).square() * jacobi[l][q]
-            species_index = self.species.index(channel["neighbor_species"])
+                angular[l] = LiftedCauchyPolynomialSource._compiler_ordered_regular_solid(
+                    l, geometry)[0]
+            family = channel["source_family_id"]
+            key = (family, l)
+            plan = (source_family_plans or {}).get(family)
+            if key not in radial_polynomials:
+                if plan is not None:
+                    cache_key = (family, l, x.dtype, x.device)
+                    transform = None if transform_cache is None else transform_cache.get(cache_key)
+                    if transform is None:
+                        transform = torch.tensor(plan["transforms"][str(l)], dtype=x.dtype, device=x.device)
+                        if transform_cache is not None:
+                            transform_cache[cache_key] = transform
+                    radial_polynomials[key] = shell_filtered_radial_values(plan, x, l, transform)
+                else:
+                    maximum_q = max(int(record["radial_channel"]) for record in channels
+                                    if int(record["l"]) == l and record["source_family_id"] == family)
+                    radial_polynomials[key] = (shifted_chebyshev_ladder_with_derivative(maximum_q, x)[0]
+                        if family == CHEBYSHEV_C2_SOURCE_FAMILY else
+                        shifted_jacobi_ladder_with_derivative(maximum_q, 4, 2 * l + 2, x)[0])
+            if plan is not None:
+                # The frozen plan fixes the envelope and evaluation coordinates
+                # (physical shells or orthogonal channels); preserve that choice.
+                radial = radial_polynomials[key][q]
+            else:
+                envelope_power = 3 if family == CHEBYSHEV_C2_SOURCE_FAMILY else 2
+                radial = normalization * (1 - x).pow(envelope_power) * radial_polynomials[key][q]
+            species_index = species.index(channel["neighbor_species"])
             mask = active & (neighbor_types == species_index)
             values.append(angular[l] * (radial * mask)[:, None])
         return torch.cat(values, dim=1)

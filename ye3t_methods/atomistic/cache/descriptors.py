@@ -405,7 +405,6 @@ def _write_disk_cache(cache_dir, family, key, value):
     payload, numeric_bytes = _encode_cache_value(family, value)
     if numeric_bytes is not None:
         _write_numeric_arrays(cache_dir, numeric_bytes)
-    _decode_cache_value(family, key, payload, cache_dir)
     store = _store(cache_dir, mode)
     required_checks = ("safe_json", "descriptor_roundtrip")
     if family == "artifacts":

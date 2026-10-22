@@ -1,11 +1,11 @@
 """Run 100 near-equilibrium ASE NVE steps with the saved Ni-127 model.
 
-This is a short calculator/MD example, not a qualification of the potential at
-compressed cells. Change the visible crystal, temperature, timestep, or model
+Change the visible crystal, temperature, timestep, or model
 path for another run. The CSV contains all 101 energy and temperature samples.
 """
 
 import csv
+import os
 from pathlib import Path
 
 import numpy as np
@@ -18,6 +18,7 @@ from ye3t_methods import LinearModel
 
 
 paper = Path(__file__).resolve().parents[1] / "publication" / "cost_comparison"
+workflow = Path(os.environ.get("YE3T_WORKFLOW_ROOT", "~/ye3t-workflows")).expanduser()
 config = {
     "metadata": {
         "schema": "ye3t_config_v1", "name": "paper_ni_nve", "status": "stable",
@@ -26,7 +27,7 @@ config = {
             "repeat": (2, 2, 2),
             "first_atom_displacement_A": (0.08, -0.05, 0.04),
         },
-        "output_csv": "../ye3t-workflows/quickstart_linear/ni_paper_nve_100.csv",
+        "output_csv": str(workflow / 'quickstart_linear/ni_paper_nve_100.csv'),
     },
     "basis": {"from_saved_model": True},
     "representation": {"from_saved_model": True},

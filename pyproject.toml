@@ -30,6 +30,7 @@ include = ["ye3t_methods*", "ye3t_ace*"]
 testpaths = ["tests"]
 addopts = "-q"
 markers = [
+    "long_example: complete scientific example with substantial compiler or fit cost",
     "fast: stable CPU release checks",
     "gpu: requires CUDA hardware and the native extension",
     "deployment: requires a compatible LAMMPS consumer",

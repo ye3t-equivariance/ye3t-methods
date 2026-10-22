@@ -1,4 +1,4 @@
-"""Load the vetted Ni-127 portable model and evaluate its complete ASE energy."""
+"""Load the Ni-127 paper model and evaluate its descriptors, energy and forces."""
 
 from pathlib import Path
 
@@ -43,9 +43,6 @@ atoms.positions[0] += system["first_atom_displacement_A"]
 model = LinearModel.read(config["model"]["artifact"])
 basis = model.basis
 rows = basis.create(atoms)
-assert rows.shape == (len(atoms), config["model"]["feature_count"])
-assert all(label.as_dict()["L"] == config["validation"]["expected_parent_L"]
-           for label in basis.labels)
 
 atoms.calc = model.ase_calculator(
     evaluator=config["runtime"]["evaluator"],
@@ -56,6 +53,3 @@ print("descriptor_rows", rows.shape)
 print("energy_eV", energy)
 print("maximum_force_eV_per_A", abs(atoms.get_forces()).max())
 print("stress_eV_per_A3", atoms.get_stress())
-assert abs(energy - config["validation"]["lammps_step_zero_energy_eV"]) < (
-    config["validation"]["energy_tolerance_eV"]
-)

@@ -6,13 +6,12 @@ import importlib.machinery
 import json
 import os
 import tempfile
-import weakref
 from pathlib import Path
 
 import numpy as np
 from ase.neighborlist import neighbor_list
 
-from ye3t_methods.atomistic.tagged_cauchy_image import export_tagged_cauchy_image_model
+from ye3t_methods.atomistic.native_model_cache import prepared_tagged_model, resident_tagged_handle
 
 
 def _bundled_native_library_path():
@@ -108,36 +107,34 @@ class _TaggedCauchyNativeRuntime:
         else:
             temporary = tempfile.TemporaryDirectory(prefix="ye3t_tagged_native_")
             path = Path(temporary.name) / "model.ye3t.json"
-            export_tagged_cauchy_image_model(path, model)
+            text, self.preparation_cache_status = prepared_tagged_model(model)
+            path.write_text(text, encoding="utf-8")
             self.type_map = dict(model.evaluator.type_map)
             self.cutoff = float(model.evaluator.cutoff)
             self.feature_count = int(model.evaluator.feature_count)
             self.has_ordinary_backbone = False
-        error = ctypes.create_string_buffer(2048)
-        handle = self.library.ye3t_tagged_open(
-            os.fsencode(path), int(execution_policy == "auto"),
-            error, len(error),
-        )
-        if not handle:
+        try:
+            self._resident, self.resident_cache_hit = resident_tagged_handle(
+                self.library, path, int(execution_policy == "auto"),
+                reusable=not self.has_ordinary_backbone,
+                cache_mode=(getattr(model.evaluator, "native_cache_mode", None)
+                            if self.model is not None else None))
+        finally:
             if temporary is not None:
                 temporary.cleanup()
-            raise RuntimeError(error.value.decode("utf-8", errors="replace"))
-        self.handle = handle
-        self.selected_policy = self.library.ye3t_tagged_selected_policy(handle).decode("ascii")
-        self._finalizer = weakref.finalize(self, self._release, self.library, handle, temporary)
+        self.handle = self._resident.handle
+        self.selected_policy = self._resident.policy
         self.neighbor_skin = 0.3
         self._topology = None
         self.topology_rebuilds = 0
         self.last_neighbor_backend = None
 
-    @staticmethod
-    def _release(library, handle, temporary):
-        library.ye3t_tagged_close(handle)
-        if temporary is not None:
-            temporary.cleanup()
-
     def close(self):
-        self._finalizer()
+        resident = self._resident
+        if resident is not None:
+            with resident.lock:
+                self._resident = None
+                self.handle = None
 
     def _geometry(self, atoms):
         symbols = tuple(atoms.get_chemical_symbols())
@@ -212,14 +209,25 @@ class _TaggedCauchyNativeRuntime:
         neighbor_types = np.ascontiguousarray(atom_types[dst], dtype=np.int32)
         return atom_types, src, dst, displacement, offsets, neighbor_types
 
-    def evaluate_atoms(self, atoms, *, return_features=False):
+    def evaluate_atoms(self, atoms, *, return_features=False, features_only=False):
         """Return native energy, forces, virial, atomic energy, and optional features."""
+        resident = self._resident
+        if resident is None:
+            raise RuntimeError("Native tagged runtime is closed.")
+        with resident.lock:
+            if self._resident is not resident:
+                raise RuntimeError("Native tagged runtime is closed.")
+            return self._evaluate_atoms(atoms, return_features=return_features,
+                                        features_only=features_only)
 
+    def _evaluate_atoms(self, atoms, *, return_features=False, features_only=False):
+
+        return_features = return_features or features_only
         if return_features and self.has_ordinary_backbone:
             raise ValueError("Composite feature export needs both ordinary ACE and tagged columns.")
         atom_types, src, dst, displacement, offsets, neighbor_types = self._geometry(atoms)
         atomic = np.empty(len(atoms), dtype=np.float64)
-        edge_gradient = np.empty((len(src), 3), dtype=np.float64)
+        edge_gradient = None if features_only else np.empty((len(src), 3), dtype=np.float64)
         features = (np.empty((len(atoms), self.feature_count), dtype=np.float64)
                     if return_features else None)
         error = ctypes.create_string_buffer(2048)
@@ -230,7 +238,8 @@ class _TaggedCauchyNativeRuntime:
             neighbor_types.ctypes.data_as(ctypes.POINTER(ctypes.c_int)),
             displacement.ctypes.data_as(ctypes.POINTER(ctypes.c_double)),
             atomic.ctypes.data_as(ctypes.POINTER(ctypes.c_double)),
-            edge_gradient.ctypes.data_as(ctypes.POINTER(ctypes.c_double)),
+            (None if features_only else
+             edge_gradient.ctypes.data_as(ctypes.POINTER(ctypes.c_double))),
         )
         if return_features:
             status = self.library.ye3t_tagged_evaluate_with_features(
@@ -241,16 +250,15 @@ class _TaggedCauchyNativeRuntime:
             status = self.library.ye3t_tagged_evaluate(*arguments, error, len(error))
         if status:
             raise RuntimeError(error.value.decode("utf-8", errors="replace"))
+        if features_only:
+            return features
         forces = np.zeros((len(atoms), 3), dtype=np.float64)
         np.add.at(forces, src, edge_gradient)
         np.add.at(forces, dst, -edge_gradient)
         tensor = -np.einsum("ei,ej->ij", displacement, edge_gradient)
         virial = np.array((tensor[0, 0], tensor[1, 1], tensor[2, 2],
                            tensor[0, 1], tensor[0, 2], tensor[1, 2]))
-        if self.model is not None and self.model.reference_terms:
-            reference_atomic, reference_forces, reference_virial = self.model._reference_values(atoms)
-            atomic += reference_atomic
-            forces += reference_forces
-            virial += reference_virial
+        # The native loader applies the bound atomic references and ZBL from
+        # the artifact, including artifacts exported from an in-memory model.
         result = (float(np.sum(atomic)), forces, virial, atomic)
         return (*result, features) if return_features else result

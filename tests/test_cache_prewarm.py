@@ -115,10 +115,10 @@ def test_prewarm_cli_preview_and_apply(tmp_path):
     cache_dir = tmp_path / "cache"
     command = [sys.executable, "-m", "ye3t_methods.cache", "--catalogue",
                str(path), "--cache-dir", str(cache_dir)]
-    preview = subprocess.run(command, check=True, capture_output=True, text=True)
+    preview = subprocess.run(command, cwd=tmp_path, check=True, capture_output=True, text=True)
     assert json.loads(preview.stdout)["applied"] is False
     assert not cache_dir.exists()
-    applied = subprocess.run(command + ["--apply"], check=True,
+    applied = subprocess.run(command + ["--apply"], cwd=tmp_path, check=True,
                              capture_output=True, text=True)
     assert json.loads(applied.stdout)["applied"] is True
     assert list(Path(cache_dir).glob("artifacts/ace_descriptor_artifacts/*.json"))

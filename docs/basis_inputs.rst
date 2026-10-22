@@ -21,7 +21,7 @@ The
 additional fixed catalogues and source policies.
 
 The paper comparison's
-``examples/publication/cost_comparison/config.json`` exposes a compact
+``tools/publication/cost_comparison/config.json`` exposes a compact
 schedule for ranks 1, 2, 3, 4, 6, and 8 via ``tensor_orders``,
 ``nmax_by_tensor_order``, and ``lmax_by_tensor_order``. The companion
 ``tagged_components.json`` specifies fixed physical channel contents and

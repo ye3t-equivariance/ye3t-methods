@@ -2,21 +2,21 @@
 
 This full example uses all 263 published training/validation structures and the
 frozen selected basis and hyperparameters. It is a long CPU run. The saved
-refit is a Torch ASE model; LAMMPS AUTO needs a newly validated native plan.
+refit supports Torch/native ASE and LAMMPS export with regenerated readout plans.
 """
 
-import hashlib
 import json
+import os
 from pathlib import Path
 
-import numpy as np
-from ase.io import read
 
 from ye3t_methods import LinearModel
+from ye3t_methods.studies.ni_linear import load_refit_structures
 
 
 example = Path(__file__).resolve().parent
 dataset = example.parents[1] / "data" / "mlearn" / "Ni"
+workflow = Path(os.environ.get("YE3T_WORKFLOW_ROOT", "~/ye3t-workflows")).expanduser()
 config = {
     "metadata": {
         "schema": "ye3t_config_v1", "name": "refit_paper_ni_127",
@@ -24,8 +24,8 @@ config = {
         "dataset": str(dataset / "ni_all.xyz"),
         "dataset_sha256": "f713984c2dc1b1988ed71d7dabb5d8f77d7d611b4a96deb4da3d61443e92f93f",
         "split": str(dataset / "moment_star_split.json"),
-        "output_model": "../ye3t-workflows/MLIP/ni_paper_refit/ni_127_refit.ye3t",
-        "output_summary": "../ye3t-workflows/MLIP/ni_paper_refit/ni_127_refit.json",
+        "output_model": str(workflow / 'MLIP/ni_paper_refit/ni_127_refit.ye3t'),
+        "output_summary": str(workflow / 'MLIP/ni_paper_refit/ni_127_refit.json'),
     },
     "basis": {"from_saved_model": True},
     "representation": {"from_saved_model": True},
@@ -53,59 +53,18 @@ config = {
                    "expected_train_count": 263, "expected_test_count": 31},
 }
 
-source = Path(config["model"]["source_archive"])
-assert hashlib.sha256(source.read_bytes()).hexdigest() == config["model"][
-    "source_archive_sha256"]
-data_path = Path(config["metadata"]["dataset"])
-assert hashlib.sha256(data_path.read_bytes()).hexdigest() == config["metadata"][
-    "dataset_sha256"]
-split = json.loads(Path(config["metadata"]["split"]).read_text(encoding="utf-8"))
-frames = read(str(data_path), index=":")
-training_indices = sorted(split["indices"]["train"] + split["indices"]["validation"])
-test_indices = split["indices"]["test"]
-assert len(training_indices) == config["validation"]["expected_train_count"]
-assert len(test_indices) == config["validation"]["expected_test_count"]
-assert not set(training_indices) & set(test_indices)
-training = [frames[index] for index in training_indices]
-assert all(atoms.info["source_split"] == "training" for atoms in training)
-
-model = LinearModel.read(source)
-basis = model.basis
-assert len(basis.labels) == config["model"]["feature_count"]
+training, validation = load_refit_structures(config)
+model = LinearModel.read(config["model"]["source_archive"])
+print("selected basis", model.basis)
 model.fit(training, config=config)
 saved = model.write(config["metadata"]["output_model"])
 restored = LinearModel.read(saved)
-assert [label.identity for label in restored.labels] == [
-    label.identity for label in basis.labels]
-
-energy_errors = []
-force_squared_error = 0.0
-force_components = 0
-for index in test_indices:
-    reference = frames[index]
-    atoms = reference.copy()
-    atoms.calc = restored.ase_calculator(evaluator="torch", neighbors="ase")
-    energy_errors.append((atoms.get_potential_energy() -
-                          reference.get_potential_energy()) / len(atoms))
-    difference = atoms.get_forces() - reference.get_forces()
-    force_squared_error += float(np.square(difference).sum())
-    force_components += difference.size
-
-summary = {
-    "schema": "ye3t_methods_ni_paper_refit_summary_v1",
-    "model": str(saved), "source_archive_sha256": config["model"]["source_archive_sha256"],
-    "training_structures": len(training), "heldout_structures": len(test_indices),
-    "selected_feature_count": len(restored.labels),
-    "heldout_energy_rmse_eV_per_atom": float(np.sqrt(np.mean(np.square(energy_errors)))),
-    "heldout_force_rmse_eV_per_A": float(np.sqrt(force_squared_error / force_components)),
-}
-summary_path = Path(config["metadata"]["output_summary"])
-summary_path.parent.mkdir(parents=True, exist_ok=True)
-summary_path.write_text(json.dumps(summary, sort_keys=True, indent=2) + "\n",
-                        encoding="utf-8")
-print("selected_features", len(restored.labels))
-print("training_structures", len(training))
-print("heldout_energy_rmse_eV_per_atom", summary["heldout_energy_rmse_eV_per_atom"])
-print("heldout_force_rmse_eV_per_A", summary["heldout_force_rmse_eV_per_A"])
-print("saved_model", saved)
-print("saved_summary", summary_path)
+results = restored.score(validation, config=config)
+results["training_structures"] = len(training)
+results["selected_feature_count"] = len(restored.labels)
+results["source_archive_sha256"] = config["model"]["source_archive_sha256"]
+output = Path(config["metadata"]["output_summary"])
+output.parent.mkdir(parents=True, exist_ok=True)
+output.write_text(json.dumps(results, indent=2)+"\n", encoding="utf-8")
+print("validation results", results)
+print("saved model", saved)

@@ -301,6 +301,16 @@ class LinearACEScalarCalculator(Calculator):
             if factorized_descriptor_runtime_policy is None
             else str(factorized_descriptor_runtime_policy)
         )
+        if (bundle.fit_metadata or {}).get("ye3t_methods_public_label_convention"):
+            # These coordinates were fitted using the configured compiler
+            # tables. Earlier bundles omitted this runtime policy; their
+            # saved coefficients still belong to those same tables.
+            if self.factorized_descriptor_runtime_policy not in (None, "disable"):
+                raise ValueError(
+                    "Configured density coefficients require their compiler tables; "
+                    "factorized_descriptor_runtime_policy must be disable."
+                )
+            self.factorized_descriptor_runtime_policy = "disable"
         self.neighbor_backend = str(neighbor_backend)
         self.neighbor_skin = max(float(neighbor_skin), 0.0)
         self._neighbor_cache = None

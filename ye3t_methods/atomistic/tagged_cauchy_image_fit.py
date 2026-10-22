@@ -172,15 +172,25 @@ def _row_identity(descriptor, atoms):
     return {**body, "row_hash": _canonical_hash(body)}
 
 
-def tagged_cauchy_image_geometry_row(descriptor, atoms, cache_dir=None):
-    """Return one target-free energy/force design block."""
+def tagged_cauchy_image_geometry_row(descriptor, atoms, cache_dir=None, cache_mode="auto"):
+    """Return a target-free design block, validating persisted rows before reuse.
+
+    auto reads or writes; read_only requires a valid existing row; refresh
+    recomputes and atomically replaces it; off performs no persistent I/O.
+    Geometry, compiler, source, backend and array hashes determine validity.
+    """
+
+    if cache_mode not in {"auto", "read_only", "refresh", "off"}:
+        raise ValueError("Geometry cache mode must be auto, read_only, refresh, or off.")
+    if cache_mode == "read_only" and cache_dir is None:
+        raise ValueError("read_only geometry caching requires a cache directory.")
 
     evaluator = _descriptor_runtime(descriptor)
     identity = _row_identity(descriptor, atoms)
     path = None
-    if cache_dir is not None:
+    if cache_dir is not None and cache_mode != "off":
         path = Path(cache_dir) / (identity["row_hash"] + ".npz")
-        if path.exists():
+        if path.exists() and cache_mode != "refresh":
             with np.load(path, allow_pickle=False) as handle:
                 if str(handle["row_hash"].item()) != identity["row_hash"]:
                     raise ValueError("Tagged-Cauchy geometry-row cache hash mismatch.")
@@ -233,6 +243,12 @@ def tagged_cauchy_image_geometry_row(descriptor, atoms, cache_dir=None):
                     "Tagged-Cauchy cached species counts do not match atom_count."
                 )
             return row
+
+        if cache_mode == "read_only":
+            raise FileNotFoundError(
+                f"Verified geometry row is absent from the read-only cache: {path}. "
+                "Populate it with runtime.cache.mode='auto' first."
+            )
 
     symbols = tuple(str(value) for value in atoms.get_chemical_symbols())
     unknown = sorted(set(symbols) - set(evaluator.type_map))
@@ -370,6 +386,7 @@ def build_tagged_cauchy_image_normal_equations(
     force_weight=1.0,
     stress_weight=0.0,
     geometry_cache_dir=None,
+    geometry_cache_mode="auto",
     structure_weights=None,
     structure_weight_key=None,
     structure_group_key=None,
@@ -466,13 +483,19 @@ def build_tagged_cauchy_image_normal_equations(
     fit_intercept = bool(fit_intercept)
     width = beta_width + (species_count if fit_intercept else 0)
     temporary_cache = None
-    if geometry_cache_dir is None:
+    if geometry_cache_mode not in {"auto", "read_only", "refresh", "off"}:
+        raise ValueError("Geometry cache mode must be auto, read_only, refresh, or off.")
+    if geometry_cache_mode == "read_only" and geometry_cache_dir is None:
+        raise ValueError("read_only geometry caching requires a cache directory.")
+    if geometry_cache_dir is None or geometry_cache_mode == "off":
         temporary_cache = tempfile.TemporaryDirectory(
             prefix="ye3t_tagged_cauchy_rows_"
         )
         row_cache_dir = Path(temporary_cache.name)
+        first_pass_mode = "auto"
     else:
         row_cache_dir = Path(geometry_cache_dir)
+        first_pass_mode = geometry_cache_mode
     try:
         feature_sum = np.zeros((beta_width,), dtype=np.float64)
         feature_square_sum = np.zeros((beta_width,), dtype=np.float64)
@@ -485,7 +508,7 @@ def build_tagged_cauchy_image_normal_equations(
         cache_hits = 0
         for index, atoms in enumerate(structures):
             row = tagged_cauchy_image_geometry_row(
-                descriptor, atoms, cache_dir=row_cache_dir
+                descriptor, atoms, cache_dir=row_cache_dir, cache_mode=first_pass_mode
             )
             row_hashes.append(row["identity"]["row_hash"])
             cache_hits += int(row["cache_hit"])
@@ -539,7 +562,7 @@ def build_tagged_cauchy_image_normal_equations(
             if float(structure_weight) <= 0.0:
                 continue
             row = tagged_cauchy_image_geometry_row(
-                descriptor, atoms, cache_dir=row_cache_dir
+                descriptor, atoms, cache_dir=row_cache_dir, cache_mode="read_only"
             )
             atom_count = int(row["atom_count"])
             if float(energy_weight) > 0.0:

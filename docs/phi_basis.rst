@@ -1,87 +1,39 @@
-Explicit motif ``bar_phi`` basis
-================================
+Explicit Phi clusters
+=====================
 
-Ordinary density sums individual neighbor contributions before forming
-products. ``bar_phi`` instead selects an explicit cluster motif, assigns
-channels to its factor positions, and evaluates the motif over the local geometry. Its
-``N`` counts motif vertices; it must not automatically be read as the physical
-body order of an ordinary ACE density product. The compiler supplies the
-fixed motif coupling plan and validates the scalar target.
+``Basis.create_cluster`` evaluates the selected explicit-Phi coupling below on
+an ASE structure. Inputs identify a center and eight distinct physical
+occurrences, each given by an atom index and integer periodic-image shift.
+The first four factors use radial index zero and the last four use radial
+index one; every factor has angular degree one.
 
-The ``bar_phi`` route is a weighted average over ordered motif
-embeddings, with distinct **atom indices** at its factor positions. The evaluator weights
-each embedding and divides its sum by the decorated motif automorphism count.
-By default it also divides by the correspondingly weighted sum at each center.
-It excludes self edges and excludes two images of the
-same atom from one motif. ``periodic_image_mode="unique"`` uses one minimum
-image per pair and checks a cutoff margin; ``"all_images"`` enumerates image
-edges but still enforces distinct atom indices within a motif. It does not
-accept an explicit ordered ``(atom_index, cell_shift)`` list.
+This specialized construction selects the parent ``(4,4), L=2, even`` and the
+local path ``kappa=((4),(4)), Lambda=(0,2)``. Its result has shape ``(1,14,5)``:
+one multiplicity coordinate, 14 tableau components and five real-tesseral
+magnetic components. The compiler obtains this selected coordinate from the
+18-dimensional fixed-content multiplicity space. The public example checks
+geometry through the basis API; covariance and factor-action checks belong to
+the regression suite.
 
-Each ``PhiSlotChannel`` selects one fixed signed ``m``. The physical evaluator
-multiplies those selected scalar edge values. The full Young and angular
-coefficient map returned by ``phi_motif_coupling_report`` is not applied during
-this evaluation. The report identifies labels and carrier conventions for the
-requested motif. The tested output consists of scalar averaged columns; it
-does not establish a full rotation multiplet or nontrivial Young image. Use
-the route within this tested scalar
-scope. The ordered rank-eight ``Phi`` path below uses a separate compiled
-physical contraction and returns all 14 tableau by five magnetic outputs.
-
-Use ``Basis(source="bar_phi")`` with a cutoff, ``PhiSlotChannel`` objects, and
-``PhiMotifSpec`` templates. The :doc:`quickstart` constructs a pair and a
-three-vertex star on a manufactured H3 fixture. It fits energies, forces, and
-ASE stress, writes a ``.phi.pt`` bundle, reloads it, and evaluates through an
-ASE calculator. ``motif_family``, ``edge_cutoff``, ``periodic_image_mode``, and
-``normalize_motif_features`` are explicit basis controls. The label dictionary
-records the motif name, template, channel list, factor orbit, normalization, and
-compiler plan.
-
-The compact Phi evaluator uses PyTorch. It has no per-species reference-energy
-offset or LAMMPS export schema. Phi stress rows require a positive cell volume.
-Position forces and fixed-fractional-position cell gradients use Torch
-autograd through the selected fixed-cell motif geometry. Neighbor and image
-selection is discrete, so this derivative statement applies while that
-selection stays fixed; it does not supply an analytic derivative of a changing
-neighbor list or establish a general rank-eight ordered-cluster derivative.
-Select it explicitly with ``model.ase_calculator(backend="pytorch")``; the
-full backend matrix is in :doc:`evaluators`.
-``LinearModel.read`` accepts the saved ``bar_phi`` branch and restores its
-fixed-feature evaluator; load ``.phi.pt`` only from a trusted source because it
-is a Torch artifact. The example exercises finite periodic geometry; there is
-no native C++ or LAMMPS evaluator for this branch.
-
-For a four-vertex depth-two tree, use
-``examples/experimental/phi_depth2.py``. Its edges ``(0,1)``, ``(1,2)``,
-and ``(1,3)`` specify the motif directly; the script builds and evaluates
-one descriptor without fitting a model. The motif's vertex count and
-factor-channel pattern remain visible in the editable input.
-
-.. literalinclude:: ../examples/experimental/phi_depth2.py
+.. literalinclude:: ../examples/advanced/explicit_phi_cluster.py
    :language: python
 
-Ordered rank-eight ``Phi`` star (experimental)
------------------------------------------------
+The input order binds each occurrence to its radial factor. Permutation tests
+must transport the factor identities with the physical arguments. Rotation
+acts on the complete magnetic multiplet at each tableau coordinate.
 
-``Basis.from_config`` accepts the explicit ordered-star configuration shown
-below. ``Basis.create_cluster`` takes one center and eight distinct
-``(atom_index, integer_cell_shift)`` occurrences, with four occurrences using
-the first radial channel and four using the second. It preserves image identity
-and their order. The compiler counts the complete 18-dimensional multiplicity
-space for this fixed content and parent ``(4,4), L=2``. This example selects
-one valid coordinate: local Young ``((4),(4))`` with block angular path
-``(0,2)``. Its output has shape ``(1, 14, 5)`` for selected path, parent Young
-tableau, and magnetic component. It does not pool clusters or provide model
-fitting, forces, stress, or a native evaluator.
+This API currently supports the selected rank-eight construction shown above.
+General motif-orbit sums, arbitrary cluster catalogues and their linear
+potential fitting remain implementation work. The example evaluates the
+supplied occurrence directly and makes no orbit-sum energy claim.
 
-The public call uses a fixed factor order: its first four records use radial
-index zero and its last four use radial index one. Moving a neighbor across
-that boundary changes its radial factor. The compiler's separate factor-action
-test checks the formal permutation when factor identities move with positions.
+Legacy motif averages
+---------------------
 
-The rank-eight Young map is numeric. Its rank gap, generator residuals,
-projector, and an independently constructed subgroup-invariant direction are
-checked; an exact symbolic rank-eight projector comparison has not been run.
-
-.. literalinclude:: ../examples/quickstart/ordered_phi_star.py
-   :language: python
+Saved ``.phi.pt`` models use the earlier ``bar_phi`` motif-average evaluator.
+It averages fixed factor channels over compatible assignments and supports
+the existing scalar fit, force and stress routes. Its fixed magnetic channels
+do not provide the complete coupled tensor constructed above. The original
+pair/star fit and depth-two demonstration are preserved under
+``tools/legacy_examples``; ``tests/test_compact_phi.py`` protects their saved
+models and derivatives. This compatibility path has no LAMMPS exporter.

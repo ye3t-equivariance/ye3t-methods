@@ -32,48 +32,76 @@ matscipy neighbor lists. Install both from the `ye3t-methods` directory with
 construction works without matscipy. See [C++ evaluators](#c-evaluators) for
 Python-only and native build options.
 
-## First ASE descriptors
+## Descriptors from ASE
 
-For ordinary scalar ACE descriptors from ASE, use the compact constructor:
+Select the representation and physical basis in an editable config, construct
+the public objects, and call `basis.create(atoms)`. This example returns 100
+scalar descriptors per atom across ranks 1–8:
 
 ```python
 from ase.build import bulk
+from ye3t import YE3TRepresentation
 from ye3t_methods import Basis
 
-atoms = bulk("Ni", "fcc", a=3.52, cubic=True)
-basis = Basis(elements=["Ni"], cutoff=5.0, max_rank=3,
-              nmax=(2, 2, 1), lmax=(1, 1, 1))
-descriptors = basis.create(atoms)  # (n_atoms, n_features) NumPy array
-many = basis.create_many([atoms, atoms.copy()])  # tuple of per-structure arrays
+
+config = {
+    "metadata": {"schema": "ye3t_config_v1", "name": "ni_ase_descriptors",
+                 "status": "stable", "element": "Ni", "crystal": "fcc",
+                 "lattice_parameter_A": 3.52},
+    "representation": {
+        "group": "O3", "ranks": [1, 2, 3, 4, 5, 6, 7, 8],
+        "parent": {"young_lambda": "(N)", "L": 0, "parity": "even"},
+        "factorization": "cauchy", "subspace": "full",
+        "uncoupled_factor_inputs": {
+            "eta_count_per_rank": {1: 4, 2: 4, 3: 3, 4: 3, 5: 2, 6: 2, 7: 2, 8: 2},
+            "l_max_per_rank": {1: 0, 2: 2, 3: 2, 4: 2, 5: 1, 6: 1, 7: 1, 8: 1},
+        },
+        "intermediates": {
+            "young_kappa": "all_valid", "block_rotation": {"policy": "all_valid"},
+        },
+    },
+    "basis": {
+        "single_factors": {
+            "species": ["Ni"],
+            "radial": {"family": "pace_chebexp_cos", "cutoff_A": 4.638049165633364,
+                       "cutoff_width_A": 0.01, "lambda": 0.7928781217554153},
+            "chemical": {"kind": "explicit"},
+        },
+        "tensor_product": {"kind": "density"},
+        "catalogue": {
+            "ranks": [1, 2, 3, 4, 5, 6, 7, 8],
+            "nmax_per_rank": {1: 4, 2: 4, 3: 3, 4: 3, 5: 2, 6: 2, 7: 2, 8: 2},
+            "lmax_per_rank": {1: 0, 2: 2, 3: 2, 4: 2, 5: 1, 6: 1, 7: 1, 8: 1},
+            "source_block_partitions_by_rank": {
+                1: [[1]], 2: [[2], [1, 1]], 3: [[3], [2, 1]],
+                4: [[4]], 5: [[5]], 6: [[6]], 7: [[7]], 8: [[8]],
+            },
+        },
+    },
+    "runtime": {"evaluator": "torch", "neighbors": "ase",
+                "cache": {"mode": "auto"}, "dtype": "float64", "device": "cpu"},
+    "model": {}, "targets": {}, "validation": {},
+}
+
+atoms = bulk(
+    config["metadata"]["element"], config["metadata"]["crystal"],
+    a=config["metadata"]["lattice_parameter_A"], cubic=True,
+)
+representation = YE3TRepresentation.from_config(config["representation"])
+basis = Basis.from_config(
+    config["basis"], representation=representation, runtime=config["runtime"],
+)
+descriptors = basis.create(atoms)
+print("descriptor shape", descriptors.shape)
+print("parent L", basis.labels[0].as_dict()["L"])
+print("first descriptor", basis.labels[0])
+print("compiler count", basis.catalogue.counts()["exact_total_per_center"])
 ```
 
-The same call handles multiple elements. For example, ASE's H2O molecule
-returns three rows and 24 columns with:
-
-```python
-from ase.build import molecule
-from ye3t_methods import Basis
-
-atoms = molecule("H2O")
-basis = Basis(elements=["H", "O"], cutoff=4.0, max_rank=2,
-              nmax=(2, 1), lmax=(1, 1))
-water_descriptors = basis.create(atoms)  # (3, 24)
-```
-
-This constructor uses ChebExpCos radial settings. To reproduce a PACE paper
-model's radial channels, use its full config or read the saved model.
-
-## Configured descriptors and models
-
-The complete representation selector and seven-section config are shown in
-[`ase_descriptors.py`](examples/quickstart/ase_descriptors.py). Use that route
-to select a non-scalar O(3) parent, exact catalogue constraints, or a different
-physical factor source. Both routes obtain valid labels and coefficients from
-`ye3t.couplings`.
-The example constructs `ye3t.YE3TRepresentation` and a basis from its config,
-then calls
-`descriptors = basis.create(atoms)`. The returned real NumPy array has one row
-per atom and one column per compiler-selected scalar descriptor.
+The same seven-section config is used for descriptors and linear models.
+Change the species, radial source, cutoff and catalogue in the config for a
+new system. [All runnable examples](examples/README.md) use installed packages
+and expose their scientific inputs and output locations.
 
 ### Tagged and supplied factors
 
@@ -101,11 +129,11 @@ remain accepted for saved-model compatibility.
 ### Linear model examples
 
 For fitting, use the same core representation and `Basis.from_config`, then
-fit `LinearModel(basis)`. The rank-four
+fit `LinearModel(basis)`. The rank-one-through-eight
 [`density_fit.py`](examples/quickstart/density_fit.py) and
 [`tagged_fit.py`](examples/quickstart/tagged_fit.py) quickstarts demonstrate
 the configured representation → basis → model path. The tagged example
-uses a seven-column angular pattern.
+includes radial and angular patterns at every rank, with nontrivial local Young intermediates.
 [`combined_density_tagged_fit.py`](examples/quickstart/combined_density_tagged_fit.py)
 uses one named-component basis with separate radial sources, one fit, and one
 saved model.
@@ -121,7 +149,7 @@ data, and output paths. The 60- and 149-column models are in the same
 directory. A refit writes a new Torch ASE archive; changed coefficients
 require a new native plan for LAMMPS export.
 Model code imports from `ye3t_methods`; the `ye3t_ace` import shim reads
-models saved under the old module name. Do not install the separate
+models saved under the historical module name. Do not install the separate
 `ye3t-ace` distribution alongside `ye3t-methods` in
 one environment, because both supply that saved-model import path.
 The tagged compiler's exact coefficient materialization uses SymPy, so SymPy
@@ -149,8 +177,9 @@ Training structures must already contain energy and force labels. `fit` reads
 their stored labels and does not ask attached calculators to generate missing
 data. The [tagged fit](examples/quickstart/tagged_fit.py) also configures
 physical tag counts, radial degrees, tensor order, and angular degree.
-Experimental `bar_phi` fitting requires motif templates and channels; see
-[`phi_fit.py`](examples/experimental/phi_fit.py).
+The [shell-density fit](examples/quickstart/shell_density_fit.py) uses the same
+objects with role-resolved shell factors. Historical motif-average examples
+and regression pointers are preserved in [tools/legacy_examples](tools/legacy_examples/README.md).
 
 `print(basis)`, `print(model)`, `basis.labels[j].as_dict()`, and
 `basis.describe(j, format="latex")` inspect descriptor columns. `feature_index`
@@ -283,7 +312,7 @@ The [six-element paper examples](examples/publication/cost_comparison/README.md)
 include editable fitting settings, the fixed mlearn snapshot, bundled
 ACE/tagged YE3T model files, and LAMMPS inputs for Li, Mo, Cu, Ni, Si, and Ge.
 Verify the bundled bytes with
-`python examples/publication/cost_comparison/verify_models.py`. The wheel
+`python tools/publication/cost_comparison/verify_models.py`. The wheel
 installs the Python APIs; the paper examples and data are in the source
 distribution.
 To recompute the saved Ni 60/127/149-model held-out energy and force RMSE

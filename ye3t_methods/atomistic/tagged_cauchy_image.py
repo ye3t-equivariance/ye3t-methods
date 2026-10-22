@@ -122,7 +122,7 @@ def _jsonable(value):
 
 def _load_compiled(compiled, compiler_validation="full"):
     if isinstance(compiled, CompiledTaggedCauchyImage):
-        compiled = compiled.to_dict()
+        return compiled.validate(compiler_validation=compiler_validation)
     return CompiledTaggedCauchyImage.from_dict(compiled, compiler_validation=compiler_validation)
 
 
@@ -715,7 +715,8 @@ class TaggedCauchyImageEvaluator:
             derivatives[:, begin:end, :] = derivative * mask.reshape(-1, 1, 1)
         return values, derivatives
 
-    def evaluate_edge_list(self, edge_index, displacements, neighbor_types, atom_count, atom_types=None):
+    def evaluate_edge_list(self, edge_index, displacements, neighbor_types, atom_count, atom_types=None,
+                           *, derivatives=True):
         edge_index = torch.as_tensor(
             edge_index, dtype=torch.long, device=torch.as_tensor(displacements).device
         )
@@ -739,6 +740,8 @@ class TaggedCauchyImageEvaluator:
             forward = self._forward_table
             reverse = self._derivative_table
             features = symmetric_power_monomial_contraction(moments, *forward[:4], backend="native")
+            if not derivatives:
+                return features, None
             derivatives = symmetric_power_monomial_contraction(moments, *reverse[:4], backend="native")
             edge_feature_derivative = source_values.new_zeros((len(centers), self.feature_count, 3))
             for feature in range(self.feature_count):
@@ -760,6 +763,9 @@ class TaggedCauchyImageEvaluator:
                 float(term["coefficient"]) * value
             )
 
+        if not derivatives:
+            return features, None
+
         adjoint = source_values.new_zeros(
             (atom_count, self.feature_count, source_count)
         )
@@ -780,7 +786,7 @@ class TaggedCauchyImageEvaluator:
             )
         return features, edge_feature_derivative
 
-    def materialize(self, positions, atom_types, cell=None, pbc=None):
+    def materialize(self, positions, atom_types, cell=None, pbc=None, *, derivatives=True):
         positions = torch.as_tensor(positions)
         if positions.dtype != torch.float64:
             raise ValueError("Tagged-Cauchy materialization requires float64 positions.")
@@ -798,7 +804,8 @@ class TaggedCauchyImageEvaluator:
         edge_index = torch.stack((src, dst))
         neighbor_types = atom_types.index_select(0, dst)
         values, edge_derivatives = self.evaluate_edge_list(
-            edge_index, displacement, neighbor_types, int(positions.shape[0]), atom_types=atom_types
+            edge_index, displacement, neighbor_types, int(positions.shape[0]), atom_types=atom_types,
+            derivatives=derivatives,
         )
         return edge_index, displacement, values, edge_derivatives
 
@@ -1064,7 +1071,10 @@ def export_tagged_cauchy_image_model(path, model, fit_metadata=None):
     path = Path(path)
     path.parent.mkdir(parents=True, exist_ok=True)
     path.write_text(
-        json.dumps(payload, sort_keys=True, indent=2, allow_nan=False) + "\n",
+        # Model payloads contain full compiler tables. Compact JSON preserves
+        # their hashes and avoids spending the native file-size budget on
+        # indentation in multi-rank models.
+        json.dumps(payload, sort_keys=True, separators=(",", ":"), allow_nan=False) + "\n",
         encoding="utf-8",
     )
     return payload
@@ -1079,6 +1089,12 @@ def load_tagged_cauchy_image_model(path, compiler_validation="full"):
     """
 
     payload = json.loads(Path(path).read_text(encoding="utf-8"))
+    return _load_tagged_cauchy_image_payload(payload, compiler_validation=compiler_validation)
+
+
+def _load_tagged_cauchy_image_payload(payload, compiler_validation="full"):
+    """Validate one parsed artifact through the common model-loading path."""
+    payload = dict(payload)
     expected = str(payload.pop("self_hash", ""))
     if not expected or expected != _payload_hash(payload):
         raise ValueError("Tagged-Cauchy V3 model self_hash mismatch.")
@@ -1090,14 +1106,15 @@ def load_tagged_cauchy_image_model(path, compiler_validation="full"):
         raise ValueError("Tagged-Cauchy V3 deployment identity mismatch.")
     if payload.get("conventions") != TAGGED_CAUCHY_V3_CONVENTIONS:
         raise ValueError("Unsupported tagged-Cauchy V3 conventions.")
-    compiled = CompiledTaggedCauchyImage.from_dict(payload["compiler_artifact"], compiler_validation=compiler_validation)
-    if str(compiled.self_hash) != str(payload["compiler_artifact_hash"]):
-        raise ValueError("Tagged-Cauchy V3 compiler binding changed.")
     source_plan = _validate_binding(payload["source_binding"], "source")
     real_program = _validate_binding(payload["schedule_binding"], "schedule")
     readout = _validate_binding(payload["readout_binding"], "readout")
-    evaluator = TaggedCauchyImageEvaluator(compiled, source_plan, real_program,
+    # The evaluator performs full compiler validation. Passing the serialized
+    # compiler directly avoids reconstructing the same proof twice per load.
+    evaluator = TaggedCauchyImageEvaluator(payload["compiler_artifact"], source_plan, real_program,
                                          compiler_validation=compiler_validation)
+    if str(evaluator.compiled.self_hash) != str(payload["compiler_artifact_hash"]):
+        raise ValueError("Tagged-Cauchy V3 compiler binding changed.")
     if readout.get("schema") != TAGGED_CAUCHY_READOUT_SCHEMA:
         raise ValueError("Unsupported tagged-Cauchy readout schema.")
     if tuple(readout["species_order"]) != evaluator.species_order:

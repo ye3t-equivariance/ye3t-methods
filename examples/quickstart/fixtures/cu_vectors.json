@@ -1,0 +1,10 @@
+{
+  "source": "analytic vector sum over neighbors within 3.5 Angstrom",
+  "formula": "v_i = sum_j exp(-r_ij / Angstrom) * r_ij",
+  "seed": 7,
+  "generator": "tools/generate_vector_example_data.py",
+  "files": {
+    "cu_vectors_training.extxyz": "c482bcdb5785165545e72937acbec6cb46e72f2136bb180043c4689cac06b816",
+    "cu_vectors_validation.extxyz": "8d5cf705d7fe50854efb9393aa47863e9ef69a9a3477d74df507d4bc391208cb"
+  }
+}

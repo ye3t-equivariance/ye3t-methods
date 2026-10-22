@@ -5,10 +5,12 @@ compatibility files or compiles coupling coefficients during model loading.
 """
 
 from io import BytesIO
+from copy import deepcopy
 import hashlib
 import json
 from pathlib import Path
 import zipfile
+import tempfile
 
 import numpy as np
 import torch
@@ -455,13 +457,43 @@ def read_portable_linear_archive(path):
         "weights": weights, "ordinary_descriptor": descriptor,
         "ordinary_bundle": bundle, "ordinary_indices": ordinary_indices,
         "tagged_model": tagged_model, "tagged_indices": selected_tagged,
-        "archive_bytes": raw,
+        "archive_bytes": raw, "ordinary_catalogue": catalogue,
     }
+
+
+def select_portable_density_basis(record, indices):
+    """Select saved compiler coordinates for a density-only Ni refit."""
+    catalogue = record["ordinary_catalogue"]["rows"]
+    if (not isinstance(indices, (list, tuple)) or not indices or
+            any(type(index) is not int or not 0 <= index < len(catalogue) for index in indices) or
+            len(set(indices)) != len(indices)):
+        raise ValueError("Density selection requires unique indices from the saved compiler catalogue.")
+    record["ordinary_indices"] = tuple(indices)
+    record["tagged_indices"] = ()
+    record["selection"] = {"family": "density", "ordinary_indices": list(indices)}
+    record["labels"] = [{"fit_column": column, "branch": "ordinary",
+        "catalogue_index": index, "feature_id": catalogue[index]["feature_id"],
+        "label": catalogue[index]["compact_label"],
+        "coordinate_payload_sha256": catalogue[index]["compiled_coordinate"]["payload_sha256"]}
+        for column, index in enumerate(indices)]
+    record["ordinary_bundle"].descriptor_specs = tuple(
+        record["ordinary_descriptor"].descriptor_specs[index] for index in indices)
+    record["ordinary_bundle"].weight = np.zeros(len(indices))
+    record["ordinary_bundle"].bias = 0.0
+    record["weights"]["ordinary"] = np.zeros(len(indices))
+    record["weights"]["feature_indices"] = np.asarray(indices, dtype=np.int64)
+    record["weights"]["tagged_selected"] = np.empty(0)
+    record["weights"]["tagged_beta_69"] = np.zeros(69)
+    record["weights"]["per_species_E0_Ni"] = np.zeros(1)
+    record["tagged_model"].beta = torch.zeros(69, dtype=torch.float64)
+    return record
 
 
 def portable_feature_rows(record, atoms):
     ordinary = np.asarray(record["ordinary_descriptor"].create(atoms),
                           dtype=np.float64)[:, record["ordinary_indices"]]
+    if not record["tagged_indices"]:
+        return ordinary
     model = record["tagged_model"]
     positions = torch.as_tensor(np.asarray(atoms.positions, dtype=np.float64))
     atom_types = torch.as_tensor([model.species_index[name] for name in
@@ -492,6 +524,10 @@ def portable_feature_design_row(record, atoms):
         cutoff=record["sources"]["radial_fit"]["cutoff_A"], type_map={"Ni": 0},
         device="cpu", forces=True, stress=False, chunk_size=None,
     )
+    if not record["tagged_indices"]:
+        sites = ordinary["site_features"].detach().cpu().numpy()
+        return {"site_features": sites, "energy": sites.sum(axis=0),
+                "forces": ordinary["forces"].detach().cpu().numpy()}
     model = record["tagged_model"]
     positions = torch.as_tensor(np.asarray(atoms.positions, dtype=np.float64))
     atom_types = torch.as_tensor(
@@ -586,4 +622,78 @@ def portable_torch_calculator(record, neighbors="auto", **kwargs):
     tagged = _PortableTaggedCalculator(record["tagged_model"])
     zbl = YE3TZBLCalculator.from_model_manifest(
         {"reference_potential": record["sources"]["reference_potential"]})
-    return SumCalculator((ordinary, tagged, zbl))
+    return SumCalculator((ordinary, tagged, zbl) if record["tagged_indices"] else (ordinary, zbl))
+
+
+def export_portable_lammps(record, directory, *, auto_plan=True):
+    """Export the current readout and its ZBL overlay for native execution."""
+    from .atomistic.ace.linear_ace import export_scalar_bundle_to_yace
+    from .atomistic.ace.lammps_export import export_scalar_bundle_to_lammps
+    from .atomistic.tagged_cauchy_linear import export_tagged_model, export_tagged_composite_model
+
+    destination = Path(directory)
+    if destination.exists():
+        raise FileExistsError("Choose a new directory for the exported potential.")
+    bundle = deepcopy(record["ordinary_bundle"])
+    catalogue = deepcopy(record["ordinary_descriptor"].metadata["ordinary_scalar_catalogue"])
+    selected = []
+    variants = {}
+    for column, index in enumerate(record["ordinary_indices"]):
+        row = dict(catalogue["descriptor_rows"][index])
+        feature = row["feature_id"]
+        row.update(descriptor_index=column, variant_index=variants.get(feature, 0))
+        variants[feature] = row["variant_index"] + 1
+        selected.append(row)
+    catalogue["descriptor_rows"] = selected
+    bundle.fit_metadata = {**bundle.fit_metadata, "ordinary_scalar_catalogue": catalogue}
+    tagged = bool(record["tagged_indices"])
+    if auto_plan and not tagged:
+        outputs = export_scalar_bundle_to_lammps(bundle, destination, elements=("Ni",))
+    else:
+        destination.mkdir(parents=True)
+        ordinary = destination / ("ordinary_backbone.yace" if tagged else "model.yace")
+        export_scalar_bundle_to_yace(bundle, ordinary, elements=("Ni",),
+                                    compatibility="lammps_pace_linear_v1")
+        outputs = {"model": ordinary}
+    if tagged:
+        component = destination / "tagged.ye3t.json"
+        export_tagged_model(component, record["tagged_model"])
+        composite = destination / "model.ye3t.json"
+        export_tagged_composite_model(composite, outputs["model"], component,
+            metadata={"feature_count": len(record["labels"]), "fit_is_joint": True})
+        outputs.update(ordinary_model=outputs["model"], tagged_model=component, model=composite)
+    reference = {**record["sources"]["reference_potential"], "executable": "lmp"}
+    reference_path = destination / "reference.json"
+    reference_path.write_text(json.dumps({"reference_potential": reference}, indent=2) + "\n")
+    family = "model_family tagged_cauchy " if tagged else ""
+    plan = " plan manifest.json" if auto_plan and not tagged else ""
+    policy = "auto" if auto_plan else "direct"
+    instructions = (
+        "# Run with this directory as the working directory; units metal, atom_style atomic.\n"
+        f"pair_style hybrid/overlay ye3t {family}block_policy {policy}{plan} zbl "
+        f"{reference['inner_cutoff_A']:.17g} {reference['outer_cutoff_A']:.17g}\n"
+        f"pair_coeff * * ye3t {outputs['model'].name} Ni\n"
+        "pair_coeff * * zbl 28 28\n")
+    (destination / "pair_coeff.in").write_text(instructions)
+    outputs.update(reference=reference_path, pair_coeff=destination / "pair_coeff.in")
+    return outputs
+
+
+def portable_native_calculator(record, neighbors="auto", **kwargs):
+    """Load the newly fitted coefficients into the existing native ASE kernels."""
+    from .atomistic.yace_native import YE3TYACENativeCalculator
+    from .atomistic.tagged_cauchy_image import YE3TTaggedCauchyCalculator
+
+    with tempfile.TemporaryDirectory(prefix="ye3t_portable_native_") as directory:
+        outputs = export_portable_lammps(record, Path(directory) / "model", auto_plan=False)
+        if record["tagged_indices"]:
+            residual = YE3TTaggedCauchyCalculator.from_artifact(
+                outputs["model"], neighbors=neighbors, **kwargs)
+        else:
+            # The YACE adapter prepares its own persistent neighbor list.
+            kwargs.pop("execution_policy", None)
+            residual = YE3TYACENativeCalculator.from_artifact(
+                outputs["model"], neighbors=neighbors, **kwargs)
+    reference = YE3TZBLCalculator.from_model_manifest(
+        {"reference_potential": record["sources"]["reference_potential"]})
+    return SumCalculator((residual, reference))

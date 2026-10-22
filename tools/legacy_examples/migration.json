@@ -1,0 +1,38 @@
+[
+  {
+    "original": "examples/experimental/phi_fit.py",
+    "preserved": "tools/legacy_examples/phi_fit.py",
+    "sha256": "dc6e1758904060c5f7fbb6c915f14b8ddc8c339210b673cbe15bd7215c3fe0a1",
+    "preserved_sha256": "82f36dfcb2b856747e3f04feb9c2b451d8025d8d62df178902369ac611faa948"
+  },
+  {
+    "original": "examples/experimental/phi_depth2.py",
+    "preserved": "tools/legacy_examples/phi_depth2.py",
+    "sha256": "7fa70ef47a6e01b5a3c96901f53aecca9278215fcc29f82728e01ea8df50fb99",
+    "preserved_sha256": "7fa70ef47a6e01b5a3c96901f53aecca9278215fcc29f82728e01ea8df50fb99"
+  },
+  {
+    "original": "examples/experimental/role_density_fit.py",
+    "preserved": "tools/legacy_examples/role_density_fit.py",
+    "sha256": "3651a912d388faf23ae4dbe2055c743fde8d4fc34165de523523c179c7e1772e",
+    "preserved_sha256": "3651a912d388faf23ae4dbe2055c743fde8d4fc34165de523523c179c7e1772e"
+  },
+  {
+    "original": "examples/quickstart/parent_coefficient.py",
+    "preserved": "tools/legacy_examples/parent_coefficient.py",
+    "sha256": "004025f581f268524b71787bc6496b0585b9173d54c8bf1acaf8f9372dd16407",
+    "preserved_sha256": "004025f581f268524b71787bc6496b0585b9173d54c8bf1acaf8f9372dd16407"
+  },
+  {
+    "original": "examples/quickstart/parent_coupling.py",
+    "preserved": "tools/legacy_examples/parent_coupling.py",
+    "sha256": "6aa71e45e560b80ccddbd4f9c2476d0441a01c1a8ea9d58c32ae4fe4e4ccb485",
+    "preserved_sha256": "6aa71e45e560b80ccddbd4f9c2476d0441a01c1a8ea9d58c32ae4fe4e4ccb485"
+  },
+  {
+    "original": "examples/tagged_carriers_ase.py",
+    "preserved": "tools/legacy_examples/tagged_carriers_ase.py",
+    "sha256": "1fcace84d3ac626b09962efa7fae87cc2fddb85b98f1cb0c377f4d8bd7e19abf",
+    "preserved_sha256": "1fcace84d3ac626b09962efa7fae87cc2fddb85b98f1cb0c377f4d8bd7e19abf"
+  }
+]

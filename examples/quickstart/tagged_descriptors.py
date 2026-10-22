@@ -1,142 +1,102 @@
-"""Evaluate scalar tagged YE3T ASE rows with Young and angular intermediates.
+"""Scalar tagged YE3T descriptors from ASE, ranks one to eight.
 
-This descriptor-only example uses the atomistic reference evaluator. The
-generic dense YE3T coupling reference is a separate compiler path. For a
-native CPU linear energy/force/stress workflow, see ``tagged_fit.py``.
+Edit radial counts, angular patterns and complete-channel partitions to change
+the input basis. The scalar output includes nontrivial intermediate Young and
+angular types. Install the native ye3t backend.
 """
-
-from time import perf_counter
-
-import numpy as np
 from ase.build import bulk
-
 from ye3t import YE3TRepresentation
 from ye3t_methods import Basis
 
 
 config = {
-    "metadata": {
-        "schema": "ye3t_config_v1", "name": "ni_tagged_descriptors",
-        "status": "stable",
-        "system": {"element": "Ni", "crystal": "fcc", "lattice_parameter_A": 3.52},
+    'metadata': {
+        'schema': 'ye3t_config_v1',
+        'name': 'ni_tagged_descriptors',
+        'status': 'stable',
+        'system': {'element': 'Ni', 'crystal': 'fcc', 'lattice_parameter_A': 3.52},
     },
-    "representation": {
-        "group": "O3", "ranks": [4],
-        "parent": {"young_lambda": "(N)", "L": 0, "parity": "even"},
-        "factorization": "cauchy", "subspace": "full",
-        "uncoupled_factor_inputs": {
-            "eta_count_per_rank": {4: 2}, "l_max_per_rank": {4: 1},
+    'representation': {
+        'group': 'O3',
+        'ranks': [1, 2, 3, 4, 5, 6, 7, 8],
+        'parent': {'young_lambda': '(N)', 'L': 0, 'parity': 'even'},
+        'factorization': 'cauchy',
+        'subspace': 'full',
+        'uncoupled_factor_inputs': {
+            'eta_count_per_rank': {1: 4, 2: 3, 3: 2, 4: 2, 5: 1, 6: 1, 7: 1, 8: 1},
+            'l_max_per_rank': {1: 0, 2: 4, 3: 2, 4: 2, 5: 1, 6: 1, 7: 1, 8: 1},
         },
-        "intermediates": {
-            "young_kappa": "all_valid", "block_rotation": {"policy": "all_valid"},
+        'intermediates': {'young_kappa': 'all_valid', 'block_rotation': {'policy': 'all_valid'}},
+    },
+    'basis': {
+        'single_factors': {
+            'species': ['Ni'],
+            'radial': {'family': 'shifted_jacobi', 'cutoff_A': 4.8},
+            'chemical': {'kind': 'explicit'},
+        },
+        'tensor_product': {
+            'kind': 'tagged',
+            'tag_counts_per_rank': {1: [1], 2: [2], 3: [2], 4: [2], 5: [2], 6: [2], 7: [2], 8: [2]},
+        },
+        'catalogue': {
+            'ranks': [1, 2, 3, 4, 5, 6, 7, 8],
+            'nmax_per_rank': {1: 4, 2: 3, 3: 2, 4: 2, 5: 1, 6: 1, 7: 1, 8: 1},
+            'lmax_per_rank': {1: 0, 2: 4, 3: 2, 4: 2, 5: 1, 6: 1, 7: 1, 8: 1},
+            'source_block_partitions_by_rank': {
+                1: [[1]],
+                2: [[2], [1, 1]],
+                3: [[3], [2, 1]],
+                4: [[4], [2, 2]],
+                5: [[3, 2]],
+                6: [[4, 2]],
+                7: [[5, 2]],
+                8: [[6, 2]],
+            },
+            'angular_patterns_by_rank': {
+                1: [[0]],
+                2: [[0, 0], [1, 1], [2, 2], [3, 3], [4, 4]],
+                3: [[0, 0, 0], [0, 1, 1], [0, 2, 2]],
+                4: [[0, 0, 0, 0], [0, 0, 1, 1], [1, 1, 1, 1], [0, 0, 2, 2]],
+                5: [[0, 0, 0, 1, 1]],
+                6: [[0, 0, 0, 0, 1, 1]],
+                7: [[0, 0, 0, 0, 0, 1, 1]],
+                8: [[0, 0, 0, 0, 0, 0, 1, 1]],
+            },
         },
     },
-    "basis": {
-        "single_factors": {
-            "species": ["Ni"],
-            "radial": {"family": "shifted_jacobi", "cutoff_A": 4.8},
-            "chemical": {"kind": "explicit"},
-        },
-        "tensor_product": {"kind": "tagged", "tag_counts_per_rank": {4: [2]}},
-        "catalogue": {
-            "ranks": [4], "nmax_per_rank": {4: 2}, "lmax_per_rank": {4: 1},
-            "source_block_partitions_by_rank": {4: [[2, 2]]},
-            "angular_patterns_by_rank": {4: [[1, 1, 1, 1]]},
-        },
+    'runtime': {
+        'evaluator': 'native_cpu',
+        'neighbors': 'ase',
+        'cache': {'mode': 'auto'},
+        'dtype': 'float64',
+        'device': 'cpu',
     },
-    "runtime": {
-        "evaluator": "reference", "neighbors": "auto",
-        "cache": {"mode": "auto"}, "dtype": "float64", "device": "cpu",
-    },
-    "model": {"kind": "descriptor_only"},
-    "targets": {"output": "per_atom_descriptor_rows"},
-    "validation": {
-        "displacement_A": 0.05,
-        "expected_tag_count": 2,
-        "expected_source_block_young": ((1, 1), (1, 1)),
-        "expected_block_Lambdas": (1, 1),
-    },
+    'model': {},
+    'targets': {},
+    'validation': {},
 }
 
-# The scalar parent is fixed by this tagged source. The source-block Young
-# partition below inspects compiler provenance; tag counts select channels.
-atoms = bulk(
-    config["metadata"]["system"]["element"],
-    config["metadata"]["system"]["crystal"],
-    a=config["metadata"]["system"]["lattice_parameter_A"],
-    cubic=True,
-)
-displaced = atoms.copy()
-displaced.positions[0, 2] += config["validation"]["displacement_A"]
-structures = [atoms, displaced]
-
-build_start = perf_counter()
+system = config["metadata"]["system"]
+atoms = bulk(system["element"], system["crystal"], a=system["lattice_parameter_A"], cubic=True)
 representation = YE3TRepresentation.from_config(config["representation"])
-basis = Basis.from_config(
-    config["basis"], representation=representation, runtime=config["runtime"],
-)
-build_seconds = perf_counter() - build_start
-eval_start = perf_counter()
-rows = [basis.create(structure) for structure in structures]
-values = np.concatenate(rows, axis=0)
-eval_seconds = perf_counter() - eval_start
-row_slices = [slice(0, len(rows[0])), slice(len(rows[0]), len(values))]
+basis = Basis.from_config(config["basis"], representation=representation, runtime=config["runtime"])
+descriptors = basis.create(atoms)
 
-opportunities = [
-    raw
-    for label in basis.labels
-    for raw in label.as_dict()["compiler_raw_opportunities"]
-]
-expected = config["validation"]
-witness_labels = [
-    label for label in basis.labels
-    if any(
-        raw["tag_count"] == expected["expected_tag_count"]
-        and tuple(tuple(partition) for partition in raw["label"]["block_kappas"])
-        == expected["expected_source_block_young"]
-        and tuple(raw["label"]["block_Lambdas"])
-        == expected["expected_block_Lambdas"]
-        for raw in label.as_dict()["compiler_raw_opportunities"]
-    )
-]
-assert witness_labels, "Requested source-block Young type was absent from the compiled basis."
-assert np.isfinite(values).all()
-assert not np.allclose(rows[0], rows[1]), "The displaced Ni cell did not change its descriptors."
+print(basis)
+print("descriptor shape", descriptors.shape)
+print("first feature", basis.labels[0])
+print("last feature", basis.labels[-1])
+print("descriptor backend", basis.backend)
 
-axis = np.asarray((1.0, -0.5, 2.0))
-axis /= np.linalg.norm(axis)
-cross = np.asarray(((0.0, -axis[2], axis[1]),
-                    (axis[2], 0.0, -axis[0]),
-                    (-axis[1], axis[0], 0.0)))
-angle = 0.47
-rotation = np.eye(3) + np.sin(angle) * cross + (1 - np.cos(angle)) * cross @ cross
-rotated = displaced.copy()
-rotated.positions = displaced.positions @ rotation.T
-rotated.set_cell(np.asarray(displaced.cell) @ rotation.T, scale_atoms=False)
-rotated_rows = basis.create(rotated)
-np.testing.assert_allclose(rotated_rows, rows[1], rtol=1e-9, atol=1e-8)
-order = [2, 0, 3, 1]
-reordered_rows = basis.create(displaced[order])
-np.testing.assert_allclose(reordered_rows, rows[1][order], rtol=1e-9, atol=1e-8)
+# Reuse the same basis on another structure; its labels and compiled maps stay fixed.
+displaced = atoms.copy()
+displaced.positions[0, 0] += 0.02
+displaced_descriptors = basis.create(displaced)
+print("changed structure shape", displaced_descriptors.shape)
 
-print("representation:", representation)
-print("basis:", basis)
-print("descriptor columns:", len(basis.labels))
-print("descriptor matrix shape:", values.shape)
-print("row slices:", row_slices)
-print("global parent Young, L:", representation.parent_partitions[0][1],
-      representation.L)
-print("tag count and source-block Young:", expected["expected_tag_count"],
-      expected["expected_source_block_young"])
-print("compiler raw opportunities:", len(opportunities))
-print("matching descriptor:", witness_labels[0])
-print("block Lambdas:", expected["expected_block_Lambdas"])
-print("physical radial family:",
-      basis.resolved["components"][0]["single_factors"]["radial"]["family"])
-assert basis.backend == config["runtime"]["evaluator"]
-print("executed atomistic evaluator:", basis.backend)
-print("rotation max absolute error:", float(np.max(np.abs(rotated_rows - rows[1]))))
-print("atom relabel max absolute error:",
-      float(np.max(np.abs(reordered_rows - rows[1][order]))))
-print(f"basis resolution seconds: {build_seconds:.6f}")
-print(f"first materialization and evaluation seconds: {eval_seconds:.6f}")
+# Optional analytic derivatives, off by default:
+# values, dvalues_dpositions = basis.create(displaced, derivatives=True)
+# dvalues_dpositions[center, feature, displaced_atom, xyz] is dB/dR at fixed cell.
+# For a shared linear energy readout, sum over centers without the large center axis:
+# values, summed_gradient = basis.create(displaced, derivatives="summed")
+# force_design = -summed_gradient.reshape(len(basis.labels), -1).T

@@ -28,7 +28,7 @@ from ye3t_methods.atomistic.ace.linear_ace import (
 )
 from ye3t_methods.atomistic.tagged_cauchy_image import (
     TaggedCauchyImageLinearModel,
-    load_tagged_cauchy_image_model,
+    _load_tagged_cauchy_image_payload,
 )
 from ye3t_methods.atomistic.cluster_phi import (
     HybridACEPhiCalculator,
@@ -46,6 +46,9 @@ from .config import (BasisResolution, CataloguePreview,
 
 
 _FIT_UNSET = object()
+# Match the native tagged model reader's finite file budget. All schema,
+# coefficient, provenance and integrity checks still run after this read.
+_JSON_MODEL_MAX_BYTES = 512 * 1024 * 1024
 
 
 def _full_m_json_ready(value):
@@ -491,6 +494,11 @@ class FeatureLabel:
         if self.source == "tagged_carriers":
             return (f"[{self.feature_index}] B N={fields['N']} L={fields['L']} "
                     f"tags={fields['tag_count']} {self.identity}")
+        if self.source == "shell_density":
+            label = fields["compiler_label"]
+            return (f"[{self.feature_index}] B N={fields['N']} L=0 "
+                    f"shell_type={tuple(label['shell_partition'])} "
+                    f"block_kappas={label['block_kappas']} {self.identity}")
         raw = fields["compiler_raw_opportunities"]
         if raw and "tag_kappa" not in raw[0]:
             tag_counts = sorted({int(item["tag_count"]) for item in raw})
@@ -1028,6 +1036,11 @@ class Basis:
         Outputs: A Basis with catalogue preview and frozen resolution report.
         Does not: Materialize coefficients until create, labels, or fit.
         """
+        if isinstance(config, Mapping) and config.get("tensor_product", {}).get("kind") == "shell_density":
+            if compiled_plan is not None or compiled_cauchy_artifact is not None:
+                raise ValueError("Shell scalar construction compiles its canonical source request.")
+            from .shell_linear import initialize_shell_basis
+            return initialize_shell_basis(object.__new__(cls), config, representation, runtime)
         if (isinstance(config, Mapping)
                 and isinstance(config.get("tensor_product"), Mapping)
                 and config["tensor_product"].get("kind") == "ordered_role_cauchy"):
@@ -1182,6 +1195,8 @@ class Basis:
         and ``compile``, then supply the artifact to ``Basis.from_config``.
         The request contains the same record and feature caps used at fit time.
         """
+        if self.source == "shell_density":
+            return deepcopy(self._resolved["request"])
         if self.source != "configured" or len(self._resolved["components"]) != 1:
             raise ValueError("A Cauchy compiler request requires one configured component.")
         component = self._resolved["components"][0]
@@ -1610,8 +1625,15 @@ class Basis:
         raw_by_rank = {rank: int(catalogue["max_features_per_rank"][str(rank)])
                        for rank in ranks}
         raw_count = sum(raw_by_rank.values())
+        # Use the existing production polynomial evaluator for configured
+        # auto/native requests; explicit tensor/reference requests remain
+        # available for independent comparisons.
+        requested_evaluator = self._resolved["runtime"]["evaluator"]
+        polynomial_backend = {"native_cpu": "native", "auto": "auto",
+                              "torch": "reference", "reference": "reference"}[requested_evaluator]
         supplied_artifact = getattr(self, "_compiled_cauchy_artifact", None)
-        if len(ranks) == 1 and supplied_artifact is None:
+        cache_mode = self._resolved["runtime"]["cache"]["mode"]
+        if len(ranks) == 1 and supplied_artifact is None and cache_mode == "auto":
             rank = ranks[0]
             materialized = Basis(
                 elements=self.elements, source="tagged_cauchy_image", cutoff=self.cutoff,
@@ -1625,7 +1647,7 @@ class Basis:
                    if "angular_patterns_by_rank" in component else {}),
                 max_records_per_rank=record_counts[rank],
                 max_features_per_rank=raw_count,
-                backend="reference", compiler_validation="full",
+                backend=polynomial_backend, compiler_validation="full",
             )
             descriptor = materialized._descriptor
             labels = materialized.labels
@@ -1636,13 +1658,13 @@ class Basis:
                 "tagged_cauchy_image": {
                     "catalogue": catalogue,
                     "cutoff_A": self.cutoff,
-                    "compiled_cache_dir": default_linear_cache_directory()
-                        / "compiler" / "tagged_cauchy_image",
+                    "compiled_cache_dir": (None if cache_mode == "off" else
+                        default_linear_cache_directory() / "compiler" / "tagged_cauchy_image"),
                     "compiler_validation": "full",
                     **({"compiled_artifact": supplied_artifact}
                        if supplied_artifact is not None else {}),
                 },
-                "backend": "reference",
+                "backend": polynomial_backend,
             })
             compiled = descriptor.metadata["tagged_cauchy_image_compiled"]
             labels = _tagged_labels(
@@ -1657,7 +1679,10 @@ class Basis:
                 len(labels) != len(compiled.payload["image_coordinate_provenance"])):
             raise RuntimeError("Configured tagged physical image differs from compiler preview or labels.")
         self.source = "tagged_cauchy_image"
-        self.backend = "reference"
+        self.backend = ("native_cpu" if requested_evaluator == "native_cpu" else
+                        descriptor.metadata["tagged_cauchy_image_evaluator"].backend)
+        descriptor.metadata["tagged_cauchy_image_evaluator"].native_cache_mode = (
+            None if cache_mode == "auto" else cache_mode)
         self._descriptor = descriptor
         self._labels = labels
 
@@ -1854,6 +1879,9 @@ class Basis:
 
     @property
     def labels(self):
+        if self.source == "shell_density":
+            from .shell_linear import materialize_shell_basis
+            materialize_shell_basis(self)
         if self.source == "configured":
             self._materialize_configured()
         if self.source == "legacy_composite":
@@ -1879,7 +1907,61 @@ class Basis:
     def resolved(self):
         return deepcopy(self._resolved)
 
-    def create(self, atoms):
+    def create(self, atoms, *, derivatives=False):
+        """Evaluate descriptors; optionally return tagged position derivatives.
+
+        By default return the descriptor array. For scalar tagged image bases,
+        ``derivatives=True`` (or ``"full"``) returns ``(values, jacobian)`` with axes
+        ``[center, feature, displaced_atom, xyz]`` for the Jacobian. It is
+        dB/dR at fixed cell, in descriptor units per Angstrom. This option uses
+        the analytic product-rule evaluator, including when values-only calls
+        select the complete native CPU kernel. ``derivatives="summed"`` returns
+        ``[feature, displaced_atom, xyz]`` derivatives of the sum over centers,
+        without allocating the center-by-atom array. Negating and transposing
+        these rows gives a force design matrix for a shared linear readout.
+        Species-dependent fits use the fitting API's species-separated rows.
+        Other sources reject this option.
+        """
+        if not isinstance(derivatives, bool) and derivatives not in ("full", "summed"):
+            raise ValueError("derivatives must be False, True, 'full', or 'summed'.")
+        if self.source == "configured":
+            self._materialize_configured()
+        if derivatives:
+            if self.source == "portable_linear" and derivatives == "summed":
+                from .portable_archive import portable_feature_design_row
+                row = portable_feature_design_row(self._portable, atoms)
+                return row["site_features"], -row["forces"].T.reshape(len(self.labels), len(atoms), 3)
+            if self.source != "tagged_cauchy_image":
+                raise NotImplementedError(
+                    "Per-center position derivatives currently require a scalar tagged image basis.")
+            evaluator = (self._loaded_tagged_model.evaluator
+                         if hasattr(self, "_loaded_tagged_model") else
+                         self._descriptor.metadata["tagged_cauchy_image_evaluator"])
+            symbols = atoms.get_chemical_symbols()
+            if set(symbols) - set(evaluator.type_map):
+                raise ValueError("Structure contains a species outside the tagged basis.")
+            with torch.no_grad():
+                edges, _, values, edge_derivatives = evaluator.materialize(
+                    np.asarray(atoms.positions), [evaluator.type_map[name] for name in symbols],
+                    cell=np.asarray(atoms.cell.array), pbc=np.asarray(atoms.pbc))
+                if derivatives == "summed":
+                    from .atomistic.tagged_cauchy_linear import position_jacobian_from_edge_derivative
+                    jacobian = position_jacobian_from_edge_derivative(
+                        edge_derivatives, edges, len(atoms), evaluator.feature_count)
+                    return values.cpu().numpy(), jacobian.cpu().numpy()
+                # Keep the descriptor center axis when scattering dB/d(displacement).
+                # A periodic image of the center has equal and opposite contributions.
+                count = len(atoms)
+                jacobian = edge_derivatives.new_zeros(
+                    (count * count, evaluator.feature_count, 3))
+                centers, neighbors = edges
+                jacobian.index_add_(0, centers * count + neighbors, edge_derivatives)
+                jacobian.index_add_(0, centers * count + centers, -edge_derivatives)
+                jacobian = jacobian.reshape(count, count, evaluator.feature_count, 3)
+            return (values.cpu().numpy(), jacobian.permute(0, 2, 1, 3).cpu().numpy())
+        if self.source == "shell_density":
+            from .shell_linear import shell_geometry
+            return shell_geometry(self, atoms)["values"]
         if self.source == "ordered_role_cauchy":
             raise ValueError("Ordered role factors use create_factors with role-by-m multiplets.")
         if self.source == "explicit_phi":
@@ -1945,6 +2027,7 @@ class Basis:
                     torch.as_tensor([evaluator.type_map[name] for name in symbols],
                                     dtype=torch.long),
                     cell=np.asarray(atoms.cell.array), pbc=np.asarray(atoms.pbc),
+                    derivatives=False,
                 )[2].detach().cpu().numpy()
             if (values.shape != (len(atoms), len(self.labels)) or
                     not np.isrealobj(values) or not np.isfinite(values).all()):
@@ -1957,7 +2040,12 @@ class Basis:
             type_map = {name: index for index, name in enumerate(self.elements)}
             values = _bar_phi_feature_rows(model, atoms, type_map, forces=False, stress=False)[3]
         else:
-            values = self._descriptor.create(atoms)
+            if self.source == "tagged_cauchy_image" and self.backend == "native_cpu":
+                values = self._descriptor.create(
+                    atoms, backend="native_cpu",
+                    neighbors=self._resolved.get("runtime", {}).get("neighbors", "auto"))
+            else:
+                values = self._descriptor.create(atoms)
         if torch.is_tensor(values):
             values = values.detach().cpu().numpy()
         rows = np.asarray(values)
@@ -2113,9 +2201,9 @@ class Basis:
             raise ArithmeticError("Ordered Phi physical evaluator returned invalid axes or values.")
         return real.detach().cpu().numpy()
 
-    def create_many(self, structures):
+    def create_many(self, structures, *, derivatives=False):
         """Evaluate one ordered per-atom descriptor array per structure."""
-        return tuple(self.create(atoms) for atoms in structures)
+        return tuple(self.create(atoms, derivatives=derivatives) for atoms in structures)
 
     def describe(self, index, format="text"):
         label = self.labels[int(index)]
@@ -2151,7 +2239,6 @@ class Basis:
                     f"features={len(self.labels)})")
         if hasattr(self, "_resolution"):
             return (f"Basis(source={self.source}, elements={self.elements}, cutoff_A={self.cutoff:g}, "
-                    f"resolution_sha256={self._resolution.sha256}, "
                     f"create_available={self._resolution.capability_report['basis_create_available']})")
         if self.source == "legacy_composite":
             return (f"Basis(source=legacy_composite, elements={self.elements}, "
@@ -2637,9 +2724,26 @@ def _fit_sklearn_design(blocks, method, params, column_order):
     y = np.concatenate([block[1] for block in blocks], axis=0)
     if not np.isfinite(X).all() or not np.isfinite(y).all():
         raise ValueError("The scikit-learn design contains nonfinite values.")
-    estimator = _make_sklearn_estimator(method, sklearn_params=params)
-    estimator.fit(X, y)
-    coefficients = np.asarray(estimator.coef_, dtype=np.float64).reshape(-1)
+    options = dict(params or {})
+    scaling = options.pop("column_scaling", "none")
+    if scaling not in {"none", "rms"}:
+        raise ValueError("column_scaling must be none or rms.")
+    scales = np.ones(X.shape[1], dtype=np.float64)
+    if scaling == "rms":
+        # A single scale per compiler column applies to E, F and stress rows.
+        # No centering: derivative rows and per-species E0 columns retain their
+        # meaning. Fit X/S, then transport beta and its covariance back to X.
+        # Reference: scikit-learn preprocessing and ARDRegression documentation
+        # (linked with the equations in docs/scikit_linear_fit.rst).
+        maxima = np.max(np.abs(X), axis=0)
+        nonzero = maxima > 0
+        scales[nonzero] = maxima[nonzero] * np.sqrt(np.mean(
+            (X[:, nonzero] / maxima[nonzero]) ** 2, axis=0))
+        if not np.isfinite(scales).all() or np.any(scales <= 0):
+            raise FloatingPointError("Design column RMS scales must be finite and positive.")
+    estimator = _make_sklearn_estimator(method, sklearn_params=options)
+    estimator.fit(X / scales, y)
+    coefficients = np.asarray(estimator.coef_, dtype=np.float64).reshape(-1) / scales
     if coefficients.shape != (X.shape[1],) or not np.isfinite(coefficients).all():
         raise FloatingPointError("The scikit-learn fit returned invalid coefficients.")
     def plain(value):
@@ -2658,6 +2762,10 @@ def _fit_sklearn_design(blocks, method, params, column_order):
     metadata = {"fit_method": method, "sklearn_params": plain(dict(params or {})),
                 "design_column_order": column_order, "n_rows": int(X.shape[0]),
                 "n_cols": int(X.shape[1])}
+    if scaling != "none":
+        metadata["design_scaling"] = {"kind": scaling, "column_scales": scales.tolist(),
+                                      "centered": False, "fit_rows": "weighted_training_only",
+                                      "saved_coefficient_coordinates": "original_compiler_columns"}
     if method == "ardregression":
         precision = np.asarray(estimator.lambda_, dtype=np.float64)
         threshold = float(estimator.threshold_lambda)
@@ -2665,6 +2773,7 @@ def _fit_sklearn_design(blocks, method, params, column_order):
         covariance = np.asarray(estimator.sigma_, dtype=np.float64)
         if covariance.shape != (active.size, active.size):
             raise RuntimeError("ARD posterior covariance does not match active columns.")
+        covariance = covariance / scales[active, None] / scales[None, active]
         metadata["predictive_uncertainty"] = {
             "schema": "ye3t_linear_ard_posterior_v1",
             "status": "python_offline_only",
@@ -2675,6 +2784,9 @@ def _fit_sklearn_design(blocks, method, params, column_order):
             "noise_precision": float(estimator.alpha_),
             "threshold_lambda": threshold,
             "variance_formula": "x_active @ sigma @ x_active.T (epistemic readout only)",
+            **({"coefficient_precision_coordinates": "rms_scaled_design",
+                "covariance_coordinates": "original_compiler_columns"}
+               if scaling != "none" else {}),
         }
     return coefficients, metadata
 
@@ -2693,6 +2805,14 @@ def _combined_design_columns(basis, fit_offsets):
                         "label_identity": "E0:" + name}
                        for name in basis.elements)
     return columns
+
+
+def _configured_tagged_row_cache(basis):
+    """Share the configured target-free row policy across scalar fit workflows."""
+    mode = basis._resolved.get("runtime", {}).get("cache", {}).get("mode", "off")
+    directory = (None if mode == "off" else
+                 default_linear_cache_directory() / "geometry_rows" / "tagged_cauchy_image")
+    return directory, mode
 
 
 def _combined_scalar_geometry_row(basis, atoms, forces, stress):
@@ -2722,7 +2842,9 @@ def _combined_scalar_geometry_row(basis, atoms, forces, stress):
             if stress:
                 stress_parts.append(row["stress"].detach().cpu().numpy())
         else:
-            row = tagged_cauchy_image_geometry_row(item._descriptor, atoms)
+            directory, mode = _configured_tagged_row_cache(item)
+            row = tagged_cauchy_image_geometry_row(
+                item._descriptor, atoms, cache_dir=directory, cache_mode=mode)
             energy_parts.append(row["feature_sums"].reshape(-1))
             if forces:
                 force_parts.append(row["force_design"])
@@ -2756,6 +2878,13 @@ def _bind_density_public_labels(basis, fitted):
     expected = tuple(label.identity for label in basis.labels)
     if actual != expected:
         raise RuntimeError("Fitted descriptor columns differ from the Basis label order.")
+    # Preserve the evaluator policy and exact compiler coordinates used by
+    # fitting. The generic symmetric-power policy can use a different gauge.
+    if basis._descriptor is not None:
+        metadata = basis._descriptor.metadata
+        for name in ("factorized_descriptor_runtime_policy", "ordinary_scalar_catalogue"):
+            if metadata.get(name) is not None:
+                fitted.fit_metadata[name] = deepcopy(metadata[name])
     if hasattr(basis, "_resolution"):
         physical_eta_bound = any(str(spec.key).endswith("|physical_eta_bound")
                                  for spec in fitted.descriptor_specs)
@@ -3005,10 +3134,7 @@ class LinearModel:
                     energy_key=request["energy_key"],
                     force_key=request["force_key"],
                     stress_key=request["stress_key"],
-                    fit_E0=request["fit_E0"] if self.basis.source == "combined_scalar"
-                    or len(self.basis._resolution.to_dict()["components"]) > 1
-                    or self.basis._resolution.to_dict()["components"][0]["kind"] == "density"
-                    else None,
+                    fit_E0=request["fit_E0"],
                 )
                 checks = request["validation_checks"]
                 report = {"checks": list(checks), "results": {}}
@@ -3034,14 +3160,15 @@ class LinearModel:
                                                           "absolute_error": error}
                     if "round_trip" in checks:
                         suffix = {"combined_scalar": ".ye3t", "density": ".pt",
-                                  "tagged_cauchy_image": ".ye3t.json"}.get(self.basis.source)
+                                  "tagged_cauchy_image": ".ye3t.json", "shell_density": ".ye3t.json"}.get(self.basis.source)
                         if suffix is None:
                             raise ValueError("Configured round_trip has no supported scalar artifact.")
                         with tempfile.TemporaryDirectory(prefix="ye3t_fit_validate_") as directory:
                             saved = self.write(Path(directory) / ("model" + suffix))
                             restored = LinearModel.read(saved)
                             replay = first.copy()
-                            replay.calc = restored.ase_calculator(evaluator="torch")
+                            replay.calc = restored.ase_calculator(evaluator=(
+                                "auto" if self.basis.source == "shell_density" else "torch"))
                             if (abs(replay.get_potential_energy() - first.get_potential_energy()) > 1e-8 or
                                     not np.allclose(replay.get_forces(), first.get_forces(),
                                                     rtol=0, atol=1e-7) or
@@ -3050,7 +3177,7 @@ class LinearModel:
                                                     rtol=0, atol=1e-8)):
                                 raise ValueError("Configured round_trip validation failed.")
                         report["results"]["round_trip"] = {"passed": True}
-                if self.basis.source == "combined_scalar":
+                if self.basis.source in {"combined_scalar", "shell_density"}:
                     self._fitted["fit_metadata"]["configured_validation"] = report
                     self._fitted["fit_metadata"]["resolved_fit_config"] = request["resolved_fit_config"]
                     self._fitted["fit_metadata"]["resolved_fit_config_sha256"] = request["resolved_fit_config_sha256"]
@@ -3079,6 +3206,9 @@ class LinearModel:
                 self.basis.source == "density" and
                 getattr(self.basis, "_density_full_m", False)):
             raise ValueError("Full-M per-atom fitting requires a seven-section config with per_atom targets.")
+        if self.basis.source == "shell_density":
+            from .shell_linear import materialize_shell_basis
+            materialize_shell_basis(self.basis)
         if self.basis._descriptor is None and self.basis.source != "combined_scalar":
             raise RuntimeError("Fit requires a constructed Basis, not one reloaded from an artifact.")
         prepared = _prepared_training_structures(
@@ -3089,6 +3219,14 @@ class LinearModel:
             method = "ardregression"
         if method not in {"ridge", "linear_regression", "ols", "lasso", "ridgecv", "ardregression"}:
             raise ValueError("fit_method must be ridge, linear_regression, lasso, ridgecv, or ardregression.")
+        if self.basis.source == "shell_density":
+            from .shell_linear import fit_shell_model
+            if method == "ridge" and sklearn_params:
+                raise ValueError("Ridge shell fitting does not accept sklearn_params.")
+            if method != "ridge" and regularization != 1e-8:
+                raise ValueError("For scikit-learn methods set regularization through sklearn_params.")
+            return fit_shell_model(self, prepared, regularization, method, sklearn_params,
+                (energy_weight, force_weight, stress_weight), (energy_key, force_key, stress_key), fit_E0)
         if method == "ridge" and sklearn_params:
             raise ValueError("sklearn_params requires a scikit-learn fit_method.")
         if method != "ridge" and regularization != 1e-8:
@@ -3096,8 +3234,23 @@ class LinearModel:
         weights = (float(energy_weight), float(force_weight), float(stress_weight))
         if any(not np.isfinite(value) or value < 0.0 for value in weights) or not any(weights):
             raise ValueError("Fit weights must be finite, nonnegative, and not all zero.")
-        if fit_E0 is not None and self.basis.source not in {"combined_scalar", "density"}:
-            raise ValueError("fit_E0 requires a density or combined scalar basis.")
+        if fit_E0 is not None and self.basis.source not in {"combined_scalar", "density", "tagged_cauchy_image"}:
+            raise ValueError("fit_E0 requires a supported scalar basis.")
+        if self.basis.source == "tagged_cauchy_image":
+            # Historical direct calls fitted offsets. Configured calls always
+            # supply the user's explicit choice, including fixed references.
+            explicit_fit_E0 = fit_E0 is not None
+            fit_E0 = True if fit_E0 is None else fit_E0
+            if not isinstance(fit_E0, (bool, np.bool_)):
+                raise TypeError("fit_E0 must be a boolean.")
+            if explicit_fit_E0 and fit_E0 and not energy_weight:
+                raise ValueError("Fitting per-species E0 requires positive energy_weight.")
+            if explicit_fit_E0 and fit_E0:
+                composition = np.asarray([
+                    [atoms.get_chemical_symbols().count(name) for name in self.basis.elements]
+                    for atoms in prepared], dtype=np.float64)
+                if np.linalg.matrix_rank(composition) != len(self.basis.elements):
+                    raise ValueError("Fitting per-species E0 requires full column rank in training compositions.")
         if self.basis.source == "density" and fit_E0 is not None:
             if not isinstance(fit_E0, (bool, np.bool_)):
                 raise TypeError("fit_E0 must be a boolean.")
@@ -3314,6 +3467,7 @@ class LinearModel:
                         bias=0.0, basis_mode=None, fit_method=method,
                         fit_metadata={"combined_component": name},
                     )
+                    _bind_density_public_labels(item, fitted[name])
                     position += count
                 else:
                     evaluator = item._descriptor.metadata["tagged_cauchy_image_evaluator"]
@@ -3386,10 +3540,15 @@ class LinearModel:
                 raise RuntimeError("Tagged evaluator width differs from the Basis labels.")
             beta_width = len(species) * feature_count
             blocks = []
+            directory, mode = _configured_tagged_row_cache(self.basis)
             for atoms in prepared:
-                row = tagged_cauchy_image_geometry_row(self.basis._descriptor, atoms)
-                energy_row = np.concatenate((row["feature_sums"].reshape(-1), row["species_counts"]))
-                zero_offsets = np.zeros((len(atoms) * 3, len(species)))
+                row = tagged_cauchy_image_geometry_row(
+                    self.basis._descriptor, atoms, cache_dir=directory, cache_mode=mode)
+                energy_row = row["feature_sums"].reshape(-1)
+                if fit_E0:
+                    energy_row = np.concatenate((energy_row, row["species_counts"]))
+                offset_width = len(species) if fit_E0 else 0
+                zero_offsets = np.zeros((len(atoms) * 3, offset_width))
                 if energy_weight:
                     reference = sum(self.reference_energies.get(name, 0.0)
                                     for name in atoms.get_chemical_symbols())
@@ -3401,15 +3560,19 @@ class LinearModel:
                                    np.sqrt(force_weight) * np.asarray(atoms.arrays[force_key]).reshape(-1)))
                 if stress_weight:
                     blocks.append((np.sqrt(stress_weight) * np.column_stack((
-                        row["stress_design"], np.zeros((6, len(species))))),
+                        row["stress_design"], np.zeros((6, offset_width)))),
                         np.sqrt(stress_weight) * np.asarray(atoms.info[stress_key])))
             coefficients, metadata = _fit_sklearn_design(
-                blocks, method, sklearn_params, "species_major_descriptor_features_then_species_offsets",
+                blocks, method, sklearn_params,
+                "species_major_descriptor_features_then_species_offsets" if fit_E0
+                else "species_major_descriptor_features",
             )
+            metadata["fit_intercept"] = bool(fit_E0)
             beta = coefficients[:beta_width].reshape(len(species), feature_count)
             fitted = TaggedCauchyImageLinearModel(
                 evaluator, {name: beta[index] for index, name in enumerate(species)},
-                {name: coefficients[beta_width + index] for index, name in enumerate(species)},
+                {name: coefficients[beta_width + index] if fit_E0 else 0.0
+                 for index, name in enumerate(species)},
             )
             if self.reference_energies:
                 fitted.reference_terms = {"atomic_energies": dict(self.reference_energies)}
@@ -3477,6 +3640,10 @@ class LinearModel:
             if method != "ridge":
                 config["sklearn_params"] = dict(sklearn_params or {})
             if self.basis.source == "tagged_cauchy_image":
+                config["fit_intercept"] = bool(fit_E0)
+                directory, mode = _configured_tagged_row_cache(self.basis)
+                config["geometry_cache_dir"] = directory
+                config["geometry_cache_mode"] = mode
                 config["stress_weight"] = float(stress_weight)
                 config["stress_key"] = str(stress_key)
                 config["restore_references"] = bool(self.reference_energies)
@@ -3536,6 +3703,14 @@ class LinearModel:
         return prediction
 
     def ase_calculator(self, *, backend=None, evaluator=None, neighbors=None, **kwargs):
+        if self.basis.source == "shell_density":
+            from .shell_linear import shell_calculator
+            if self._fitted is None:
+                raise RuntimeError("Fit or read a shell model before constructing a calculator.")
+            device = kwargs.pop("device", None)
+            if kwargs or backend is not None or evaluator not in {None, "auto", "native", "torch"} or neighbors not in {None, "ase", "auto"}:
+                raise ValueError("Shell calculators accept device, auto/native/torch evaluator, and ASE neighbors.")
+            return shell_calculator(self, device=device, evaluator=evaluator)
         if self._fitted is None:
             raise RuntimeError("Fit or read a model before constructing an ASE calculator.")
         if evaluator is not None and evaluator not in {
@@ -3613,10 +3788,13 @@ class LinearModel:
                 not (configured_pace and neighbors == "ase")):
             backend = "native_cpu"
         if self.basis.source == "portable_linear":
+            if backend == "native_cpu":
+                from .portable_archive import portable_native_calculator
+                return portable_native_calculator(self._fitted, neighbors=neighbors, **kwargs)
             if backend not in (None, "pytorch"):
                 raise ValueError("Portable Ni scalar ASE currently supports the Torch evaluator.")
             if "refit" in self._fitted and backend is None:
-                raise ValueError("Portable Ni refits require evaluator='torch'; no native AUTO plan is saved.")
+                raise ValueError("Portable Ni refits require evaluator='torch' or 'native_cpu'; native tables are prepared on request.")
             from .portable_archive import portable_torch_calculator
 
             return portable_torch_calculator(self._fitted, neighbors=neighbors,
@@ -3703,6 +3881,69 @@ class LinearModel:
             neighbors=neighbors, **kwargs,
         )
 
+    def score(self, structures, *, config=None, evaluator=None, neighbors=None):
+        """Return energy/force/stress RMSE on labeled ASE structures.
+
+        Energies are divided by each structure's atom count before averaging.
+        Forces and stresses are averaged over their individual components.
+        Configured target keys use the same names as ``fit``. Reference labels
+        and calculators on the input structures remain untouched.
+        """
+        settings = {} if config is None else config
+        targets = settings.get("targets", {})
+        runtime = settings.get("runtime", {})
+        keys = {"energy": targets.get("energy", "energy"),
+                "forces": targets.get("forces", "forces"),
+                "stress": targets.get("stress")}
+        if not any(key is not None for key in keys.values()):
+            raise ValueError("Scoring requires at least one labeled target.")
+        calculator = self.ase_calculator(
+            evaluator=evaluator if evaluator is not None else runtime.get("evaluator"),
+            neighbors=neighbors if neighbors is not None else runtime.get("neighbors"))
+        sums = {name: 0.0 for name in keys}
+        counts = {name: 0 for name in keys}
+        frames = 0
+        for reference in structures:
+            if not len(reference):
+                raise ValueError("Scoring requires nonempty structures.")
+            atoms = reference.copy()
+            atoms.calc = calculator
+            for name, key in keys.items():
+                if key is None:
+                    continue
+                if name == "forces" and key in reference.arrays:
+                    expected = reference.arrays[key]
+                elif key in reference.info:
+                    expected = reference.info[key]
+                elif key == name:
+                    expected = (reference.get_potential_energy() if name == "energy" else
+                                reference.get_forces() if name == "forces" else reference.get_stress())
+                else:
+                    raise ValueError(f"Missing {name} target {key!r}.")
+                actual = (atoms.get_potential_energy() if name == "energy" else
+                          atoms.get_forces() if name == "forces" else atoms.get_stress())
+                expected, actual = np.asarray(expected), np.asarray(actual)
+                if name == "stress" and expected.shape == (3, 3):
+                    from ase.stress import full_3x3_to_voigt_6_stress
+                    expected = full_3x3_to_voigt_6_stress(expected)
+                if expected.shape != actual.shape:
+                    raise ValueError(f"{name} target shape {expected.shape} differs from prediction {actual.shape}.")
+                difference = (actual-expected) / (len(atoms) if name == "energy" else 1)
+                if not np.isfinite(difference).all():
+                    raise FloatingPointError(f"Nonfinite {name} target or prediction.")
+                sums[name] += float(np.square(difference).sum())
+                counts[name] += difference.size
+            frames += 1
+        if not frames:
+            raise ValueError("Scoring requires at least one structure.")
+        units = {"energy": "eV_per_atom", "forces": "eV_per_A", "stress": "eV_per_A3"}
+        result = {"structure_count": frames}
+        for name, count in counts.items():
+            if count:
+                result[f"{name}_rmse_{units[name]}"] = float(np.sqrt(sums[name]/count))
+                result[f"{name}_component_count"] = count
+        return result
+
     def predict_uncertainty(self, atoms):
         """Return ARD readout standard deviations in eV for each site and total E.
 
@@ -3788,13 +4029,16 @@ class LinearModel:
                     torch.as_tensor(atom_types, dtype=torch.long),
                     cell=np.asarray(atoms.cell.array), pbc=np.asarray(atoms.pbc),
                 )[2].detach().cpu().numpy()
-            width = len(evaluator.species_order) * (evaluator.feature_count + 1)
+            fit_offsets = metadata.get("fit_intercept", True)
+            width = len(evaluator.species_order) * (evaluator.feature_count + int(fit_offsets))
             design = np.zeros((len(atoms), width), dtype=np.float64)
             for index, species_index in enumerate(atom_types):
                 start = species_index * evaluator.feature_count
                 design[index, start:start + evaluator.feature_count] = features[index]
-                design[index, len(evaluator.species_order) * evaluator.feature_count + species_index] = 1.0
-            order = "species_major_descriptor_features_then_species_offsets"
+                if fit_offsets:
+                    design[index, len(evaluator.species_order) * evaluator.feature_count + species_index] = 1.0
+            order = ("species_major_descriptor_features_then_species_offsets" if fit_offsets
+                     else "species_major_descriptor_features")
         if posterior.get("design_column_order") != order:
             raise ValueError("ARD posterior column order does not match this model.")
         raw_active = posterior["active_column_indices"]
@@ -3852,6 +4096,11 @@ class LinearModel:
             raise ValueError("Density fitted E0 metadata disagrees with the reference energies.")
 
     def write(self, path):
+        if self.basis.source == "shell_density":
+            if self._fitted is None:
+                raise RuntimeError("Fit a shell model before writing it.")
+            from .shell_linear import write_shell_model
+            return write_shell_model(self, path)
         if self._fitted is None:
             raise RuntimeError("Fit or read a model before writing it.")
         if self.basis.source == "combined_scalar":
@@ -4008,10 +4257,14 @@ class LinearModel:
             model = cls(Basis._from_density_bundle(fitted, cutoff, type_map), reference_energies=refs)
         elif target.suffix == ".json":
             with target.open("rb") as handle:
-                payload_bytes = handle.read(256 * 1024 * 1024 + 1)
-            if len(payload_bytes) > 256 * 1024 * 1024:
-                raise ValueError("JSON model artifact exceeds the 256 MiB reader limit.")
+                payload_bytes = handle.read(_JSON_MODEL_MAX_BYTES + 1)
+            if len(payload_bytes) > _JSON_MODEL_MAX_BYTES:
+                raise ValueError(f"JSON model artifact exceeds the {_JSON_MODEL_MAX_BYTES} byte reader limit.")
             payload = json.loads(payload_bytes, object_pairs_hook=_unique_json_object)
+            del payload_bytes
+            if payload.get("schema") == "ye3t_methods_shell_linear_v1":
+                from .shell_linear import read_shell_model
+                return read_shell_model(payload)
             if payload.get("schema") in {"ye3t_methods_density_full_m_per_atom_v1",
                                           "ye3t_methods_density_full_m_per_atom_v2"}:
                 return _read_density_full_m_artifact(payload)
@@ -4135,7 +4388,7 @@ class LinearModel:
                 fitted = _read_legacy_composite(target)
                 model = cls(Basis._from_legacy_composite(fitted))
             else:
-                fitted = load_tagged_cauchy_image_model(target)
+                fitted = _load_tagged_cauchy_image_payload(payload)
                 model = cls(Basis._from_tagged_model(fitted))
         else:
             raise ValueError("Expected a .pt, .phi.pt, .ye3t, or .ye3t.json model.")
@@ -4144,6 +4397,8 @@ class LinearModel:
         return model
 
     def export_lammps(self, path):
+        if self.basis.source == "shell_density":
+            raise ValueError("Shell-role linear models currently export with write() for ASE; LAMMPS shell radial execution is pending.")
         if self._fitted is None:
             raise RuntimeError("Fit or read a model before export.")
         if self.basis.source == "tagged_carriers" or (
@@ -4153,7 +4408,8 @@ class LinearModel:
         if self.basis.source == "legacy_composite":
             raise ValueError("Use the original verified composite artifact for LAMMPS.")
         if self.basis.source == "portable_linear":
-            raise ValueError("Portable Ni scalar bundles have no validated LAMMPS export.")
+            from .portable_archive import export_portable_lammps
+            return export_portable_lammps(self._fitted, path)
         if self.basis.source == "combined_scalar":
             raise ValueError("Combined scalar bundles have no validated joint LAMMPS export.")
         if self.basis.source == "bar_phi":
@@ -4205,6 +4461,9 @@ class LinearModel:
                 else self._fitted.weight)[int(index)])
         elif self.basis.source == "bar_phi":
             coefficient = float(self._fitted.bar_phi_weight.detach().cpu()[int(index)])
+        elif self.basis.source == "shell_density":
+            weights = self._fitted["beta"].reshape(len(self.basis.elements), len(self.labels))
+            coefficient = {name: float(weights[k, int(index)]) for k, name in enumerate(self.basis.elements)}
         else:
             coefficient = {
                 name: float(self._fitted.beta_by_species[name][int(index)])

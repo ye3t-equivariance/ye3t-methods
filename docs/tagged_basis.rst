@@ -31,8 +31,9 @@ For a new scalar fit, construct ``ye3t.YE3TRepresentation`` and pass it to
 ``Basis.from_config`` before fitting ``LinearModel``. The seven-section
 ``examples/quickstart/tagged_fit.py`` demonstrates this path. Its
 ``basis.catalogue.angular_patterns_by_rank`` explicitly selects the
-rank-four ``(1,1,1,1)`` input pattern and two repeated source blocks. The
-example fits a column with nontrivial local Young partitions ``(1,1)`` and
+input angular patterns at ranks 1–8, including the rank-four ``(1,1,1,1)``
+pattern and repeated source blocks. Its scalar features include columns
+with nontrivial local Young partitions ``(1,1)`` and
 nonzero block angular outputs ``(1,1)``, while the final energy has ``L=0``.
 The field accepts a nonempty list
 of unique rank-length patterns for every selected rank, with angular degrees
@@ -40,6 +41,13 @@ within that rank's ``lmax_per_rank``. It currently applies to scalar tagged
 bases only. Omitting it asks the compiler for every permitted pattern up to
 the angular cap and can change the fitted column set. The example's
 ``native_cpu`` evaluator requires the installed tagged C ABI library.
+
+``examples/long/tagged_fit_large.py`` expands this catalogue to 691 independent
+features with additional high-rank radial channels and a rank-four
+``(2,2,2,2)`` angular pattern. It uses the same public workflow and includes a
+complete fit/save/reload test. Allow substantial initial compilation time.
+The full workflow exceeded 10 GiB of process memory in the development check;
+the saved JSON model is approximately 256 MiB.
 
 For the tested homogeneous two-tag case, ``N=4``, input ``l=1``, and
 ``s=2``, the compiler includes a nontrivial tag sector
@@ -58,7 +66,7 @@ channels, and tag counts separately.
 Ordered tagged carriers
 -----------------------
 
-``examples/tagged_carriers_ase.py`` evaluates raw zero-, one-, and two-tag
+The historical ``tools/legacy_examples/tagged_carriers_ase.py`` inspects raw zero-, one-, and two-tag
 carriers on a Ni ASE cell. Its config exposes species, cell size, cutoff,
 rank and radial/angular caps, tag counts, sector policy, and evaluator backend.
 The result has separate center, edge, and ordered edge-pair value blocks.
@@ -175,72 +183,45 @@ Building, fitting, and inspecting
 ---------------------------------
 
 The runnable ``examples/quickstart/tagged_descriptors.py`` script shows a Ni fcc
-cell, a displaced copy, one visible config, descriptor row slices, and a check
-for nontrivial local Young and angular intermediates. Its configured object flow is:
+cell and a complete editable seven-section config. It uses ranks 1–8, radial
+counts 4,3,2,2,2,2,2,2 and angular caps 0,4,2,2,1,1,1,1. The selected
+angular patterns include scalar factors, vector pairs and rank-four quadrupole
+products. Source partitions include repeated blocks with nontrivial internal
+Young/angular couplings. The parent is symmetric, scalar and even.
 
 .. code-block:: python
 
-   from ye3t import YE3TRepresentation
-   from ye3t_methods import Basis
-
    representation = YE3TRepresentation.from_config(config["representation"])
-   basis = Basis.from_config(
-       config["basis"], representation=representation, runtime=config["runtime"],
-   )
+   basis = Basis.from_config(config["basis"], representation=representation,
+                             runtime=config["runtime"])
    rows = basis.create(atoms)
    print(rows.shape, basis.labels[0].as_dict())
 
-The script shows the complete editable seven-section config. Its tagged
-component uses shifted-Jacobi radial factors, two tags, a rank-four
-``l=1`` angular pattern, and the symmetric scalar parent. The selected
-two-block route has local Young types ``(1,1)`` and block angular values
-``(1,1)`` which couple to global ``L=0``; its global Young parent remains
-``(4)``. For existing descriptor-first code,
-``YE3TDescriptors.ye3t_basis(config)`` accepts the lower-level catalogue
-format described in :doc:`api_reference`.
+``tag_counts_per_rank`` selects one tag at rank one and two tags at higher
+ranks in this example. ``angular_patterns_by_rank`` and
+``source_block_partitions_by_rank`` select physical input contents; the compiler
+determines their independent scalar image and coupling coefficients.
+The default native CPU evaluator uses the compiled polynomial plan.
+Full mathematical validation is performed when loading the compiled source;
+the persistent cache avoids recomputing its coefficients for identical requests.
+Cold compilation cost depends on the requested contents and angular resolution.
 
-Configured ``tag_counts_per_rank`` and lower-level ``tag_counts_by_rank`` select
-raw tag-count opportunities before the exact image is formed. ``rank`` fixes
-the tensor order in the direct ``Basis`` constructor; the configured
-catalogue states ranks explicitly.
-``nmax_per_rank`` and
-``lmax_per_rank`` are explicit maps from rank to radial and angular caps.
-``angular_patterns_by_rank`` restricts the rank-four source factors to four
-``l=1`` channels; the angular cap alone would also permit ``l=0``.
-``source_block_partitions_by_rank`` requests one four-factor source block.
-This general catalogue request has a different column inventory from the
-bounded rank-four paper artifact. ``cutoff`` is the global
-neighbor cutoff in angstroms. Optional ``pair_cutoffs_A`` sets radial cutoffs
-for a complete ordered species-pair map; each value must be at most ``cutoff``.
-The shifted-Jacobi radial source has no adjustable ``radial_lambda`` parameter.
-A different radial family requires a separate compiler source. The coefficient catalogue
-is compiled exactly and cached. General
-tagged scalar catalogues use YE3T's exact requested-weight angular compiler.
-Set ``angular_basis_backend="legacy_exact"`` in ``Basis`` or its catalogue
-to use the full-sector exact oracle. Saved models retain their compiled
-coefficient convention.
-It checks that final real-tesseral scalar coefficients have no imaginary part.
-Imaginary entries in the intermediate complex-to-real basis matrix are
-expected and do not imply complex descriptor values. The direct tagged
-``Basis`` constructor selects a native polynomial evaluator when available and
-reports it in ``basis.resolved["polynomial_backend"]``. The configured route
-records its requested evaluator in ``basis.resolved["runtime"]["evaluator"]``.
-Its backend setting is separate from coefficient compilation. The generic
-``numeric_cached`` subduction and fast Clebsch--Gordan route is unavailable
-for this tagged-image request. Cold rank-four Ni compilation can take tens of
-seconds; a repeated request reloads the persistent cache more quickly.
-The example's ``expected_source_block_young`` checks the compiled general
-catalogue. It identifies a source-block type and leaves the global parent
-unchanged. The tagged direct constructor fixes
-that parent to the symmetric partition ``(N)`` with ``L=0`` and even parity.
-An explicit ``angular_patterns_by_rank`` entry with odd total angular degree
-is rejected for this scalar catalogue.
-``max_rank`` belongs to ordinary density and is rejected here. Inspect the
-actual column count and each label's ``compiler_coordinate_provenance`` and
-``compiler_raw_opportunities`` to identify the columns after image reduction.
-The ``tag_kappa`` and ``role_kappa`` fields identify the compiler carriers on
-which those partitions act; they are not interchangeable with a parent
-``lambda`` or with the public column ordinal.
+``examples/quickstart/tagged_fit.py`` fits this same catalogue to labeled ASE
+structures. ``saved_ase_export.py`` loads that fitted model and writes a
+LAMMPS AUTO model and input. The complete saved paper catalogue can be inspected
+using ``paper_ni_portable_ase.py``.
+
+For existing descriptor-first applications, ``YE3TDescriptors.ye3t_basis``
+accepts the lower-level catalogue format in :doc:`api_reference`.
+The direct ``Basis`` constructor uses ``rank`` for a single tensor order and
+``tag_counts`` for its tag counts. The configured form uses explicit maps
+over ranks. Both resolve their labels through the core compiler.
+The shifted-Jacobi source uses ``cutoff_A`` in the standardized config and
+has no adjustable radial-lambda parameter. General scalar tagged compilation
+uses the exact requested-weight angular compiler; ``legacy_exact`` selects
+the full-sector oracle. Final scalar coefficients must be real in the
+real-tesseral convention. Intermediate complex-to-real conversion matrices
+can contain imaginary entries.
 
 The compact linear model fits precomputed energies and forces and can include
 ASE Voigt stress rows with ``stress_weight``. The fixture supplies these labels.

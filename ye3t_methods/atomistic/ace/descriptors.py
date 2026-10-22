@@ -3115,7 +3115,7 @@ class YE3TDescriptorSet:
 
     def create(self, atoms, *, real_if_scalar=True, descriptor_evaluation=None,
                require_all_sectors=False, backend=None, native_library=None,
-               execution_policy="direct"):
+               execution_policy="direct", neighbors="auto"):
         """Evaluate this space on ASE atoms.
 
         Tagged pooled carriers retain unreduced compiler coordinates and complete
@@ -3285,7 +3285,7 @@ class YE3TDescriptorSet:
                 from ye3t_methods.atomistic.tagged_cauchy_native import _TaggedCauchyNativeRuntime
 
                 key = (str(native_library or os.environ.get("YE3T_TAGGED_C_API_LIBRARY")),
-                       str(execution_policy))
+                       str(execution_policy), str(neighbors))
                 cache = self.metadata.setdefault("_tagged_native_descriptor_runtimes", {})
                 if key not in cache:
                     zeros = {name: np.zeros(evaluator.feature_count)
@@ -3294,8 +3294,8 @@ class YE3TDescriptorSet:
                         evaluator, zeros, {name: 0.0 for name in evaluator.species_order})
                     cache[key] = _TaggedCauchyNativeRuntime(
                         model, library_path=native_library,
-                        execution_policy=execution_policy)
-                return cache[key].evaluate_atoms(atoms, return_features=True)[-1]
+                        execution_policy=execution_policy, neighbors=neighbors)
+                return cache[key].evaluate_atoms(atoms, features_only=True)
             if backend is not None:
                 raise ValueError("Tagged descriptor backend must be native_cpu or omitted to use the configured evaluator.")
             symbols = atoms.get_chemical_symbols()
@@ -3307,6 +3307,7 @@ class YE3TDescriptorSet:
                 _edges, _displacements, values, _derivatives = evaluator.materialize(
                     np.asarray(atoms.positions, dtype=np.float64), atom_types,
                     cell=np.asarray(atoms.cell.array, dtype=np.float64), pbc=atoms.pbc,
+                    derivatives=False,
                 )
             return values.detach().cpu().numpy()
         if descriptor_evaluation is not None:
@@ -6375,7 +6376,9 @@ class YE3TDescriptors:
                 compiled = compile_coupling(request, cache_dir=cache_dir)
             else:
                 if (not isinstance(compiled, Mapping) or
-                        compiled.get("schema") != "ye3t_tagged_cauchy_carrier_catalogue_v1" or
+                        compiled.get("schema") not in {
+                            "ye3t_tagged_cauchy_carrier_catalogue_v1",
+                            "ye3t_tagged_cauchy_carrier_catalogue_v2"} or
                         not isinstance(compiled.get("certificate"), Mapping) or
                         not compiled["certificate"].get("passed") or
                         not isinstance(compiled.get("sources"), (tuple, list)) or
@@ -6557,7 +6560,7 @@ class YE3TDescriptors:
                     # A new cache entry always receives the full independent
                     # replay; certificate mode applies only to subsequent loads.
                     from ye3t.couplings import CompiledTaggedCauchyImage
-                    compiled = CompiledTaggedCauchyImage.from_dict(compiled.to_dict())
+                    compiled.validate()
                     if cache_path is not None:
                         import tempfile
                         cache_path.parent.mkdir(parents=True, exist_ok=True)
@@ -8060,6 +8063,7 @@ class YE3TModel:
                     stress_weight=stress_weight,
                     ridge_alpha=ridge_value,
                     geometry_cache_dir=cfg.pop("geometry_cache_dir", None),
+                    geometry_cache_mode=cfg.pop("geometry_cache_mode", "auto"),
                     reference_target_metadata=target_transform_metadata,
                     fit_intercept=cfg.pop("fit_intercept", True),
                     **structure_weight_options,

@@ -1,16 +1,11 @@
-# Experimental source examples
+# Source-specific workflows
 
-These scripts exercise source-specific APIs outside the seven-section
-`YE3TRepresentation -> Basis -> LinearModel` workflow. For a scalar density
-or tagged model, start with the configured scripts in `examples/quickstart`.
+Use the standardized [shell-density linear fit](../quickstart/shell_density_fit.py)
+for role-resolved shell features, and the [explicit-Phi cluster](../advanced/explicit_phi_cluster.py)
+for the selected rank-eight coupled tensor.
 
-- `phi_fit.py` fits a scalar `bar_phi` pair/star motif to the bundled
-  H3 labels and saves a Torch model.
-- `phi_depth2.py` evaluates an explicit depth-two motif.
-- `role_density_fit.py` fits a lifted-density model to manufactured
-  Ta labels. Lifted density mainly changes the radial basis; this example is
-  not evidence for a general nontrivial permutation-sector physical image.
-
-Run each script from the source checkout after installing `ye3t-methods`.
-These scripts use source-specific configs. Use the configured quickstarts for
-new projects.
+Historical scalar motif-average and role-density scripts are preserved in
+[tools/legacy_examples](../../tools/legacy_examples/README.md), with regression
+coverage and migration hashes. General explicit-Phi orbit-sum potential fitting
+still requires additional source implementation; a config change alone cannot
+supply that capability.

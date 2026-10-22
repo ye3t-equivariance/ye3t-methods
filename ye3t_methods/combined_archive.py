@@ -219,8 +219,11 @@ def write_combined_scalar_archive(model, path):
                 "tagged_cauchy_image_compiled"].self_hash
             with tempfile.TemporaryDirectory(prefix="ye3t_combined_tagged_") as directory:
                 target = Path(directory) / "tagged.ye3t.json"
-                fitted.export_lammps(target)
-                members[record["member"]] = target.read_bytes()
+                payload = fitted.export_lammps(target)
+                # Embed the same hash-bound payload in compact JSON, as for
+                # other members. Pretty-print whitespace can otherwise exceed
+                # the member limit for ordinary multi-rank catalogues.
+                members[record["member"]] = _json_bytes(payload)
             weights[f"c{index}"] = np.concatenate(tuple(
                 fitted.beta_by_species[element].detach().cpu().numpy()
                 for element in basis.elements))
@@ -288,7 +291,7 @@ def write_combined_scalar_archive(model, path):
 
 def read_combined_scalar_archive(path):
     """Read only verified configured components and their indexed readout."""
-    from .linear import Basis, _combined_design_columns
+    from .linear import Basis, _combined_design_columns, _bind_density_public_labels
     from .config import resolve_linear_fit_config
 
     with Path(path).open("rb") as handle:
@@ -412,6 +415,7 @@ def read_combined_scalar_archive(path):
                 bias=0.0, basis_mode=None, fit_method="combined_archive",
                 fit_metadata={"combined_component": name},
             )
+            _bind_density_public_labels(basis, fitted[name])
         else:
             source = sources[index]
             rep = YE3TRepresentation.from_config(representation[index]["input"])

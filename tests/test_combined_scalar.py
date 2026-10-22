@@ -591,7 +591,7 @@ def test_combine_independently_configured_pace_and_jacobi(tmp_path, monkeypatch)
         "np.testing.assert_allclose(native.get_potential_energy(), reference.get_potential_energy(), atol=1e-8)",
     ))
     result = subprocess.run([sys.executable, "-c", code, str(artifact), str(fresh_cache)],
-                            capture_output=True, text=True, env=os.environ.copy())
+                            cwd=tmp_path, capture_output=True, text=True, env=os.environ.copy())
     assert result.returncode == 0, result.stderr
     assert not fresh_cache.exists()
     with zipfile.ZipFile(artifact) as source:
@@ -796,7 +796,8 @@ def test_combined_species_offsets_are_applied_once(tmp_path):
         assert stress_rows[index] @ coefficient == pytest.approx(independent, abs=3e-5)
 
 
-def test_combined_ard_uncertainty_uses_component_site_columns(tmp_path):
+@pytest.mark.parametrize('scaling', ['none', 'rms'])
+def test_combined_ard_uncertainty_uses_component_site_columns(tmp_path, scaling):
     pytest.importorskip("sklearn")
     ordinary = Basis(elements=["Ni"], source="density", cutoff=3.3,
                      max_rank=1, nmax=1, lmax=0,
@@ -819,7 +820,8 @@ def test_combined_ard_uncertainty_uses_component_site_columns(tmp_path):
         training.append(atoms)
     for fit_offsets, reference in ((False, {"Ni": 0.1}), (True, {})):
         model = LinearModel(basis, reference_energies=reference).fit(
-            training, fit_method="ard", force_weight=0.0, fit_E0=fit_offsets)
+            training, fit_method="ard", force_weight=0.0, fit_E0=fit_offsets,
+            sklearn_params={"column_scaling": scaling})
         report = model.predict_uncertainty(training[0])
         assert report["atomic_energy_std_eV"].shape == (3,)
         assert np.isfinite(report["atomic_energy_std_eV"]).all()

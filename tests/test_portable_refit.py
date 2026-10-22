@@ -80,7 +80,7 @@ def test_selected_refit_matches_real_design_and_validates_saved_artifact(tmp_pat
     assert len(metadata["design_rows_sha256"]) == 64
     artifact = fitted.write(tmp_path / "refit.ye3t")
     restored = LinearModel.read(artifact)
-    assert restored.basis._resolved["native_plan_status"] == "unavailable_for_refit"
+    assert restored.basis._resolved["native_plan_status"] == "compiled_on_export"
     assert [label.identity for label in restored.labels] == [
         label.identity for label in original.labels]
     selected = restored._fitted["tagged_indices"]
@@ -92,10 +92,12 @@ def test_selected_refit_matches_real_design_and_validates_saved_artifact(tmp_pat
     replay.calc = restored.ase_calculator(evaluator="torch")
     assert np.isfinite(replay.get_potential_energy())
     assert np.isfinite(replay.get_forces()).all()
-    with pytest.raises(ValueError, match="no native AUTO plan"):
+    with pytest.raises(ValueError, match="prepared on request"):
         restored.ase_calculator(evaluator="auto")
-    with pytest.raises(ValueError):
-        restored.export_lammps(tmp_path / "invalid")
+    exported = restored.export_lammps(tmp_path / "native")
+    assert exported["model"].is_file()
+    assert exported["reference"].is_file()
+    assert "block_policy auto" in exported["pair_coeff"].read_text()
 
     with zipfile.ZipFile(artifact) as source:
         members = {name: source.read(name) for name in source.namelist()}
@@ -133,6 +135,22 @@ def test_selected_design_requires_full_rank_periodic_cell():
     atoms.pbc = (True, True, False)
     with pytest.raises(ValueError, match="full-rank cell"):
         portable_feature_design_row(model._fitted, atoms)
+
+
+def test_auto_export_requires_exact_saved_coefficients():
+    from copy import deepcopy
+    from ye3t_methods.atomistic.ace.lammps_export import _compiler_coordinate, _stable_hash
+    model = LinearModel.read(ARCHIVE)
+    catalogue = model._fitted["ordinary_descriptor"].metadata["ordinary_scalar_catalogue"]
+    row = deepcopy(catalogue["rows"][0])
+    compiled = _compiler_coordinate(row, catalogue)
+    assert compiled["certificate"]["passed"]
+    coordinate = row["compiled_coordinate"]
+    coordinate["coefficients"][0][0] += 0.1
+    coordinate["payload_sha256"] = _stable_hash({
+        key: value for key, value in coordinate.items() if key != "payload_sha256"})
+    with pytest.raises(RuntimeError, match="matched coefficientwise"):
+        _compiler_coordinate(row, catalogue)
 
 
 @pytest.mark.parametrize("count", (60, 127, 149))

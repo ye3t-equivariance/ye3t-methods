@@ -26,10 +26,14 @@ the native path after loading. Unsupported evaluator names raise an error.
 For a supported shifted-Jacobi tagged scalar config at one or more selected
 ranks with explicit
 or one-hot chemistry,
-``runtime.evaluator="native_cpu"`` likewise keeps reference descriptor rows
-and selects the existing tagged native ASE calculator for an in-memory fitted
-model. Its explicit ``neighbors`` choice applies to ASE model evaluation;
-standalone descriptor rows retain the validated reference geometry route.
+``runtime.evaluator="native_cpu"`` uses the complete tagged C++ kernel for
+``Basis.create(atoms)`` and ASE model evaluation. Its ``neighbors`` choice
+applies to both. The basis retains the native evaluator and neighbor topology
+between structures. Fitting rows and explicitly requested descriptor Jacobians
+use analytic Torch radial/angular sources and the native polynomial contraction.
+``auto`` selects the available polynomial evaluator with Torch sources;
+``reference`` and ``torch`` select the Torch comparison path. Values-only
+hybrid calls omit the descriptor adjoint and edge-Jacobian calculation.
 After reading the saved tagged ``.ye3t.json`` model, select ``native_cpu``
 explicitly again.
 For an in-memory configured model, omitting ``neighbors`` in
@@ -39,6 +43,72 @@ to ``auto`` because they do not retain that runtime preference.
 When a native config requests ``matscipy``, an explicit Torch comparison
 uses the compatible ASE or reference neighbor route; explicitly asking a
 Torch calculator for ``matscipy`` still raises an error.
+
+Repeated structures and descriptor derivatives
+-----------------------------------------------
+
+Construct a basis once, then pass each new ASE object to it:
+
+.. code-block:: python
+
+   features = basis.create(atoms)
+   other_features = basis.create(other_atoms)
+   arrays = basis.create_many([atoms, other_atoms])
+
+Scalar tagged image bases also expose analytic position derivatives:
+
+.. code-block:: python
+
+   features, dfeatures_dpositions = basis.create(atoms, derivatives=True)
+   features, summed_gradient = basis.create(atoms, derivatives="summed")
+   force_design = -summed_gradient.reshape(len(basis.labels), -1).T
+
+The derivative axes are ``[center, feature, displaced_atom, xyz]`` and the
+values are positive derivatives ``dB/dR`` at fixed cell, in descriptor units
+per Angstrom. A force uses the negative energy derivative. The default is
+``derivatives=False``. Requesting derivatives uses the analytic product-rule
+path; the dense returned array requires memory proportional to the square of
+the atom count. Other basis families currently reject this per-center derivative
+option. Their existing energy/force fitting and calculator interfaces remain
+available.
+
+``"summed"`` returns derivatives of the descriptor sum over centers, with
+axes ``[feature, displaced_atom, xyz]``. Its output uses memory proportional
+to the atom count. This matches the distinction between summed fitting rows
+and per-center analysis in LAMMPS
+`compute pace <https://docs.lammps.org/compute_pace.html>`_'s ``dgradflag``. For
+species-dependent readouts, ``LinearModel.fit`` constructs separate rows for
+each central species. The portable Ni paper bases support summed derivatives;
+their per-center derivative array is not exposed.
+
+The first descriptor call can load compiler data and prepare native tables.
+Timing subsequent calls on the same basis measures evaluation separately.
+Move atoms between timing calls to include geometry work and avoid measuring
+an ASE calculator's cached result.
+
+Native initialization loads the installed C++ library and prepares model
+tables; it does not compile C++ source. Prepared tagged model text is saved in
+the shared YE3T artifact cache (``YE3T_CACHE_DIR``, normally
+``~/.cache/ye3t``). It includes the source, compiler program, coefficients,
+offsets and reference terms. Changed inputs select a different entry.
+``runtime.cache.mode="off"`` disables shared preparation and handle reuse;
+``"refresh"`` rebuilds them. The default ``"auto"`` also respects the global
+``YE3T_CACHE_MODE`` setting. An existing basis keeps its own evaluator for
+successive structures even when shared caching is disabled.
+
+Within a Python process, up to four identical native tagged models also retain
+their C++ handles. Each caller keeps its own neighbor list. A lock protects
+the shared C++ scratch arrays during concurrent calls. Composite files with
+external component dependencies use separate handles. New processes reload
+and verify native tables from cached model text; C++ pointers are never saved
+to disk. Reusing one ``Basis`` for many ``Atoms`` objects avoids this setup.
+
+Configured scalar density models keep the compiler tables used for fitting
+when evaluated in ASE or reloaded. Their saved evaluator policy prevents a
+generic symmetric-power contraction from substituting a different coordinate
+basis. An incompatible ``factorized_descriptor_runtime_policy`` override
+raises an error. Native CPU evaluation remains available through the checked
+YACE export for compatible models.
 
 .. list-table:: Supported compact ASE choices
    :header-rows: 1
@@ -231,6 +301,23 @@ successful rebuild; they are never loaded by this path. Set
 ``YE3T_CACHE_MODE`` to ``auto`` (default), ``read_only``, ``refresh``, or
 ``off`` for the global disk store. The descriptor cache's in-process label
 and artifact LRUs have separate configurable byte budgets.
+
+The shared mathematical store also retains individual tagged coordinate maps,
+shell-density source maps, and their Young/angular building blocks. Increasing
+a catalogue reuses the matching entries and builds the additional ones. These
+entries live under ``YE3T_CACHE_DIR`` (default ``~/.cache/ye3t``, or the XDG cache
+directory). Physical source choices and coupling conventions are part of each
+request; changing fitting weights or a dataset does not invalidate the coupling
+tables.
+
+New tagged image artifacts receive independent compiler validation once. Its
+result is reused across processes for the same content and validator revision.
+Loading still checks content integrity. Mutable objects are checked before
+reuse, and changed disk entries are read again. Set ``YE3T_CACHE_VERIFY=full``
+to explicitly replay independent checks for an audit. Ordinary fitting and ASE
+evaluation need no user-managed digest lists or validation calls. Basis summaries
+show source settings and capabilities; full identities remain available in saved
+model metadata for compatibility and detailed inspection.
 
 To prewarm an ordinary ACE descriptor catalogue, save a JSON object with
 ``schema: "ye3t_methods_prewarm_v1"``, ``settings`` in the

@@ -1,0 +1,32 @@
+{
+  "dataset": "examples/data/mlearn/Ni/ni_all.xyz",
+  "dataset_sha256": "f713984c2dc1b1988ed71d7dabb5d8f77d7d611b4a96deb4da3d61443e92f93f",
+  "split": "examples/data/mlearn/Ni/moment_star_split.json",
+  "split_sha256": "0d8cdabef9c48100357911022afc0b366263c6eb34ce08e44d89a0daeafb87d0",
+  "training_indices": [
+    0,
+    25,
+    47,
+    69,
+    93,
+    117,
+    143,
+    167,
+    193,
+    215,
+    237,
+    262
+  ],
+  "validation_indices": [
+    263
+  ],
+  "purpose": "Real-data interface demonstration; use full publication workflow for scientific comparisons.",
+  "ni_training.extxyz": {
+    "sha256": "da41710a2774dd4953c67e471ae86347c502140b3bf27d9dc125eefc767ac10a",
+    "bytes": 138583
+  },
+  "ni_validation.extxyz": {
+    "sha256": "b448e9935feaf85fb06b1c02d2d6b7e59054dbc01b0f24eb29d7a1d8f5ac03ed",
+    "bytes": 11447
+  }
+}

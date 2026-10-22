@@ -34,18 +34,18 @@ The full runnable script supplies the editable config and ASE ``atoms``.
    :language: python
    :caption: examples/quickstart/ase_descriptors.py
 
-For the four-atom fcc cell, this prints ``descriptor shape (4, 96)``,
-``parent L 0``, and ``compiler count 96``. The input angular cap permits
+For the four-atom fcc cell, this prints ``descriptor shape (4, 100)``.
+The input angular cap permits
 nonzero angular factors; the selected output remains scalar.
 
 Fit from labeled ASE structures
 -------------------------------
 
 The next script reads bundled Ni structures with energy and force labels,
-selects training structures using the bundled split, fits a rank-through-four
+uses a recorded 12-structure subset of the bundled fitting split, fits a rank-one-through-eight
 linear model, saves it, and evaluates a held-out ASE structure. Its config
 shows the radial source, basis caps, target keys, fit weights, and output path.
-Replace the dataset and split paths with your labeled ASE data for another
+Replace the training and evaluation paths with your labeled ASE data for another
 fit. This short fit demonstrates the user workflow; the paper-model refit
 uses the selected basis and full training partition described in
 :doc:`paper_models`.
@@ -67,8 +67,8 @@ The full script below reads labeled structures, builds the basis, and sets
    :caption: examples/quickstart/density_fit.py
 
 The script prints the feature count, saved-model path, held-out reference and
-predicted energies, and the largest predicted force component. The result is
-a fitted example model, not a paper RMSE reproduction.
+predicted energies, and the force-array shape. Use the publication workflow
+for the paper RMSE comparison.
 
 Run ASE molecular dynamics with a saved model
 ---------------------------------------------

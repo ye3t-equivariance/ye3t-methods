@@ -57,7 +57,7 @@
   },
   "targets": {
     "dataset": {
-      "path": "../../data/snap_Ta_JCP_2014.xyz",
+      "path": "../../../examples/data/snap_Ta_JCP_2014.xyz",
       "sha256": "7007b0adda78fba252554181cfbe89a3918c4bb0bd1fcdd06ce691be9c2f4399"
     },
     "energy": "energy",

@@ -1,35 +1,25 @@
 Nontrivial parent types
 =======================
 
-The final parent type of a rank-``N`` descriptor is a Young partition of
-``N`` tensor factors together with a rotation irrep ``L``. These are
-different from the tag and role partitions of a tagged source and from the
-filter-role group carried by a role density. A scalar energy feature has a
-trivial final parent and ``L=0``; a nontrivial parent plan supplies covariant
-coordinates for a separate observable or a later invariant coupling.
+A rank-``N`` formal tensor-product parent is a Young partition of ``N`` factors,
+an angular momentum ``L`` and a parity. A selected multiplicity coordinate
+contains every tableau component and every magnetic component. The physical
+source determines which factor or role action these coordinates describe.
 
-The installed-package example
-``examples/quickstart/parent_coupling.py`` asks the core compiler for a
-validated rank-eight parent ``lambda=(4,4)``, ``L=2`` coupling plan. It prints
-only the plan's rank, parent type, LR multiplicity, and tableau count. Change
-``parent_partition`` and ``target_L`` to request another type; the compiler
-checks whether that type is allowed for this two-branch construction.
+``coupled_factors.py`` supplies factor multiplets, compiles their Cauchy
+coupling plan in ``ye3t`` and passes that plan into ``Basis.from_config``.
+Its nontrivial ``(2,1), L=1`` output has axes ``(batch, a, tableau, M)``.
+Each ``a`` identifies an independent coupling in the selected source space.
+Edit the visible factor types, parent and values together for another input.
 
-.. literalinclude:: ../examples/quickstart/parent_coupling.py
+.. literalinclude:: ../examples/quickstart/coupled_factors.py
    :language: python
 
-``examples/quickstart/parent_coefficient.py`` applies a compiled rank-three
-``lambda=(2,1)``, ``L=1`` parent coupler to caller-supplied tensor values.
-This is a coefficient descriptor view: the caller supplies its input carrier,
-and the example does not compute that carrier from atom positions.
+The example demonstrates the core-to-methods compiled-plan interface. General
+multiplicity counting, symmetric/antisymmetric factors and larger-rank coupling
+examples are supplied by ``ye3t/examples``. For an atomistic selected cluster,
+see :doc:`phi_basis`; for shell-role scalar features, see :doc:`shell_linear`.
 
-.. literalinclude:: ../examples/quickstart/parent_coefficient.py
-   :language: python
-
-The rank-eight example produces a coupling plan. Materializing an arbitrary
-nontrivial parent type from atom positions requires a suitable physical factor
-source. The role-density evaluator exposes some nontrivial *filter-role*
-Specht sectors with angular components; those sectors differ from the global
-rank-``N`` parent Young irrep. The source example marks the missing geometry
-path as a TODO. Check a nontrivial parent request against a sector-specific
-compiled and validated plan before evaluating it.
+Historical parent-coefficient and rank-eight plan probes are preserved under
+``tools/legacy_examples``. Their low-level construction is useful for
+regressions; the example above is the public configured workflow.

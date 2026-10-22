@@ -1,8 +1,8 @@
 """Refit the exact selected Ni portable columns under the paper's linear loss.
 
 The base archive supplies immutable physical source and compiler coordinates.
-New coefficients live in a separate self-contained artifact. No native plan is
-claimed for the new readout.
+New coefficients live in a separate self-contained artifact. Native execution
+tables are prepared from that readout when requested.
 """
 
 import hashlib
@@ -27,7 +27,7 @@ from ye3t_methods.atomistic.linear_statistics import (
 from ye3t_methods.atomistic.reference_potentials import YE3TZBLCalculator
 
 from .portable_archive import (
-    _json, portable_feature_design_row, read_portable_linear_archive,
+    _json, portable_feature_design_row, read_portable_linear_archive, select_portable_density_basis,
 )
 
 
@@ -113,6 +113,11 @@ def apply_portable_refit(base_archive, ordinary, tagged, e0, fit_metadata):
     record = read_portable_linear_archive(base_archive)
     if record is None:
         raise ValueError("Portable refit needs a trusted Ni base archive.")
+    selection = fit_metadata.get("basis_selection") if isinstance(fit_metadata, dict) else None
+    if selection is not None:
+        if not isinstance(selection, dict) or set(selection) != {"family", "ordinary_indices"} or selection["family"] != "density":
+            raise ValueError("Unsupported saved Ni basis selection.")
+        select_portable_density_basis(record, selection["ordinary_indices"])
     ordinary = np.asarray(ordinary, dtype=np.float64)
     tagged = np.asarray(tagged, dtype=np.float64)
     e0 = _finite(e0, "Ni per-atom intercept")
@@ -132,7 +137,7 @@ def apply_portable_refit(base_archive, ordinary, tagged, e0, fit_metadata):
     record["ordinary_bundle"].bias = e0
     record["tagged_model"].beta = torch.as_tensor(full_tagged.copy())
     record["refit"] = {"schema": _SCHEMA, "fit_metadata": fit_metadata,
-                       "native_plan_status": "unavailable_for_refit"}
+                       "native_plan_status": "compiled_on_export"}
     return record
 
 
@@ -259,6 +264,8 @@ def fit_portable_linear(record, structures, config):
         },
         "targets": targets, "validation_checks": list(settings["checks"]),
     }
+    if "selection" in record:
+        metadata["basis_selection"] = record["selection"]
     return apply_portable_refit(
         record["archive_bytes"], coefficients[1:1 + ordinary_count],
         coefficients[1 + ordinary_count:], coefficients[0], metadata,
@@ -268,7 +275,7 @@ def fit_portable_linear(record, structures, config):
 def write_portable_refit_archive(record, path):
     """Save a new Ni readout without changing the trusted selected basis."""
     if (record.get("refit", {}).get("schema") != _SCHEMA or
-            record["refit"].get("native_plan_status") != "unavailable_for_refit"):
+            record["refit"].get("native_plan_status") not in {"compiled_on_export", "unavailable_for_refit"}):
         raise ValueError("Only a completed portable Ni refit can be written.")
     base = record["archive_bytes"]
     base_hash = hashlib.sha256(base).hexdigest()
@@ -288,7 +295,7 @@ def write_portable_refit_archive(record, path):
     manifest = {
         "schema": _SCHEMA,
         "maturity": "bounded_ni_scalar_refit",
-        "native_plan_status": "unavailable_for_refit",
+        "native_plan_status": "compiled_on_export",
         "base_sha256": base_hash,
         "fit_sha256": hashlib.sha256(fit_bytes).hexdigest(),
     }
@@ -342,7 +349,7 @@ def read_portable_refit_archive(path):
         if (set(manifest) != {"schema", "maturity", "native_plan_status",
                              "base_sha256", "fit_sha256", "self_hash"} or
                 manifest["maturity"] != "bounded_ni_scalar_refit" or
-                manifest["native_plan_status"] != "unavailable_for_refit" or
+                manifest["native_plan_status"] not in {"compiled_on_export", "unavailable_for_refit"} or
                 hashlib.sha256(_canonical({key: value for key, value in
                                            manifest.items() if key != "self_hash"})).hexdigest()
                 != manifest["self_hash"]):

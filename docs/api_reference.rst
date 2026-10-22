@@ -12,7 +12,7 @@ and ``metadata.output_path`` are visible workflow paths used by examples;
 they are validated as strings but excluded from fitted-model identity.
 For scalar tagged catalogues, optional
 ``basis.catalogue.angular_patterns_by_rank`` restricts the requested input
-angular tuples before compiler counting and materialization. The rank-four
+angular tuples before compiler counting and materialization. The ranks-one-through-eight
 tagged quickstart uses it to select its intended input angular patterns.
 
 ``ye3t_methods.FeatureLabel`` represents an actual fitted descriptor column.
@@ -35,8 +35,9 @@ Torch models; versioned artifact schema identifiers remain readable.
        and configured PACE ordinary scalar or full-multiplet requests with
        supported chemistry, can materialize descriptor rows on CPU. Scalar
        configurations also accept
-       ``native_cpu`` for a fitted ASE model; descriptor rows retain their
-       validated Torch or reference implementation. The tagged route accepts
+       ``native_cpu`` for a fitted ASE model. Scalar tagged descriptor rows
+       use the native polynomial evaluator for ``native_cpu`` and the available
+       production evaluator for ``auto``. The tagged route accepts
        ``reference`` explicitly. The capability report states the selected
        model evaluator and neighbor policy; unsupported source and runtime
        combinations reject before compilation. Supported tagged configurations
@@ -75,7 +76,7 @@ Torch models; versioned artifact schema identifiers remain readable.
        compatibility alias for ``evaluator``. An omitted neighbor policy uses
        the in-memory config when available and otherwise defaults to ``auto``.
    * - ``model.export_lammps(path)``
-     - Export density or tagged formats under their strict contracts.
+     - Export supported density or tagged formats with their compiler metadata.
    * - ``label.as_dict()`` / ``label.latex()``
      - Inspect structured identity or a short mathematical display.
 
@@ -107,13 +108,17 @@ ordered ordinary and tagged ``Basis.create`` rows and evaluates the embedded
 ordinary, tagged, and ZBL terms with ``evaluator="torch"`` on CPU. Loading
 and repeated ASE evaluation use saved coupling products without recompiling.
 The reader rejects other model identities or changed archive bytes. This
-bounded route has no native evaluator, LAMMPS export, or general checkpoint
-validation record yet; use the native composite for those supported tasks.
+bounded route also prepares the saved or refitted readout for
+``evaluator="native_cpu"`` and exports a LAMMPS directory with
+``model.export_lammps(path)``. See :doc:`paper_models` for the complete
+fit, export and ASE-MD examples. The reader remains specific to the
+supported Ni compiler archives.
 
 The low-level descriptor-first flow is
-``YE3TRepresentation -> YE3TDescriptors -> YE3TModel``. Use it for
-``A_s`` fitting, lifted Cauchy models, fixed Young descriptor sets, manual ACE
-coordinate requests, and specialized runtime controls. It accepts compiler
+``YE3TRepresentation -> YE3TDescriptors -> YE3TModel``. It supports historical
+source presets, fixed Young descriptor sets, manual ACE coordinate requests,
+and specialized runtime controls. Use the configured ``Basis`` workflow in
+:doc:`shell_linear` for shell-density fitting. The low-level flow accepts compiler
 plans and validated labels from the ``ye3t`` compiler.
 Its ``YE3TRepresentation`` is the legacy selector also re-exported by
 ``ye3t_methods``; it is distinct from ``ye3t.YE3TRepresentation`` and is not
@@ -124,3 +129,35 @@ See :doc:`density`, :doc:`tagged_basis`, :doc:`phi_basis`, and
 :doc:`evaluators` gives the exact ASE backend choices and native-library setup.
 :doc:`basis_inputs` describes compact compiler requests, and
 :doc:`chemical_encoding` states which species encodings can be deployed.
+
+Model evaluation against labels
+-------------------------------
+
+``model.score(structures, config=config)`` compares predictions with ASE labels
+using the configured ``targets``. Energy RMSE is measured in eV/atom, with
+equal structure weight. Force RMSE averages all Cartesian atom components in
+eV/Angstrom. Optional stress RMSE averages the six ASE Voigt components in
+eV/Angstrom cubed. The method leaves the reference calculators and labels
+attached to the supplied structures unchanged.
+
+Atomic reference energies
+-------------------------
+
+``model.reference_energy.per_species_E0_eV`` provides fixed energies in eV for
+every model species. With ``fit_E0=False``, these remain fixed and fitting has
+no additional atomic-offset columns. With ``fit_E0=True``, fitting includes
+per-species corrections to those energies. This requires positive energy
+weight and independent composition columns in the fitting structures.
+The choices apply to configured density, tagged, combined and shell-density
+scalar fits. Saved models include the references needed by their ASE evaluator.
+
+Saved-model sizes
+-----------------
+
+Tagged models use compact JSON and retain their compiler data and hashes. The
+Python JSON model reader and native tagged reader accept files up to 512 MiB.
+Combined ``.ye3t``
+archives have a 64 MiB limit per member and a 256 MiB total limit. These are
+reader limits on serialized files. Combining larger compiler payloads requires
+further persistence work; the rank-one-through-eight combined example is
+tested within these bounds.

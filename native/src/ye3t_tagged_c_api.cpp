@@ -245,9 +245,10 @@ int ye3t_tagged_evaluate_with_features(
     for (int center = 0; center < atom_count; ++center)
       if (edge_offsets[center + 1] < edge_offsets[center])
         throw std::invalid_argument("CSR edge offsets must be nondecreasing.");
-    if (edge_offsets[atom_count] &&
-        (!edge_neighbor_species || !edge_vectors || !edge_gradients))
-      throw std::invalid_argument("Nonempty edge list requires species, vectors, and gradients.");
+    // A null gradient buffer requests descriptors only. Energy/force callers
+    // supply a gradient buffer and retain the complete evaluation behavior.
+    if (edge_offsets[atom_count] && (!edge_neighbor_species || !edge_vectors))
+      throw std::invalid_argument("Nonempty edge list requires species and vectors.");
     static_cast<Handle *>(handle)->evaluate(
         atom_count, central_species, edge_offsets, edge_neighbor_species,
         edge_vectors, atomic_energies, edge_gradients, atomic_features);

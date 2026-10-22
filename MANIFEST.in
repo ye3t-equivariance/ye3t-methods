@@ -6,6 +6,7 @@ include setup.py
 graft examples
 graft docs
 graft tests
+graft tools
 graft native
 global-exclude *.py[cod]
 global-exclude __pycache__/*

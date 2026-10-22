@@ -30,6 +30,50 @@ methods. The lower-level ``fit_linear_ace`` density interface still accepts
 stress rows only with its normal-equation ridge solver. The combined scalar
 fit supports stress rows for ridge and the optional scikit-learn methods.
 
+Configured scalar tagged fits with ``runtime.cache.mode="auto"`` reuse
+energy, force and stress design rows across solver and target changes. The
+same cache serves the tagged component of a combined fit. Its keys include
+the geometry, species, source, compiler coordinates and backend; stored arrays
+are checked before reuse. Set ``runtime.cache.mode="off"`` to recompute rows
+without a persistent cache. Temporary rows within a two-pass ridge fit are
+removed when fitting ends. The default cache directory is
+``~/.cache/ye3t/applications/geometry_rows/tagged_cauchy_image``;
+``YE3T_ACE_CACHE_DIR`` selects a different application cache root.
+
+Scaling solver columns
+----------------------
+
+In the standardized config, ``model.fit.solver_options.column_scaling="rms"``
+scales the weighted training design before a LASSO or ARD fit. The default is
+``"none"``. Use RMS scaling when feature magnitudes differ substantially,
+as they do in the rank-one-through-eight Ni example. This option sets the
+regularization/prior in scaled coordinates, so it can change the fitted model.
+It leaves the physical descriptors and their compiler labels unchanged.
+
+For a weighted energy/force/stress design matrix :math:`X`, set
+:math:`s_j=\sqrt{\sum_r X_{rj}^2/n_{\mathrm{rows}}}` and fit
+:math:`X'_{rj}=X_{rj}/s_j`. A zero column uses :math:`s_j=1`.
+There is no centering or clipping. One scale applies to every row of a column,
+including its energy and position/strain derivatives. Fitted coefficients and
+ARD covariance are saved in the original compiler coordinates:
+
+.. math::
+
+   \beta_j = \beta'_j/s_j, \qquad
+   \Sigma_{jk} = \Sigma'_{jk}/(s_j s_k).
+
+Predictions use :math:`X\beta`; epistemic variance uses :math:`x\Sigma x^T`.
+ARD pruning precision and its threshold are recorded in solver coordinates,
+along with the scales and active indices. All scales are fitted from training
+rows. Saved models evaluate directly in physical coordinates without a runtime
+scaler. The implementation calls scikit-learn for fitting and transforms the
+coefficients and covariance independently.
+
+References: `scikit-learn preprocessing
+<https://scikit-learn.org/stable/modules/preprocessing.html>`_ and
+`ARDRegression parameters and posterior covariance
+<https://scikit-learn.org/stable/modules/generated/sklearn.linear_model.ARDRegression.html>`_.
+
 .. code-block:: python
 
    from ye3t_methods import LinearModel
@@ -52,15 +96,15 @@ The ``regularization`` argument belongs to the default ridge solver. For a
 scikit-learn method, set its penalty or prior through ``sklearn_params``.
 Energy, force, and stress weights multiply their respective squared-residual
 rows; the parameters and fit method are stored with the fitted model.
-For a configured standalone density or combined scalar basis,
+For configured density, tagged, shell-density and combined scalar bases,
 ``fit_E0=False`` keeps the supplied ``reference_energies`` fixed.
-``fit_E0=True`` fits one correction per species and saves the final numerical
-map. A standalone density fit with fixed offsets does not add an implicit
-atom-count bias. For the older direct combined fit, an omitted ``fit_E0``
+``fit_E0=True`` fits one correction per species and saves the reference and
+fitted contributions. Fixed-offset fits omit atomic-offset design columns.
+For the older direct combined fit, an omitted ``fit_E0``
 defaults to fixed offsets if a reference map was supplied, or fitted offsets
 otherwise.
-Fitting offsets requires a positive energy weight and at least one training
-atom of each specified species.
+Fitting offsets requires positive energy weight and linearly independent
+species-composition columns across the fitting structures.
 With density or combined-scalar LASSO or ARD, the supplied E0 map is the prior origin:
 the solver penalizes descriptor coefficients and E0 corrections together.
 Changing that supplied map can change the fitted result. The fitted map and
@@ -71,8 +115,8 @@ only when the row weights reflect the corresponding noise scales.
 
 Configured PACE density and shifted-Jacobi tagged scalar components can be
 written together to a verified ``.ye3t`` bundle. The bundle embeds the
-selected ordinary coupling tables and tagged compiled image, so reading it
-does not need the training repository or a coupling compilation. Both Torch
+selected ordinary coupling tables and tagged compiled image. Reading it
+validates the saved compiler data and requires no training repository. Both Torch
 and native CPU ASE calculators accept the loaded bundle. Legacy ``Basis(...)``
 component constructors can participate in a joint fit, but the safe combined
 writer currently requires ``Basis.from_config`` components. A single named
@@ -108,9 +152,10 @@ per-rank tag-count sets, accepts
 ``key``, ``input`` (``real_tesseral`` or ``cartesian``), and ``units``. Its
 ridge, LASSO, or ARD readout shares each coefficient over all magnetic
 components and separates central-species coefficient blocks. The coefficient
-penalty and ARD prior use the saved selected compiler coordinate basis; the
-artifact records that coordinate metric, not a basis-independent physical
-norm. ``model.predict(atoms)`` returns complete real-tesseral means and
+penalty and ARD prior use the selected compiler coordinates, with the optional
+training-column RMS scaling described above. The artifact records the scales
+and saves coefficients and covariance in the original compiler coordinates.
+``model.predict(atoms)`` returns complete real-tesseral means and
 ``model.predict(atoms, uncertainty=True)`` returns an ARD component covariance.
 The ``.ye3t.json`` artifact embeds and checks the complete compiled catalogue
 so reload needs no coupling compilation. See :doc:`tagged_basis` for the

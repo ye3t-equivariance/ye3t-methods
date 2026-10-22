@@ -5,26 +5,23 @@ not measured dipoles or a qualified material property. Run the written
 ``in.property`` from its output directory with an ML-YE3T-enabled LAMMPS.
 """
 
+import os
 from pathlib import Path
 
 import numpy as np
-from ase.build import bulk
-from ase.io import write
-from ase.neighborlist import neighbor_list
+from ase.io import read, write
 from ye3t import YE3TRepresentation
 from ye3t_methods import Basis, LinearModel
 
 
+fixtures = Path(__file__).with_name("fixtures")
+workflow = Path(os.environ.get("YE3T_WORKFLOW_ROOT", "~/ye3t-workflows")).expanduser()
 config = {
     "metadata": {
         "schema": "ye3t_config_v1", "name": "cu_site_vector", "status": "stable",
-        "system": {
-            "element": "Cu", "lattice": "fcc", "lattice_parameter_A": 3.615,
-            "repeat": [2, 2, 2], "training_frames": 4,
-            "displacement_A": 0.04, "vector_decay_per_A": 1.0,
-            "seed": 7,
-        },
-        "output_path": "../ye3t-workflows/quickstart_linear/cu_site_vector/model.ye3t.json",
+        "training_structures": str(fixtures / "cu_vectors_training.extxyz"),
+        "evaluation_structure": str(fixtures / "cu_vectors_validation.extxyz"),
+        "output_path": str(workflow / 'quickstart_linear/cu_site_vector/model.ye3t.json'),
     },
     "representation": {
         "group": "O3", "ranks": [1, 2, 3, 4],
@@ -64,27 +61,7 @@ config = {
     "validation": {"checks": ["round_trip"]},
 }
 
-system = config["metadata"]["system"]
-if config["basis"]["single_factors"]["species"] != [system["element"]]:
-    raise ValueError("The ASE system and basis species must agree.")
-rng = np.random.default_rng(system["seed"])
-structures = []
-for _frame in range(system["training_frames"]):
-    atoms = bulk(system["element"], system["lattice"],
-                 a=system["lattice_parameter_A"], cubic=True)
-    atoms = atoms.repeat(tuple(system["repeat"]))
-    atoms.positions += rng.normal(scale=system["displacement_A"],
-                                  size=atoms.positions.shape)
-    structures.append(atoms)
-cutoff = config["basis"]["single_factors"]["radial"]["cutoff_A"]
-for atoms in structures:
-    centers, _neighbors, displacements = neighbor_list("ijD", atoms, cutoff)
-    vectors = np.zeros((len(atoms), 3))
-    np.add.at(vectors, centers,
-              np.exp(-system["vector_decay_per_A"]
-                     * np.linalg.norm(displacements, axis=1))[:, None]
-              * displacements)
-    atoms.new_array("site_vectors", vectors)
+structures = read(config["metadata"]["training_structures"], index=":")
 
 representation = YE3TRepresentation.from_config(config["representation"])
 basis = Basis.from_config(
@@ -96,11 +73,9 @@ model_path.parent.mkdir(parents=True, exist_ok=True)
 model.write(model_path)
 restored = LinearModel.read(model_path)
 
-atoms = bulk(system["element"], system["lattice"],
-             a=system["lattice_parameter_A"], cubic=True)
-atoms = atoms.repeat(tuple(system["repeat"]))
-atoms.positions += rng.normal(scale=system["displacement_A"],
-                              size=atoms.positions.shape)
+atoms = read(config["metadata"]["evaluation_structure"])
+cutoff = config["basis"]["single_factors"]["radial"]["cutoff_A"]
+
 prediction = restored.predict(atoms)["mean_real_tesseral"]
 np.savetxt(model_path.parent / "reference_real_tesseral.txt", prediction)
 write(model_path.parent / "atoms.data", atoms, format="lammps-data",
@@ -112,7 +87,7 @@ write(model_path.parent / "atoms.data", atoms, format="lammps-data",
     "read_data atoms.data\n"
     f"pair_style zero {cutoff:.16g}\n"
     "pair_coeff * *\n"
-    f"compute property all ye3t/property/atom model.ye3t.json {system['element']}\n"
+    f"compute property all ye3t/property/atom {model_path.name} {' '.join(basis.elements)}\n"
     "dump values all custom 1 property.dump id type c_property[1] c_property[2] c_property[3]\n"
     "dump_modify values sort id format float %.16g\n"
     "run 0\n",

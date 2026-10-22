@@ -51,6 +51,8 @@ class TaggedCauchyCPUEvaluator {
       const TaggedCauchyModel *model,
       TaggedCauchyExecutionPolicy policy = TaggedCauchyExecutionPolicy::COMPILED_DIRECT);
 
+  // With atomic_features supplied, a null edge_gradients requests only
+  // descriptors and skips the energy readout and its reverse contraction.
   void evaluate(int atom_count, const int *central_species_indices, const std::size_t *edge_offsets,
                 const int *edge_neighbor_species, const double *edge_vectors,
                 double *atomic_energies, double *edge_gradients,

@@ -1,311 +1,172 @@
-Installed-package quickstarts
-=============================
+ASE quickstarts
+===============
 
-Install the ``ye3t-methods`` wheel in an environment with a compatible
-``ye3t``. When ``ye3t`` has not been published to an index, install it from a
-sibling source checkout with ``python -m pip install --no-build-isolation ../ye3t``. Extract the
-methods source archive to obtain the scripts and their fixture files. From the
-extracted directory, run:
+The examples use one workflow:
+``YE3TRepresentation`` → ``Basis`` → ``LinearModel``.
+Descriptor calculations stop at ``basis.create(atoms)``, which returns a NumPy
+array. Every script contains its editable config with the same seven sections:
+``metadata``, ``basis``, ``representation``, ``runtime``, ``model``, ``targets``
+and ``validation``.
 
-.. code-block:: console
-
-   python -m pip install --no-build-isolation '.[examples,fit,neighbors]'
-
-The ``fit`` extra adds scikit-learn for LASSO and ARDRegression. The
-``neighbors`` extra adds matscipy for optional native ASE neighbor-list
-acceleration. Either extra can be installed separately.
-Use ``ye3t.YE3TRepresentation`` for the configured basis examples. The
-``ye3t_methods.YE3TRepresentation`` re-export serves older descriptor-first
-code. The maintained package supplies its own ``ye3t_ace`` compatibility
-modules for saved models; avoid installing the historical ``ye3t-ace``
-distribution in the same environment because it owns the same module path.
-
-Start with one of these complete workflows:
+Install ``ye3t`` and ``ye3t-methods`` in the same environment. The source archive
+contains the example scripts, small labeled datasets and paper model files.
+From its extracted directory:
 
 .. code-block:: console
 
+   python -m pip install --no-build-isolation '.[examples,fit]'
    python examples/quickstart/ase_descriptors.py
-   python examples/quickstart/tagged_descriptors.py
-   python examples/quickstart/ase_octupole_descriptors.py
-   python examples/quickstart/chemical_encoding.py
-   python examples/quickstart/chemical_channel_selection.py
    python examples/quickstart/density_fit.py
-   python examples/quickstart/combined_density_tagged_fit.py
-   python examples/quickstart/per_atom_vector_to_lammps.py
-   python examples/quickstart/paper_ni_portable_ase.py
-   python examples/quickstart/paper_ni_nve.py
 
-The scalar, tagged, octupole, and chemical examples return per-atom NumPy
-descriptor rows without training. The next three fit and save models; the combined example selects a distinct
-physical radial source for each component. The vector example also writes a
-LAMMPS input.
-The Ni saved-model example reads a pinned paper model and checks its reference
-energy. The NVE example runs 100 ASE Velocity-Verlet steps near equilibrium
-and writes every energy sample to CSV.
-For an exact selected-basis Ni refit, use the long publication example:
+The ``fit`` extra supplies scikit-learn. Native tagged evaluation requires the
+C++ extensions built by the normal package installation; see :doc:`evaluators`.
+Input paths are visible in each config. Colocated fixtures work when the
+quickstart folder is copied elsewhere. Saved-paper examples also need their
+referenced ``publication/cost_comparison`` model directory. Outputs default to
+``~/ye3t-workflows``. Set ``YE3T_WORKFLOW_ROOT`` or edit the config output paths
+to choose another location.
 
-.. code-block:: console
-
-   python examples/publication/cost_comparison/refit_paper_ni.py
-
-Its visible seven-section config uses the 127-column saved basis, the full
-published training partition, and frozen paper fit weights. It saves a new
-Torch ASE artifact and computes held-out energy/force RMSE. The saved
-artifact cannot use LAMMPS AUTO until a native plan for its new weights is
-validated; see the publication example README for the 60/149 archive and
-selected hyperparameter edits.
-For the same configured representation → basis → model path, use these
-focused inspection, solver, tagged-source, and saved-model examples:
+The tagged export example reads the artifact produced by the tagged fit:
 
 .. code-block:: console
 
    python examples/quickstart/tagged_fit.py
-   python examples/quickstart/inspect_features.py
-   python examples/quickstart/sklearn_fit.py
    python examples/quickstart/saved_ase_export.py
 
-These experimental scripts use source-specific descriptor-first interfaces.
-Use the configured quickstarts above as templates for a density or tagged model:
+Use the same ``YE3T_WORKFLOW_ROOT`` for both commands. Running the generated
+LAMMPS input requires ML-YE3T. Export itself and ASE evaluation use the
+installed methods package. See :doc:`scikit_linear_fit` for reusable fitting
+rows and the cache location.
 
-.. code-block:: console
+Choose an example
+-----------------
 
-   python examples/experimental/phi_fit.py
-   python examples/experimental/phi_depth2.py
-   python examples/experimental/role_density_fit.py
+.. list-table:: Public workflows
+   :header-rows: 1
+   :widths: 35 65
 
-The following inspect core coupling mathematics on supplied tensor factors.
-They do not take an ASE ``Atoms`` object or produce a fitted model:
+   * - Script under ``examples/quickstart``
+     - Calculation
+   * - ``ase_descriptors.py``
+     - 100 scalar density features, ranks 1–8, four-atom Ni cell.
+   * - ``tagged_descriptors.py``
+     - Tagged scalar features with mixed Young/angular intermediates, ranks 1–8.
+   * - ``paper_ni_60.py``
+     - Saved 60-feature density and tagged Ni fits with native ASE evaluation;
+       exact tagged-model descriptor columns on two structure sizes.
+   * - ``ase_octupole_descriptors.py``
+     - 51 odd-parity ``L=3`` features, ranks 1–4, all seven magnetic components.
+   * - ``chemical_encoding.py``
+     - A fixed two-channel species embedding, ranks 1–4.
+   * - ``chemical_channel_selection.py``
+     - Select neighbor species through a fixed chemical embedding, ranks 1–4.
+   * - ``density_fit.py``, ``tagged_fit.py``
+     - Energy/force fits on 12 real Ni structures with the descriptor catalogues above.
+   * - ``combined_density_tagged_fit.py``
+     - One linear fit using both physical sources and one saved model.
+   * - ``shell_density_fit.py``
+     - A scalar shell-density fit with joint rotation/permutation intermediates.
+   * - ``sklearn_fit.py``
+     - LASSO and ARD fitting, including ARD prediction uncertainty.
+   * - ``inspect_features.py``
+     - Inspect a descriptor label and its mathematical description.
+   * - ``saved_ase_export.py``
+     - Export the tagged fit and write a LAMMPS AUTO input and atomic data.
+   * - ``per_atom_vector_to_lammps.py``
+     - Fit an analytic vector-property fixture and write a LAMMPS property input.
+   * - ``paper_ni_portable_ase.py``
+     - Evaluate the saved 127-feature paper model in ASE.
+   * - ``paper_ni_nve.py``
+     - Run that model for 100 NVE steps and save energy/temperature samples.
+   * - ``coupled_factors.py``
+     - Apply a core Cauchy coupling plan to supplied factors, retaining tableau and magnetic components.
 
-.. code-block:: console
+The small Ni training subset carries the original mlearn energies and forces;
+its indices and hashes are in ``fixtures/ni_subset.json``. For published accuracy
+comparisons use :doc:`paper_models`, which evaluates the full saved split and
+provides the exact selected-basis refit. The vector fixture is an analytic
+covariant function of its Cu neighbor vectors, with a recorded generator.
 
-   python examples/quickstart/parent_coupling.py
-   python examples/quickstart/parent_coefficient.py
+Scalar descriptors
+------------------
 
-``phi_fit.py`` and ``phi_depth2.py`` use the tested scalar ``bar_phi`` motif
-route with fixed signed magnetic channels; see :doc:`phi_basis` for its
-rotation and deployment limits. ``role_density_fit.py`` uses the
-descriptor-first lifted-density path; see :doc:`role_density` for its
-role-sector limits. ``chemical_encoding.py`` uses the configured physical
-fixed-embedding source with ASE and checks scalar symmetries, while
-``chemical_channel_selection.py`` masks excluded neighbor species with a
-fixed zero embedding row;
-see :doc:`chemical_encoding`. The separate experimental
-``ordered_phi_star.py`` evaluates one full-tableau ``L=2`` ordered cluster;
-it does not fit a model (see :doc:`phi_basis`). Use the first group above
-for the recommended public workflow.
-
-``ase_descriptors.py`` is the short descriptor-only workflow: build an ASE
-``Atoms`` object, construct ``ye3t.YE3TRepresentation`` and
-``ye3t_methods.Basis`` from its visible config, then call
-``descriptors = basis.create(atoms)``. The result is a real NumPy array with
-one row per atom and compiler-selected scalar columns. The Ni radial source
-and rank schedule extend through rank eight, with larger radial and angular
-caps at ranks one through four. The selected source partitions give 96
-independent columns on the four-atom Ni cell. The output is scalar
-because ``representation.parent.L`` is zero and the parent Young sector is
-``(N)``. A nonzero ``lmax_per_rank`` allows angular input factors; it does
-not make the output vector-valued. Edit the species, cutoff, radial family,
-rank schedule, and angular/radial caps for another system. The exact saved
-paper Ni-127 descriptors are shown by ``paper_ni_portable_ase.py``. This
-descriptor example does not fit or load a model.
-``tagged_descriptors.py`` follows the same public object flow with a rank-four
-tagged source. Its scalar parent stays globally symmetric, while two local
-Young ``(1,1)`` blocks carry angular ``L=1`` intermediates that couple to
-``L=0``. It returns fourteen ASE columns for four Ni atoms and checks a
-non-axis rotation and atom relabeling. The first materialization compiles
-the selected tagged image, so this advanced example takes longer than the
-ordinary descriptor quickstart.
-This descriptor-only script uses the atomistic reference evaluator and prints
-the executed backend. ``tagged_fit.py`` demonstrates the native CPU linear
-energy, force, and stress path for the same rank-four catalogue.
-For default scalar ACE descriptors, the compact ``Basis`` constructor gives
-the same ASE ``Atoms`` to NumPy usage without a full fit config:
-
-.. code-block:: python
-
-   from ase.build import bulk
-   from ye3t_methods import Basis
-
-   atoms = bulk("Ni", "fcc", a=3.52, cubic=True)
-   basis = Basis(elements=["Ni"], cutoff=5.0, max_rank=3,
-                 nmax=(2, 2, 1), lmax=(1, 1, 1))
-   descriptors = basis.create(atoms)  # shape (4, 10)
-
-The same call handles more than one species; list every element in the ASE
-structure and choose the desired basis settings:
-
-.. code-block:: python
-
-   from ase.build import molecule
-   from ye3t_methods import Basis
-
-   atoms = molecule("H2O")
-   basis = Basis(elements=["H", "O"], cutoff=4.0, max_rank=2,
-                 nmax=(2, 1), lmax=(1, 1))
-   descriptors = basis.create(atoms)  # shape (3, 24)
-
-Use the full representation and basis config when the target symmetry,
-physical factor source, or catalogue policy is part of the calculation.
-``ase_octupole_descriptors.py`` uses the same public objects for an ``L=3``
-odd-parity output. Its rows have seven real-tesseral components per feature.
-The displaced Ni atom gives a nonzero descriptor example.
-
-``density_fit.py`` is the first configured linear fit example. It constructs
-``ye3t.YE3TRepresentation``, passes it to ``Basis.from_config``, fits through
-``LinearModel``, then reloads and evaluates the saved model with ASE. Its
-editable seven-section config includes rank, source, target, backend, and
-workflow paths. It draws twelve labeled Ni structures across the published
-training split, fits a 19-column paper-informed ordinary basis, and evaluates
-one held-out structure. The radial settings match the paper; the angular
-caps and training count are smaller, so its output is an interface example,
-not a reproduction of the selected paper models or their held-out RMSE.
-Change the paths and training count under ``metadata`` for another training
-set or output location; these paths do not change the fitted-model identity.
-``combined_density_tagged_fit.py`` uses one configured basis with ordinary
-PACE density and shifted-Jacobi tagged components on a 32-atom periodic Ni
-cell, with ranks through four, one scalar fit, and one saved artifact. Its
-energy labels are manufactured to exercise the workflow;
-they are not a fitted physical potential. The example prints the two source
-families, descriptor shape, and restored ASE prediction.
-``per_atom_vector_to_lammps.py`` fits an odd-parity vector to a displaced
-32-atom periodic Cu cell, saves and reloads the model, and writes a LAMMPS
-``compute ye3t/property/atom`` input. Its analytic site-vector labels only
-exercise the workflow; they are not measured material properties. Change
-``metadata.system`` for a different ASE crystal setup. The model output is
-real-tesseral order, so compare the LAMMPS dump with
-``reference_real_tesseral.txt`` in real-tesseral order. To run the
-native half of the example, use an ML-YE3T-enabled LAMMPS executable from the
-generated output directory:
-
-.. code-block:: console
-
-   cd ../ye3t-workflows/quickstart_linear/cu_site_vector
-   lmp -in in.property
-
-The installed Python packages alone run the fit and write ``in.property``;
-LAMMPS is a separate installed consumer. The example uses repeated-content
-rank-three and rank-four ACE coordinates, so it also checks the full magnetic
-compiler route used by ordinary density multiplets.
-``tagged_fit.py`` follows the same object sequence. It compiles a core
-``CompiledTaggedCauchyImage`` artifact through ``ye3t.couplings`` and passes it directly to
-``Basis.from_config(..., compiled_cauchy_artifact=artifact)``. The basis
-rechecks the exact catalogue request and coefficient hash before fitting. Its
-ordered-role Cauchy counterpart has a separate core factor runtime; an ASE
-role source and model workflow for that carrier are not part of this example.
-The tagged example's rank-four source has two repeated blocks and a compiler-derived coordinate with local
-Young partitions ``(1,1)`` and block angular outputs ``(1,1)``. It actually
-fits energy, forces, and stress from bundled Ta interface fixtures, saves and
-reloads the result, then exports the hash-bound LAMMPS model, atomic data,
-and an ``in.ta_tagged_auto`` input using ``block_policy auto``. Run the input
-from its output directory with a LAMMPS build supporting that model schema.
-The fixture targets are
-manufactured; the fit is not a paper accuracy reproduction. Its ``native_cpu``
-run needs the tagged C ABI library installed or
-``YE3T_TAGGED_C_API_LIBRARY`` set to that library.
-
-The Ni script evaluates a four-atom fcc cell and its displaced copy. Its
-``validation`` settings inspect internal tag and role Young types supplied by
-the compiler; the tagged basis keeps a fixed symmetric scalar parent.
-``examples/publication/cost_comparison/ase_native_ni.py`` loads the saved Ni
-tagged potential, adds its ZBL overlay, and checks the energy of the 32-atom
-reference cell against the recorded LAMMPS result. It needs a native C++
-installation.
-``paper_ni_portable_ase.py`` reads the portable model through
-``LinearModel.read`` and verifies the same step-zero energy through the
-Python/ASE route. Its basis and representation are recovered from the saved
-artifact; the editable crystal geometry lives under ``metadata.system``.
-``paper_ni_nve.py`` uses the same saved model for 100 near-equilibrium ASE
-NVE steps with deterministic initial velocities and a CSV energy log.
-
-Each script imports installed packages. The Ni density fit uses the bundled
-mlearn labels; the tagged fit uses deterministic interface fixtures; other
-fitting scripts use fixtures or generate small labels. The chemical example
-constructs its own two-species source inputs. The fit scripts write their resulting model
-under a sibling ``ye3t-workflows/quickstart_linear`` directory. The fitting
-scripts expose their ASE evaluator choices in ``config["runtime"]``; the
-short descriptor scripts show their inputs directly.
-Change ``elements``, ``cutoff``, basis settings, and input structures for a new
-system; the fixture configurations are deliberately small for a quick
-numerical check. See :doc:`evaluators` for all supported choices.
-The manufactured Cu, Ta, and H scripts check the fitting interfaces. The Li,
-Mo, Cu, Ni, Si, and Ge paper-model artifacts and their inputs are described in
-:doc:`paper_models`.
-
-Ordinary density fit
---------------------
-
-.. literalinclude:: ../examples/quickstart/density_fit.py
-   :language: python
-
-Combined physical sources
--------------------------
-
-.. literalinclude:: ../examples/quickstart/combined_density_tagged_fit.py
-   :language: python
-
-Per-atom vector fit and LAMMPS input
-------------------------------------
-
-.. literalinclude:: ../examples/quickstart/per_atom_vector_to_lammps.py
-   :language: python
-
-ASE descriptors without fitting
--------------------------------
+The parent ``(N), L=0, even`` specifies a scalar output. The input angular caps
+allow nonzero one-factor angular degrees. The compiler determines the
+independent features within the selected channel contents.
 
 .. literalinclude:: ../examples/quickstart/ase_descriptors.py
    :language: python
 
+Tagged descriptors
+------------------
+
+The tagged example exposes radial counts, angular patterns and tag counts for
+every rank. Its scalar output includes nontrivial internal Young and angular
+couplings. Initial coefficient compilation costs more than density evaluation;
+subsequent runs reuse the compiler cache. The execution tests check that the
+native evaluator is actually selected.
+
 .. literalinclude:: ../examples/quickstart/tagged_descriptors.py
    :language: python
 
-.. literalinclude:: ../examples/quickstart/ase_octupole_descriptors.py
+Linear fitting
+--------------
+
+Read labeled ASE structures, construct the representation and basis, fit the
+model and attach its calculator to another ``Atoms`` object. All training data
+paths and target keys are editable.
+
+.. literalinclude:: ../examples/quickstart/density_fit.py
    :language: python
 
-Tagged physical-image fit
--------------------------
+The tagged and combined fits follow the same calls. ``model.score(structures,
+config=config)`` returns energy RMSE per atom and force RMSE over Cartesian
+components; configured stress targets also produce stress RMSE. Reference
+calculators and labels on the supplied structures are preserved.
 
 .. literalinclude:: ../examples/quickstart/tagged_fit.py
    :language: python
 
-Near-equilibrium ASE molecular dynamics
----------------------------------------
+Shell-density fitting
+---------------------
+
+The shell source retains its role action during coupling and selects invariant
+scalar energy coordinates. See :doc:`shell_linear` for source normalization,
+derivatives and saved-model details.
+
+.. literalinclude:: ../examples/quickstart/shell_density_fit.py
+   :language: python
+
+ASE molecular dynamics
+----------------------
 
 .. literalinclude:: ../examples/quickstart/paper_ni_nve.py
    :language: python
 
-Experimental explicit motif fit
--------------------------------
+Deployment
+----------
 
-.. literalinclude:: ../examples/experimental/phi_fit.py
+Run ``tagged_fit.py`` followed by ``saved_ase_export.py`` from the same working
+directory, or change the saved-model path in the export config. The export
+contains the compiler plans required by LAMMPS AUTO. Run ``lmp -in in.ye3t``
+from the generated directory with ML-YE3T installed.
+
+.. literalinclude:: ../examples/quickstart/saved_ase_export.py
    :language: python
 
-Experimental role-density fit
------------------------------
+The vector-property example uses ``compute ye3t/property/atom``. Its saved
+predictions and LAMMPS dump use real-tesseral component order.
 
-This quick variant uses the descriptor-first API and an oracle model to make
-small training labels. It verifies the fitted linear path; it does not assess a
-physical Ta potential.
-
-.. literalinclude:: ../examples/experimental/role_density_fit.py
+.. literalinclude:: ../examples/quickstart/per_atom_vector_to_lammps.py
    :language: python
 
-``inspect_features.py`` fits through the same configured object workflow and
-prints one compiler-selected label, its full description, and its fitted
-coefficient. ``sklearn_fit.py`` changes only the configured solver between
-LASSO and ARD, saves both models, and evaluates the restored ARD uncertainty;
-it requires the ``fit`` extra. ``saved_ase_export.py`` loads a tagged artifact
-for ASE evaluation and LAMMPS export. Its explicit ``reference`` evaluator
-works with the Python-only installation; change it to ``native_cpu`` when the
-native ABI is installed. The
-``examples/quickstart/fixtures/README.md`` file identifies the fixture labels
-and their intended use.
+Advanced sources and historical tools
+--------------------------------------
 
-Chemical encoding source check
-------------------------------
-
-This example checks one-hot source channels and a fixed in-memory chemical
-embedding kernel, including source position derivatives. Custom providers
-have no saved-model or LAMMPS export contract; see :doc:`chemical_encoding`.
-
-.. literalinclude:: ../examples/quickstart/chemical_encoding.py
-   :language: python
+``examples/advanced/explicit_phi_cluster.py`` evaluates one selected rank-eight
+cluster coupling. Its complete output has shape ``(1,14,5)``. See
+:doc:`phi_basis` for its supported geometry and the remaining orbit-sum fitting
+work. Historical motif-average, role-density and coupling demonstrations live
+under ``tools/legacy_examples`` with migration records and regression pointers.
+Full publication search pipelines live under ``tools/publication``. Their
+original scientific settings remain available for reproducing those studies.

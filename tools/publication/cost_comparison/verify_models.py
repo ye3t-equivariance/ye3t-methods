@@ -21,7 +21,7 @@ def sha256(path):
 def main():
     checked = 0
     for system in SYSTEMS:
-        root = HERE / "lammps" / system
+        root = HERE.parents[2] / "examples/publication/cost_comparison/lammps" / system
         manifest = json.loads((root / "model_manifest.json").read_text(encoding="utf-8"))
         if manifest["system"] != system:
             raise ValueError(f"Wrong system in {root / 'model_manifest.json'}")
@@ -33,7 +33,7 @@ def main():
                 raise ValueError(f"SHA-256 mismatch: {path}")
             checked += 1
 
-    data_root = HERE.parents[1] / "data" / "mlearn"
+    data_root = HERE.parents[2] / "examples/data/mlearn"
     data_manifest = json.loads((data_root / "MANIFEST.json").read_text(encoding="utf-8"))
     for system in SYSTEMS:
         record = data_manifest[system]

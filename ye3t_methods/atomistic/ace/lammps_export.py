@@ -649,11 +649,28 @@ def _compiler_coordinate(row, catalogue):
     )
     expected = dict(row["expected_compiler"])
     certificate = dict(compiled["certificate"])
-    for name, value in expected.items():
-        if str(certificate.get(name, "")) != str(value):
+    differences = [name for name, value in expected.items()
+                   if str(certificate.get(name, "")) != str(value)]
+    if differences:
+        # A saved coordinate can predate changes to the compiler's validation
+        # metadata. Rebind only after exact equality of every fitted coefficient
+        # and magnetic tuple. The exported execution plan is also compared
+        # coefficientwise against the fitted YACE polynomial below.
+        saved = row.get("compiled_coordinate", {})
+        current = _serialize_scalar_coordinate(compiled)
+        saved_certificate = saved.get("certificate", {})
+        valid_saved = (
+            saved.get("payload_sha256") == _stable_hash({
+                key: value for key, value in saved.items() if key != "payload_sha256"})
+            and saved_certificate.get("passed") is True
+            and all(str(saved_certificate.get(name, "")) == str(value)
+                    for name, value in expected.items())
+            and all(saved.get(name) == current.get(name)
+                    for name in ("schema", "label", "magnetic_tuples", "coefficients")))
+        if not valid_saved:
             raise RuntimeError(
-                f"Compiler identity mismatch for {row['feature_id']!r}: {name}."
-            )
+                f"Compiler identity mismatch for {row['feature_id']!r}: {differences}; "
+                "the saved coordinate could not be matched coefficientwise.")
     return compiled
 
 

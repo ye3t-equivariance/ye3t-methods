@@ -59,7 +59,7 @@ model. From the ye3t-methods source directory, verify every included
 model and data file with:
 
 ```bash
-python examples/publication/cost_comparison/verify_models.py
+python tools/publication/cost_comparison/verify_models.py
 ```
 
 The compact accuracy, timing, parity, and model-validation results are in the

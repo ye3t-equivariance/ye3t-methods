@@ -156,7 +156,9 @@ def test_general_native_force_rows_and_invariance(general_descriptor, tmp_path):
     assert tagged_cauchy_image_geometry_row(descriptor, atoms, tmp_path)["cache_hit"]
 
 
-def test_general_v4_native_ase_auto_matches_reference(general_descriptor):
+@pytest.mark.parametrize("bound_references", [False, True])
+@pytest.mark.parametrize("execution_policy", ["direct", "auto"])
+def test_general_v4_native_ase_auto_matches_reference(general_descriptor, bound_references, execution_policy, tmp_path):
     library = os.environ.get("YE3T_TAGGED_C_API_LIBRARY")
     if not library:
         pytest.skip("requires optional ye3t-lammps tagged C ABI library")
@@ -167,13 +169,17 @@ def test_general_v4_native_ase_auto_matches_reference(general_descriptor):
          for name in evaluator.species_order},
         {"H": -0.1, "O": 0.2},
     )
+    if bound_references:
+        model.reference_terms = {"atomic_energies": {"H": -13., "O": -2000.},
+            "zbl": {"atomic_numbers": {"H": 1, "O": 8},
+                    "inner_cutoff_A": 0.7, "outer_cutoff_A": 1.8, "engine": "numpy"}}
     atoms = Atoms("HOH", positions=((0.1, 0.2, 0.3), (1.0, -0.2, 0.4),
                                     (0.3, 1.1, -0.4)), cell=(8.0, 8.0, 8.0), pbc=True)
     reference = atoms.copy()
     reference.calc = model.ase_calculator(backend="reference")
     native = atoms.copy()
     native.calc = model.ase_calculator(
-        backend="native_cpu", native_library=library, execution_policy="auto")
+        backend="native_cpu", native_library=library, execution_policy=execution_policy)
     assert native.calc.native_runtime.selected_policy in {
         "compiled_direct", "generic_dag", "symmetric_power", "block",
     }
@@ -183,6 +189,13 @@ def test_general_v4_native_ase_auto_matches_reference(general_descriptor):
                                rtol=2e-8, atol=2e-8)
     np.testing.assert_allclose(native.get_stress(), reference.get_stress(),
                                rtol=2e-8, atol=2e-8)
+    from ye3t_methods.atomistic.tagged_cauchy_image import YE3TTaggedCauchyCalculator
+    model.export_lammps(tmp_path/"model.ye3t.json")
+    native.calc = YE3TTaggedCauchyCalculator.from_artifact(
+        tmp_path/"model.ye3t.json", native_library=library, execution_policy=execution_policy)
+    np.testing.assert_allclose(native.get_potential_energy(), reference.get_potential_energy(), rtol=2e-9, atol=2e-9)
+    np.testing.assert_allclose(native.get_forces(), reference.get_forces(), rtol=2e-8, atol=2e-8)
+    np.testing.assert_allclose(native.get_stress(), reference.get_stress(), rtol=2e-8, atol=2e-8)
     np.testing.assert_allclose(
         general_descriptor.create(atoms, backend="native_cpu", native_library=library,
                                   execution_policy="auto"),

@@ -1,0 +1,194 @@
+[
+  {
+    "original": "examples/publication/cost_comparison/run.py",
+    "preserved": "tools/publication/cost_comparison/run.py",
+    "original_sha256": "6cd6151a22c28cfb1901635aa79dc35d8dd3795cbd3f074b7de9886d192dbf5d",
+    "preserved_sha256": "b304cdaf7be7489674a791b1f6d5c7b52272c24c55440a347beb669de8655580"
+  },
+  {
+    "original": "examples/publication/cost_comparison/config.json",
+    "preserved": "tools/publication/cost_comparison/config.json",
+    "original_sha256": "e8fd64b3e0b6400052d18884bda9d2d3a8e62c6b12e75be8f55429ae6047ba26",
+    "preserved_sha256": "e8fd64b3e0b6400052d18884bda9d2d3a8e62c6b12e75be8f55429ae6047ba26"
+  },
+  {
+    "original": "examples/publication/cost_comparison/tagged_components.json",
+    "preserved": "tools/publication/cost_comparison/tagged_components.json",
+    "original_sha256": "4420c96f21e2cfbe920d4d95215f71888d009664b9bca2851e93dee45ca88a9a",
+    "preserved_sha256": "4420c96f21e2cfbe920d4d95215f71888d009664b9bca2851e93dee45ca88a9a"
+  },
+  {
+    "original": "examples/publication/cost_comparison/verify_models.py",
+    "preserved": "tools/publication/cost_comparison/verify_models.py",
+    "original_sha256": "4b69211bbe3df070712809a103a0d068f5b7daaab52f7d5b779a873824c03d42",
+    "preserved_sha256": "dec9df99ade5dbe7dfa95f762c25028dfb840dd14f3e7857205833ba472560d8"
+  },
+  {
+    "original": "examples/publication/cost_comparison/workflow/benchmark_finalists.py",
+    "preserved": "tools/publication/cost_comparison/workflow/benchmark_finalists.py",
+    "original_sha256": "87939d14845bb1bc83796d39ad814bdc00e1ed256a493cb8dc5bab6bd4d6ebbb",
+    "preserved_sha256": "87939d14845bb1bc83796d39ad814bdc00e1ed256a493cb8dc5bab6bd4d6ebbb"
+  },
+  {
+    "original": "examples/publication/cost_comparison/workflow/build_ordinary_rows.py",
+    "preserved": "tools/publication/cost_comparison/workflow/build_ordinary_rows.py",
+    "original_sha256": "c4b27094eaa4af416b59f0698f338e709c999bc94c21762ebc552ba208efb20f",
+    "preserved_sha256": "c4b27094eaa4af416b59f0698f338e709c999bc94c21762ebc552ba208efb20f"
+  },
+  {
+    "original": "examples/publication/cost_comparison/workflow/build_rows.py",
+    "preserved": "tools/publication/cost_comparison/workflow/build_rows.py",
+    "original_sha256": "def447b33ae53725fc98e9964d48d026583f617bcf684c213ae3d2c1520551e5",
+    "preserved_sha256": "def447b33ae53725fc98e9964d48d026583f617bcf684c213ae3d2c1520551e5"
+  },
+  {
+    "original": "examples/publication/cost_comparison/workflow/build_tagged_catalogue.py",
+    "preserved": "tools/publication/cost_comparison/workflow/build_tagged_catalogue.py",
+    "original_sha256": "e6c2909af78a7dade6d8f848d28f82549ce8e878b0fc6f11656f293513598898",
+    "preserved_sha256": "e6c2909af78a7dade6d8f848d28f82549ce8e878b0fc6f11656f293513598898"
+  },
+  {
+    "original": "examples/publication/cost_comparison/workflow/finalize_models.py",
+    "preserved": "tools/publication/cost_comparison/workflow/finalize_models.py",
+    "original_sha256": "49bbd230b32da88e11c88c90ae4119d3126fff4247e46c02ace7fca4409baae9",
+    "preserved_sha256": "49bbd230b32da88e11c88c90ae4119d3126fff4247e46c02ace7fca4409baae9"
+  },
+  {
+    "original": "examples/publication/cost_comparison/workflow/lammps_properties.py",
+    "preserved": "tools/publication/cost_comparison/workflow/lammps_properties.py",
+    "original_sha256": "20de6862d1df6af7ebafcbf3c1b0c3eb332ca1d1a3b70e154387e7454eea3205",
+    "preserved_sha256": "20de6862d1df6af7ebafcbf3c1b0c3eb332ca1d1a3b70e154387e7454eea3205"
+  },
+  {
+    "original": "examples/publication/cost_comparison/workflow/lifted_finalists.py",
+    "preserved": "tools/publication/cost_comparison/workflow/lifted_finalists.py",
+    "original_sha256": "b52b99d33974b4832bfa79492c2cf82c9f715cbf23926e8cfc8227c59258715d",
+    "preserved_sha256": "b52b99d33974b4832bfa79492c2cf82c9f715cbf23926e8cfc8227c59258715d"
+  },
+  {
+    "original": "examples/publication/cost_comparison/workflow/optimize_cached.py",
+    "preserved": "tools/publication/cost_comparison/workflow/optimize_cached.py",
+    "original_sha256": "b413e942488afe62065cd3953bfa77775849f2c653891004dc8500aafcc2e2b7",
+    "preserved_sha256": "b413e942488afe62065cd3953bfa77775849f2c653891004dc8500aafcc2e2b7"
+  },
+  {
+    "original": "examples/publication/cost_comparison/workflow/property_finalists.py",
+    "preserved": "tools/publication/cost_comparison/workflow/property_finalists.py",
+    "original_sha256": "8f994ee26d3f1958a93b80cbeb3cb067f50f1c5e2c315590cc6ea85cfefb5982",
+    "preserved_sha256": "8f994ee26d3f1958a93b80cbeb3cb067f50f1c5e2c315590cc6ea85cfefb5982"
+  },
+  {
+    "original": "examples/publication/cost_comparison/workflow/radial_screen.py",
+    "preserved": "tools/publication/cost_comparison/workflow/radial_screen.py",
+    "original_sha256": "e1812b8c67b56578c55902a62c0c789e69b19abe14a99fb4e78ae806ee70831a",
+    "preserved_sha256": "e1812b8c67b56578c55902a62c0c789e69b19abe14a99fb4e78ae806ee70831a"
+  },
+  {
+    "original": "examples/publication/cost_comparison/workflow/render_final_study.py",
+    "preserved": "tools/publication/cost_comparison/workflow/render_final_study.py",
+    "original_sha256": "bf16d4114a41c0f3683092a9715cca736315683b6f9982456d094ca26821abd6",
+    "preserved_sha256": "bf16d4114a41c0f3683092a9715cca736315683b6f9982456d094ca26821abd6"
+  },
+  {
+    "original": "examples/publication/cost_comparison/workflow/select_radial.py",
+    "preserved": "tools/publication/cost_comparison/workflow/select_radial.py",
+    "original_sha256": "49ecda892ca46d0c61e0e7a9c0438006e6b9e2ef26452e7f731c21aa17a562e3",
+    "preserved_sha256": "49ecda892ca46d0c61e0e7a9c0438006e6b9e2ef26452e7f731c21aa17a562e3"
+  },
+  {
+    "original": "examples/publication/cost_comparison/workflow/stability_finalists.py",
+    "preserved": "tools/publication/cost_comparison/workflow/stability_finalists.py",
+    "original_sha256": "325dda8131848429c9c878c92a3ca1b162ed18c7b72695e74d1a70a8537c00b0",
+    "preserved_sha256": "325dda8131848429c9c878c92a3ca1b162ed18c7b72695e74d1a70a8537c00b0"
+  },
+  {
+    "original": "examples/publication/cost_comparison/workflow/validate_finalists.py",
+    "preserved": "tools/publication/cost_comparison/workflow/validate_finalists.py",
+    "original_sha256": "bf3c4b91bc1b27c79ee65b4f35408e66516ab78457f087370b891d0c536cc5c5",
+    "preserved_sha256": "bf3c4b91bc1b27c79ee65b4f35408e66516ab78457f087370b891d0c536cc5c5"
+  },
+  {
+    "original": "examples/publication/cost_comparison/workflow/validate_three_way_ordinary.py",
+    "preserved": "tools/publication/cost_comparison/workflow/validate_three_way_ordinary.py",
+    "original_sha256": "21a65481ee5220dbe21e8500102811a6de5432d95f283d5ee257a6a9298766dd",
+    "preserved_sha256": "21a65481ee5220dbe21e8500102811a6de5432d95f283d5ee257a6a9298766dd"
+  },
+  {
+    "original": "examples/publication/cost_comparison/workflow/verify_cached_statistics.py",
+    "preserved": "tools/publication/cost_comparison/workflow/verify_cached_statistics.py",
+    "original_sha256": "671259bc7b072c4d2c4ccfc607255f849d398f8780bd1b1b7f67d871b3ef7911",
+    "preserved_sha256": "671259bc7b072c4d2c4ccfc607255f849d398f8780bd1b1b7f67d871b3ef7911"
+  },
+  {
+    "original": "examples/publication/cost_comparison/workflow/zbl_screen.py",
+    "preserved": "tools/publication/cost_comparison/workflow/zbl_screen.py",
+    "original_sha256": "6e193503434f1586eb539071ab7bea64801d65bf6518724fbaaac1357a41c0bd",
+    "preserved_sha256": "6e193503434f1586eb539071ab7bea64801d65bf6518724fbaaac1357a41c0bd"
+  },
+  {
+    "original": "examples/publication/cost_comparison/systems/Cu.json",
+    "preserved": "tools/publication/cost_comparison/systems/Cu.json",
+    "original_sha256": "573638570af6470f4bf803274624fa4d1b1f181967fe058dfcf7da6fe156e932",
+    "preserved_sha256": "573638570af6470f4bf803274624fa4d1b1f181967fe058dfcf7da6fe156e932"
+  },
+  {
+    "original": "examples/publication/cost_comparison/systems/Ge.json",
+    "preserved": "tools/publication/cost_comparison/systems/Ge.json",
+    "original_sha256": "84a9e22deba43b20c7e8a13be4832c59882fb1a6aed15c3028f10eb33edac6bc",
+    "preserved_sha256": "84a9e22deba43b20c7e8a13be4832c59882fb1a6aed15c3028f10eb33edac6bc"
+  },
+  {
+    "original": "examples/publication/cost_comparison/systems/Li.json",
+    "preserved": "tools/publication/cost_comparison/systems/Li.json",
+    "original_sha256": "502b86ad9f537d00f15b2a557b3c1a81989135f9bce3d31e7f52e7be84eaf603",
+    "preserved_sha256": "502b86ad9f537d00f15b2a557b3c1a81989135f9bce3d31e7f52e7be84eaf603"
+  },
+  {
+    "original": "examples/publication/cost_comparison/systems/Mo.json",
+    "preserved": "tools/publication/cost_comparison/systems/Mo.json",
+    "original_sha256": "9d938ed303277227ab79e55d457a38b28e3ef5105c1b0ff8fd7ef712d502bfae",
+    "preserved_sha256": "9d938ed303277227ab79e55d457a38b28e3ef5105c1b0ff8fd7ef712d502bfae"
+  },
+  {
+    "original": "examples/publication/cost_comparison/systems/Ni.json",
+    "preserved": "tools/publication/cost_comparison/systems/Ni.json",
+    "original_sha256": "58832408980606dcf5a800ddcd264846a7e16393958094273ea600c54b21e296",
+    "preserved_sha256": "58832408980606dcf5a800ddcd264846a7e16393958094273ea600c54b21e296"
+  },
+  {
+    "original": "examples/publication/cost_comparison/systems/Si.json",
+    "preserved": "tools/publication/cost_comparison/systems/Si.json",
+    "original_sha256": "6a085e281a566f4bfe31cd3eda749509a3fc9e7fbf0179d7ca53f403d7fbfd7d",
+    "preserved_sha256": "6a085e281a566f4bfe31cd3eda749509a3fc9e7fbf0179d7ca53f403d7fbfd7d"
+  },
+  {
+    "original": "examples/publication/ta_tagged_cauchy_image_linear/config.json",
+    "preserved": "tools/publication/ta_tagged_cauchy_image_linear/config.json",
+    "original_sha256": "cb73db3afd5be3eb3237c80a7e4e79ae29592f4208438095f3e936dbefcd3878",
+    "preserved_sha256": "2ff67ed49d1693cb4e93c8e7d9214788ecbbe9fdf709ee93504ae181c284ebc5"
+  },
+  {
+    "original": "examples/publication/ta_tagged_cauchy_image_linear/config_quick.json",
+    "preserved": "tools/publication/ta_tagged_cauchy_image_linear/config_quick.json",
+    "original_sha256": "5403686e29c33866a16051fbd97eda9df871e0fb2874c9905415dac5de1fd11c",
+    "preserved_sha256": "a68a0e5c492b7f0d3879e5f11ef5b72c3bc2c934cfeb5f0c696ad0255b1a32ea"
+  },
+  {
+    "original": "examples/publication/ta_tagged_cauchy_image_linear/README.md",
+    "preserved": "tools/publication/ta_tagged_cauchy_image_linear/README.md",
+    "original_sha256": "b4c106a6d2b740cd3f406f5a7c80b8e813535cedab371f065e31c808849a26b3",
+    "preserved_sha256": "d53b275cdc99e144b7d9df3a93399a7b8eb33df97ad61fc2dcdc4572a5fb50e7"
+  },
+  {
+    "original": "examples/publication/ta_tagged_cauchy_image_linear/run_end_to_end.sh",
+    "preserved": "tools/publication/ta_tagged_cauchy_image_linear/run_end_to_end.sh",
+    "original_sha256": "949d0186027c0bb5b415b2bfacd3294a9ec06b1ee0e556c8f0ca846d763787f3",
+    "preserved_sha256": "949d0186027c0bb5b415b2bfacd3294a9ec06b1ee0e556c8f0ca846d763787f3"
+  },
+  {
+    "original": "examples/publication/ta_tagged_cauchy_image_linear/train_export.py",
+    "preserved": "tools/publication/ta_tagged_cauchy_image_linear/train_export.py",
+    "original_sha256": "456631cad4536977e22938188c1db105d0f736c6c9451611db4f0fa4537be7b3",
+    "preserved_sha256": "456631cad4536977e22938188c1db105d0f736c6c9451611db4f0fa4537be7b3"
+  }
+]

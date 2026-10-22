@@ -312,6 +312,9 @@ def resolve_basis_config(config, representation, runtime, *,
     Outputs: Frozen BasisResolution with source and capability records.
     Does not: Create descriptor labels, coupling coefficients, or evaluators.
     """
+    if isinstance(config, Mapping) and config.get("tensor_product", {}).get("kind") == "shell_density":
+        from .shell_linear import resolve_shell_basis
+        return resolve_shell_basis(config, representation, runtime)[0]
     if not isinstance(representation, YE3TRepresentation):
         raise TypeError("representation must be ye3t.YE3TRepresentation.from_config(...).")
     if (isinstance(config, Mapping)
@@ -445,7 +448,7 @@ def resolve_basis_config(config, representation, runtime, *,
         len(components) == 1 and
         components[0]["kind"] == "tagged" and
         component_status[components[0]["name"]] == "tagged_raw_upper_bound_available" and
-        device == "cpu" and cache.get("mode", "auto") == "auto" and
+        device == "cpu" and cache.get("mode", "auto") in {"auto", "off"} and
         ((evaluator in {"auto", "torch", "reference"} and neighbors == "auto") or
          (evaluator == "native_cpu" and neighbors in {"auto", "ase", "matscipy"}))
     )
@@ -593,7 +596,13 @@ def _resolve_ordered_phi_star_config(config, representation, runtime):
     product = config["tensor_product"]
     _keys(product, {"kind", "motif"}, "basis.tensor_product")
     motif = product["motif"]
-    _keys(motif, {"kind", "ordered_slots", "leaf_edges"}, "basis.tensor_product.motif")
+    _keys(motif, {"kind", "ordered_factors", "ordered_slots", "leaf_edges"}, "basis.tensor_product.motif")
+    if "ordered_factors" in motif and "ordered_slots" in motif:
+        raise ValueError("Specify ordered_factors once; ordered_slots is its legacy spelling.")
+    # Keep the serialized legacy spelling stable while public inputs use factors.
+    if "ordered_factors" in motif:
+        motif = {**motif, "ordered_slots": motif["ordered_factors"]}
+        del motif["ordered_factors"]
     if (motif.get("kind") != "rooted_star" or motif.get("ordered_slots") is not True
             or motif.get("leaf_edges") != []):
         raise ValueError("The first ordered Phi motif must be an ordered rooted star without leaf edges.")
@@ -849,8 +858,8 @@ def resolve_linear_fit_config(config, basis, *, check_optional_dependencies=True
     if type(fit_E0) is not bool:
         raise TypeError("model.reference_energy.fit_E0 must be a boolean.")
     if fit_E0 and len(resolution.to_dict()["components"]) == 1 and (
-            resolution.to_dict()["components"][0]["kind"] != "density"):
-        raise ValueError("Fitted per-species E0 requires density or combined scalar sources.")
+            resolution.to_dict()["components"][0]["kind"] not in {"density", "shell_density", "tagged"}):
+        raise ValueError("Fitted per-species E0 requires a supported scalar source.")
     targets = config["targets"]
     _keys(targets, {"energy", "forces", "stress", "per_atom"}, "targets")
     if "per_atom" in targets:
@@ -938,6 +947,11 @@ class CoupledFactorCataloguePreview:
 
     def repeated_content_summary(self):
         request = self._report["request"]
+        if "catalogue" in request:
+            return {"coefficient_materialization_performed": False,
+                    "content_source": "ye3t.couplings.count",
+                    "rank_inventory": deepcopy(self._report["rank_inventory"]),
+                    "selected_records": deepcopy(self._report["selected_records"])}
         return {"coefficient_materialization_performed": False,
                 "content_source": "ye3t.couplings.count",
                 "block_sizes": tuple(request["block_sizes"]),

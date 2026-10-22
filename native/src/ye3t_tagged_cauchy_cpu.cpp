@@ -620,6 +620,7 @@ void TaggedCauchyCPUEvaluator::evaluate(int atom_count, const int *central_speci
     throw std::invalid_argument("tagged-Cauchy evaluator received a negative atom count");
   const TaggedCauchyModel &model = *model_;
   const int DK = static_cast<int>(model.real_density_keys.size());
+  const bool features_only = atomic_features != nullptr && edge_gradients == nullptr;
   const int MK = static_cast<int>(model.real_moment_keys.size());
   density_.assign(static_cast<std::size_t>(DK), 0.0);
   density_adjoint_.assign(static_cast<std::size_t>(DK), 0.0);
@@ -643,7 +644,7 @@ void TaggedCauchyCPUEvaluator::evaluate(int atom_count, const int *central_speci
               static_cast<std::size_t>(central_species_indices[center]) * model.species_order.size() +
               static_cast<std::size_t>(edge_neighbor_species[edge])];
     compute_edge_components(source_edge_count, edge_neighbor_species + source_edge_begin,
-                            edge_vectors + source_edge_begin * 3, source_batch_cutoffs_.data(), true,
+                            edge_vectors + source_edge_begin * 3, source_batch_cutoffs_.data(), !features_only,
                             source_batch_component_values_, source_batch_component_gradients_);
 
     for (int center = source_batch_begin; center < source_batch_end; ++center) {
@@ -654,13 +655,14 @@ void TaggedCauchyCPUEvaluator::evaluate(int atom_count, const int *central_speci
       const std::size_t component_count =
           static_cast<std::size_t>(edge_count) * static_cast<std::size_t>(total_components_);
       component_values_.resize(component_count);
-      component_gradients_.resize(component_count * 3);
+      component_gradients_.resize(features_only ? 0 : component_count * 3);
       std::copy_n(source_batch_component_values_.data() +
                       local_begin * static_cast<std::size_t>(total_components_),
                   component_count, component_values_.data());
-      std::copy_n(source_batch_component_gradients_.data() +
-                      local_begin * static_cast<std::size_t>(total_components_) * 3,
-                  component_count * 3, component_gradients_.data());
+      if (!features_only)
+        std::copy_n(source_batch_component_gradients_.data() +
+                        local_begin * static_cast<std::size_t>(total_components_) * 3,
+                    component_count * 3, component_gradients_.data());
       const std::size_t species =
           static_cast<std::size_t>(central_species_indices[static_cast<std::size_t>(center)]);
       std::fill(density_.begin(), density_.end(), 0.0);
@@ -900,6 +902,10 @@ void TaggedCauchyCPUEvaluator::evaluate(int atom_count, const int *central_speci
           if (model.deployment_kind == TaggedCauchyDeploymentKind::LegacyMomentV2)
             product *= free_count_by_p_[static_cast<std::size_t>(term.p)];
           features[static_cast<std::size_t>(term.feature_index)] += product;
+        }
+        if (features_only) {
+          atomic_energies[center] = 0.0;  // No energy readout requested.
+          continue;
         }
       }
 

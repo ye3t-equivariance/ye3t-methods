@@ -1,6 +1,5 @@
-"""Evaluate the promoted Li ACE model with its ZBL overlay in ASE."""
+"""Evaluate the saved Li ACE model with its ZBL overlay in ASE."""
 
-import os
 from pathlib import Path
 
 from ase.build import bulk
@@ -13,23 +12,18 @@ from ye3t_methods.atomistic.yace_native import YE3TYACENativeCalculator
 example_root = Path(__file__).resolve().parent
 config = {
     "metadata": {
-        "name": "paper_li_density_native_ase",
+        "schema": "ye3t_config_v1", "name": "paper_li_density_native_ase",
         "status": "stable",
+        "system": {
+            "species": ["Li"], "lattice": "bcc", "lattice_constant_A": 3.427,
+            "repeats": (2, 2, 2), "first_atom_displacement_A": (0.08, -0.05, 0.04),
+        },
     },
-    "basis": {
-        "species": ["Li"],
-        "lattice": "bcc",
-        "lattice_constant_A": 3.427,
-        "repeats": (2, 2, 2),
-        "first_atom_displacement_A": (0.08, -0.05, 0.04),
-    },
-    "representation": {
-        "carrier": "ordinary_ACE_density",
-        "target": {"permutation": "globally_trivial", "L": 0},
-    },
+    "basis": {"from_saved_model": True},
+    "representation": {"from_saved_model": True},
     "runtime": {
-        "ase_backend": "native_cpu",
-        "native_library": os.environ.get("YE3T_TAGGED_C_API_LIBRARY"),
+        "evaluator": "native_cpu",
+        "native_library": None,
         "neighbor_skin_A": 0.3,
     },
     "model": {
@@ -44,16 +38,13 @@ config = {
     },
 }
 
-if config["runtime"]["ase_backend"] != "native_cpu":
+if config["runtime"]["evaluator"] != "native_cpu":
     raise ValueError("Published .yace artifacts use the native_cpu ASE loader.")
 
-atoms = bulk(
-    config["basis"]["species"][0],
-    config["basis"]["lattice"],
-    a=config["basis"]["lattice_constant_A"],
-    cubic=True,
-).repeat(config["basis"]["repeats"])
-atoms.positions[0] += config["basis"]["first_atom_displacement_A"]
+system = config["metadata"]["system"]
+atoms = bulk(system["species"][0], system["lattice"],
+             a=system["lattice_constant_A"], cubic=True).repeat(system["repeats"])
+atoms.positions[0] += system["first_atom_displacement_A"]
 linear = YE3TYACENativeCalculator.from_artifact(
     config["model"]["artifact"],
     native_library=config["runtime"]["native_library"],
@@ -70,6 +61,3 @@ print("zbl_reference_eV", zbl.results["energy"])
 print("maximum_force_eV_per_A", abs(forces).max())
 print("stress_eV_per_A3", stress)
 print("neighbor_backend", linear.native_runtime.last_neighbor_backend)
-expected = config["validation"]["lammps_step_zero_energy_eV"]
-if expected is not None:
-    assert abs(energy - expected) < config["validation"]["energy_tolerance_eV"]

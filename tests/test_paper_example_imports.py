@@ -6,7 +6,7 @@ from pathlib import Path
 
 
 def test_paper_drivers_use_available_ye3t_imports():
-    root = Path(__file__).resolve().parents[1] / "examples" / "publication" / "cost_comparison"
+    root = Path(__file__).resolve().parents[1] / "tools" / "publication" / "cost_comparison"
     scripts = (root / "run.py", *sorted((root / "workflow").glob("*.py")))
     assert len(scripts) == 18
     for path in scripts:

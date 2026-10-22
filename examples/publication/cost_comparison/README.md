@@ -3,63 +3,50 @@
 This example contains the linear MLIP inputs and saved deployment models for
 Li, Mo, Cu, Ni, Si, and Ge in
 [Goff and Thompson, arXiv:2609.31895v1, section IV.3](https://arxiv.org/abs/2609.31895).
-It is the paper's fixed-feature comparison, not the manufactured quickstart
-fixture. The six matched 127-feature ACE and tagged YE3T models, their LAMMPS
+It contains the paper's fixed-feature comparison. The six matched 127-feature ACE and tagged YE3T models, their LAMMPS
 input decks, and reference logs are under [lammps](lammps/README.md).
 Ni also has 60-, 149-, and augmented 196-feature models. Model bytes and
 per-model manifests match the `ye3t-lammps` bundle; the manifests contain SHA-256
 checksums and the fitted ZBL reference settings.
 
-The editable [config](config.json), [tagged content schedule](tagged_components.json),
-[element records](systems), [fitting workflow](run.py), and fixed
-[mlearn dataset snapshot](../../data/mlearn/README.md) are included in the
-source distribution. The fitting workflow uses `ye3t-methods` compatibility
-modules, with `ye3t` as the separate representation compiler. The paper
-workflow uses one-hot chemical channels (`chemical_basis="delta"`);
-no learned chemical embedding was fitted for these published models.
+## Install and run
 
-## Install and inspect
+Install `ye3t` and `ye3t-methods[examples]` following the package README.
+Use the source archive for the scripts, data and saved models in this directory.
+The wheel provides the Python APIs and native library.
 
-From the `ye3t-methods` source directory with a sibling `ye3t` checkout, install
-both packages and run the first preflight:
+The public scripts expose the same seven config sections as the quickstarts:
+`metadata`, `basis`, `representation`, `runtime`, `model`, `targets`, and
+`validation`. Edit paths and scientific settings directly in each script.
+Output paths default to `~/ye3t-workflows`; set `YE3T_WORKFLOW_ROOT` or edit
+the config to choose another directory.
+
+### Fit and run Ni-60
+
+Use one of these independent script pairs:
 
 ```bash
-python -m pip install torch 'setuptools>=77,<82' wheel cmake
-python -m pip install --no-build-isolation ../ye3t
-python -m pip install --no-build-isolation '.[examples]'
-python examples/publication/cost_comparison/run.py --stage preflight --systems Li
-python examples/publication/cost_comparison/run.py --stage prepare --systems Li
+python examples/publication/cost_comparison/paper_ni_60_density_01_prep_train.py
+python examples/publication/cost_comparison/paper_ni_60_density_02_run.py
+
+python examples/publication/cost_comparison/paper_ni_60_tagged_01_prep_train.py
+python examples/publication/cost_comparison/paper_ni_60_tagged_02_run.py
 ```
 
-The no-argument driver reads `config.json` and preflights Si. To work on Ni,
-run `python examples/publication/cost_comparison/run.py --systems Ni`; the
-`--stage` flag selects one restartable part of the fitting workflow. The
-configuration keeps the published basis and fit settings visible:
+The first script inspects the paper's selected compiler labels, evaluates
+descriptors and summed position gradients, fits all 263 development structures,
+and evaluates the separate 31 frames. It writes a portable `.ye3t` model and a
+LAMMPS export directory including AUTO execution data and the ZBL overlay.
+Choose a new export directory when repeating a fit. The second script loads
+the fitted model and runs 100 ASE NVE steps using the configured evaluator.
+The density model has 60 density features; the tagged model has 15 density and
+45 tagged features. Both include ranks 1, 2, 3, 4, 6 and 8.
 
-| Edit | Purpose |
-| --- | --- |
-| `runtime.default_systems`, `runtime.default_stage` | No-argument driver selection; `--systems` and `--stage` override these. |
-| `basis.tensor_orders`, `nmax_by_tensor_order`, `lmax_by_tensor_order` | Rank, radial, and angular limits for the catalogue. |
-| `basis.channel_multiplicity_partitions_by_order` | Fixed-content channel partitions; the compiler still determines valid coupling labels. |
-| `basis.tagged.tag_counts_s`, `component_schedule` | Tagged source role count and physical-content schedule. |
-| `representation.target` | Scalar, even-parity, globally invariant paper target. |
-| `runtime.workflow_root`, `runtime.coupling_cache_root` | Output and coupling cache locations. |
-| `model.arms`, `model.fit_method`, `model.hyperparameter_search` | Matched fit arms and search settings. |
-| `validation.inner_seed`, `validation.inner_fold_count` | Training-only model selection split. |
-
-The `systems/*.json` files expose each element's species, crystal, lattice
-constant, and cutoff candidates. `run.py --help` lists the LAMMPS, MPI,
-resource, and stage overrides. Changing a published config produces a new
-study; it does not change the bundled models or their reference values.
-
-The `prepare` command reads the bundled mlearn snapshot and checks its hashes.
-The default output directory is a sibling `ye3t-workflows/MLIP/mlearn_linear_cost_comparison`
-directory beside the `ye3t-methods` source directory. Edit `runtime.workflow_root`
-and `runtime.coupling_cache_root` in the visible config for another location.
-The full catalogue, fit, validation, and LAMMPS workflow can take substantial
-CPU time; see `run.py --help` for restartable stages and resource guards.
-The fitted model files are already present, so running LAMMPS does not require
-refitting.
+The original six-element feature selection, fitting and deployment study is
+preserved under [tools/publication/cost_comparison](../../../tools/publication/README.md).
+That research driver uses its historical study-specific config. Its physical
+content schedules, element records and restartable stages remain available for
+reproducing the original study. The examples here use the public model workflow.
 
 To reproduce the held-out Ni energy and force RMSE for the saved 60-, 127-,
 and 149-feature ordinary ACE and tagged YE3T models, run:
@@ -71,13 +58,12 @@ python examples/publication/cost_comparison/reproduce_ni_rmse.py
 The script reads the bundled 31-frame mlearn Ni test split and the six saved
 model manifests under `lammps/Ni`, checks their hashes, includes each model's
 ZBL overlay, and compares the resulting errors with the saved accuracy
-table. Its JSON report defaults to the sibling
-`ye3t-workflows/MLIP/cost_comparison/ni_rmse_recomputed.json` directory. Use
-`--dataset-root` for a matching separately downloaded mlearn snapshot,
-`--models-root` for a matching deployment bundle, and `--output` to choose a
-report path. `--max-frames` is diagnostic only and does not claim baseline
-reproduction. The ordinary controls require the packaged native YACE reader;
-the tagged models use `LinearModel.read` and the native composite evaluator.
+table. Its JSON report defaults to
+`~/ye3t-workflows/MLIP/cost_comparison/ni_rmse_recomputed.json`. Edit `metadata.dataset_root`, `metadata.models_root` and
+`metadata.output_summary` in the visible config to use another matching data/model bundle
+or output location. `validation.max_frames` limits a diagnostic run; full baseline
+reproduction requires all 31 structures. The ordinary controls use the packaged
+native YACE reader; the tagged models use the native composite evaluator.
 
 The fixed held-out reference values are:
 
@@ -90,8 +76,7 @@ The fixed held-out reference values are:
 | 149 | ACE | 0.001550 | 0.089478 |
 | 149 | tagged YE3T | 0.000643 | 0.036319 |
 
-These are accuracy baselines for the saved linear models, not targets from
-refitting a new model. The script records full precision and compares against
+These are accuracy baselines for the saved linear models. The script records full precision and compares against
 the hash-checked reference table.
 
 ## Refit the selected Ni model with ASE
@@ -100,8 +85,7 @@ the hash-checked reference table.
 refitting the exact saved 127-column basis. It reads all 263 structures in the
 published Ni training/validation partition, subtracts the saved ZBL reference,
 uses the final selected weights and penalty in
-`finalist/fits/ye3t_tagged_127.json` (not the earlier radial-screen trials
-also embedded in model manifests), and writes a
+`finalist/fits/ye3t_tagged_127.json`, and writes a
 new self-contained `.ye3t` artifact plus a 31-structure held-out RMSE report:
 
 ```bash
@@ -122,9 +106,9 @@ of the training data, selected design rows, residual targets, and fitted normal
 equations, plus training RMSE and configured finite-difference/save-load checks.
 
 The refitted bundle is evaluated through
-`LinearModel.read(...).ase_calculator(evaluator="torch")`. It has no native
-plan for its new weights; LAMMPS AUTO
-export requires a separately validated native plan. The script's held-out
+`LinearModel.read(...).ase_calculator(evaluator="torch")` or `native_cpu`.
+`model.export_lammps(directory)` generates execution tables for the fitted
+weights. The script's held-out
 Ni-127 run on the published split gave **0.000677664 eV/atom** energy RMSE and
 **0.039417111 eV/Å** force RMSE. The saved model gives approximately
 **0.0006774455 eV/atom** and **0.0394175951 eV/Å** on that split. Raw fitted
@@ -145,8 +129,8 @@ portable models with SHA-256 checks. The Ni-127 model at
 With the methods wheel installed, run
 `python examples/quickstart/paper_ni_portable_ase.py` from the `ye3t-methods`
 source directory. It loads the model with `LinearModel.read`, displays the 127 ordered
-descriptor columns through `Basis.create`, and checks complete ordinary,
-tagged, and ZBL ASE energy against the bundled Ni LAMMPS step-zero result.
+descriptor columns through `Basis.create`, and displays complete ordinary,
+tagged, and ZBL ASE energy for comparison with the bundled Ni LAMMPS step-zero result.
 A portable augmented-196 conversion is not included in this distribution.
 
 The fitted `ye3t_tagged_127` paper artifact is a tagged-plus-ACE composite.
@@ -165,32 +149,21 @@ energy. Set `runtime.native_library` to a custom compiled library path when
 needed; `None` loads the library installed by the wheel. The tagged evaluator
 accepts `runtime.execution_policy` as `direct` or `auto`. The density
 evaluator exposes `runtime.neighbor_skin_A`. If you edit the cell or model,
-set `validation.lammps_step_zero_energy_eV` to a matching reference or `None`.
+update the optional reference energy in `validation`. The example regression tests check the bundled values.
 
 To build only the fast ordinary density and tagged ASE paths during install,
 use `YE3T_METHODS_BUILD_NATIVE=ase python -m pip install '.[examples]'`.
 These native model loaders still include a static bundled yaml-cpp parser;
 no separate yaml-cpp system install is needed.
 
-The example uses `YE3TTaggedCauchyCalculator.from_artifact(...,
-execution_policy="direct")` for the linear residual and
-`YE3TZBLCalculator.from_model_manifest(...)` for the paper's ZBL overlay.
-`SumCalculator` combines their energy, forces, and stress. The C++ adapter
-loads the ordinary `.yace` backbone and tagged correction into one resident
-model. The optional `matscipy` package speeds up neighbor rebuilds for cells
-that cannot use the adapter's SciPy cKDTree path; ASE remains the fallback.
-The Li example structure is the 16-atom LAMMPS validation cell. The Ni script
-checks its 32-atom tagged model against the reference step-zero energy.
-
-The standalone C++ adapter evaluates the **linear residual**; the example
-combines it with the required ZBL reference from the model manifest. ZBL
-contributes zero on the example Li cell. The ACE control's `.yace`
-also loads directly in ASE through `YE3TYACENativeCalculator.from_artifact`.
-The package's compact Torch ASE loader reads saved `.pt` bundles instead.
-The paper composite also is not a compact
-`LinearModel.read` artifact. See [evaluator choices](../../../docs/evaluators.rst)
-for `backend="pytorch"`, `reference`, `native_polynomial`, and `native_cpu`
-on newly fitted compact models.
+The tagged examples load the saved model through `LinearModel.read` and
+`model.ase_calculator(evaluator="native_cpu")`. This includes the ordinary
+backbone, tagged contribution and ZBL reference. The Li density example
+demonstrates direct `.yace` interoperability using `YE3TYACENativeCalculator`
+with the manifest's ZBL reference through ASE's `SumCalculator`.
+The Li examples use the 16-atom validation cell; the Ni example uses 32 atoms.
+See [evaluator choices](../../../docs/evaluators.rst) for the runtime settings
+available to newly fitted models and saved paper models.
 
 ## Run a bundled potential in LAMMPS
 
@@ -215,7 +188,7 @@ layout.
 Verify the copied model bytes with:
 
 ```bash
-python examples/publication/cost_comparison/verify_models.py
+python tools/publication/cost_comparison/verify_models.py
 ```
 
 The wheel installs the Python APIs; examples, datasets, and LAMMPS decks are
@@ -224,12 +197,13 @@ these examples in site-packages.
 
 ## Basis provenance and scope
 
-The paper config expresses rank and radial/angular caps compactly through
+The archived paper config expresses rank and radial/angular limits through
 `tensor_orders`, `nmax_by_tensor_order`, and `lmax_by_tensor_order`.
-`tagged_components.json` supplies only physical fixed-channel contents and
-block sizes. The workflow calls `ye3t.couplings.count`, `plan`, and `compile`
-for valid Young/rotation sectors, multiplicities, and coefficients. It does not
-list those labels by hand. Core `ye3t.BasisLabel` compact notation describes
+Its `tagged_components.json` supplies physical fixed-channel contents and
+block sizes. Both the archived study and the standardized public workflows
+obtain Young/rotation sectors, multiplicities and coefficients from
+`ye3t.couplings.count`, `plan`, and `compile`.
+Core `ye3t.BasisLabel` compact notation describes
 resolved output labels; it is not an unchecked input that can invent basis
 coordinates. See the [basis input guide](../../../docs/basis_inputs.rst).
 
