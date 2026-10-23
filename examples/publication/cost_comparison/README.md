@@ -92,7 +92,15 @@ new self-contained `.ye3t` artifact plus a 31-structure held-out RMSE report:
 python examples/publication/cost_comparison/refit_paper_ni.py
 ```
 
-The full refit is CPU-intensive. The 60- and 149-column selected portable
+The refit caches geometry rows across processes in the shared application
+cache, normally `~/.cache/ye3t/applications`. Set `runtime.cache` to
+`{"mode": "auto", "directory": null}` in JSON (`None` in Python), or choose
+`off` to measure fresh row computation and `read_only` to require cached rows.
+Changes to fitting weights and targets reuse the geometry rows. The saved
+model archive supplies the selected catalogue; general coupling compilation
+also has a shared per-user cache under `~/.cache/ye3t`.
+
+The 60- and 149-column selected portable
 archives are also in `portable_models`; change `source_archive`, its SHA-256,
 `feature_count`, and the `fit` hyperparameters in the visible config to refit
 either tier. Use that tier's `finalist/fits/ye3t_tagged_<count>.json` selected

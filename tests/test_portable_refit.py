@@ -45,7 +45,8 @@ def _atoms():
                                    (0.4, 2.3, 0.0)), cell=(10, 10, 10), pbc=False)
 
 
-def test_selected_refit_matches_real_design_and_validates_saved_artifact(tmp_path):
+def test_selected_refit_matches_real_design_and_validates_saved_artifact(tmp_path, monkeypatch):
+    monkeypatch.setenv("YE3T_ACE_CACHE_DIR", str(tmp_path / "cache"))
     original = LinearModel.read(ARCHIVE)
     atoms = _atoms()
     row = portable_feature_design_row(original._fitted, atoms)

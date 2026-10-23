@@ -28,7 +28,8 @@ config = {
     },
     "basis": {"from_saved_model": True},
     "representation": {"from_saved_model": True},
-    "runtime": {"evaluator": "torch", "neighbors": "ase", "device": "cpu"},
+    "runtime": {"evaluator": "torch", "neighbors": "ase", "device": "cpu",
+                "cache": {"mode": "auto", "directory": None}},
     "model": {
         "kind": "linear", "basis_family": "tagged", "feature_count": 60,
         "source_archive": str(example / "portable_models/Ni_ye3t_tagged_60.ye3t"),
@@ -56,7 +57,10 @@ values, gradient = basis.create(training[0], derivatives="summed")
 print("site descriptors", values.shape)
 print("summed descriptor gradients [feature, atom, xyz]", gradient.shape)
 # model.fit evaluates these rows for every frame and accumulates the regression
-# statistics. It avoids a full [center, feature, displaced_atom, xyz] allocation.
+# statistics. The shared disk cache reuses geometry rows across fits, including
+# changes to target labels and fit weights. Set runtime.cache.mode="off" to
+# time fresh rows, or "read_only" to require previously computed rows.
+# It avoids a full [center, feature, displaced_atom, xyz] allocation.
 model = LinearModel(basis)
 model.fit(training, config=config)
 saved = model.write(config["metadata"]["output_model"])

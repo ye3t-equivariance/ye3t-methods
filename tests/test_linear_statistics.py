@@ -4,6 +4,24 @@ import numpy as np
 import pytest
 
 
+def test_score_roundoff_accounts_for_internal_cancellation_and_rejects_bad_gram():
+    from ye3t_methods.atomistic.linear_statistics import (
+        structure_linear_statistics, score_linear_statistics,
+    )
+    features = np.ones((3, 2))
+    statistics = structure_linear_statistics(
+        np.ones(2), np.ones(2), features, 1, 0.0, np.zeros((1, 3)))
+    beta = np.array([0.0, 1e8, -1e8])
+    direct_sse = np.square(features @ beta[1:]).sum()
+    gram = statistics["force_metric_gram"]
+    gram[1, 1] = np.nextafter(gram[1, 1], 0.0)
+    score = score_linear_statistics(statistics, beta)
+    assert abs(score["force_sse"] - direct_sse) <= score["force_sse_roundoff_bound"]
+    gram[1, 1] -= 1e-3
+    with pytest.raises(FloatingPointError, match="materially negative"):
+        score_linear_statistics(statistics, beta)
+
+
 def _records():
     from ye3t_methods.atomistic.linear_statistics import structure_linear_statistics
 

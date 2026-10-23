@@ -182,6 +182,39 @@ def directed_edges_all_images_bruteforce(positions, cutoff, cell=None, pbc=None)
     return src_t[mask], dst_t[mask], disp[mask], dist[mask]
 
 
+def directed_edges_all_images(positions, cutoff, cell=None, pbc=None):
+    """Neighbor-list topology with differentiable positions and cell images.
+
+    Every periodic image is retained. Sorting by center, neighbor and image
+    gives the same summation order as the brute-force reference. The small
+    cutoff expansion accommodates neighbor libraries using a strict cutoff;
+    the final distance comparison preserves the inclusive source convention.
+    """
+    from ase import Atoms
+    from .neighbors import neighbor_data_from_ase_atoms
+
+    cell_t = None if cell is None else torch.as_tensor(
+        cell, dtype=positions.dtype, device=positions.device)
+    periodic = normalize_pbc(pbc, positions.device) if cell is not None else None
+    atoms = Atoms(numbers=np.ones(len(positions), dtype=int),
+                  positions=positions.detach().cpu().numpy(),
+                  cell=None if cell_t is None else cell_t.detach().cpu().numpy(),
+                  pbc=False if periodic is None else periodic.cpu().numpy())
+    neighbors = neighbor_data_from_ase_atoms(
+        atoms, np.nextafter(float(cutoff), np.inf), {"H": 0}, backend="ase")
+    indices, shifts = neighbors.edge_index, neighbors.shifts
+    order = np.lexsort((shifts[:, 2], shifts[:, 1], shifts[:, 0],
+                        indices[1], indices[0]))
+    edge_index = torch.as_tensor(indices[:, order], dtype=torch.long,
+                                 device=positions.device)
+    disp = edge_displacements_from_indices(
+        positions, edge_index, cell=cell_t,
+        shifts=None if cell_t is None else shifts[order])
+    distance = torch.linalg.norm(disp, dim=1)
+    keep = distance <= float(cutoff)
+    return edge_index[0, keep], edge_index[1, keep], disp[keep], distance[keep]
+
+
 def edge_displacements_from_indices(
     positions,
     edge_index,

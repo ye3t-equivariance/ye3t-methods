@@ -1,4 +1,4 @@
-"""Streamed reference evaluator for tagged Cauchy descriptors (WP3 slice).
+"""Tagged Cauchy sources and exact distinct-neighbor moment evaluation.
 
 This module materializes ordinary ACE edge primitives (radial times
 spherical harmonic, any l), binds them to compiled lifted-Cauchy artifact
@@ -23,6 +23,11 @@ Two execution strategies compute the identical pooled descriptor:
 ``TaggedMomentEvaluator`` (formula T2, exact set-partition moment
 reduction, WP3b).  Both are built from the same compiled artifact and
 ``role_bindings``; ``moment_equivalence_certificate`` checks they agree.
+
+``RealMomentEvaluator`` is the real-arithmetic runtime used by portable linear
+fits. It contracts derivatives at each center with the existing native
+monomial kernel when installed. The direct tuple evaluator and the method
+``_evaluate_real_with_jacobian_reference`` provide independent validation paths.
 """
 
 import hashlib
@@ -64,7 +69,7 @@ from ye3t_methods.atomistic.lifted_cauchy_linear import (
     _load_compiled_artifact,
 )
 from ye3t_methods.atomistic.equivariant_calc.angular_basis import ComplexSphericalHarmonicsBasis
-from ye3t_methods.atomistic.equivariant_calc.edge_geometry import directed_edges_all_images_bruteforce
+from ye3t_methods.atomistic.equivariant_calc.edge_geometry import directed_edges_all_images
 from ye3t_methods.atomistic.equivariant_calc.radial_basis import _pace_cheb_exp_cos_table_with_derivative
 
 
@@ -173,7 +178,7 @@ def ordinary_edge_primitives(positions, atom_types, cell, pbc, cutoff, radial_co
     max_width = max(2 * int(channel["l"]) + 1 for channel in channels)
 
     cell_t = None if cell is None else torch.as_tensor(cell, dtype=positions.dtype, device=positions.device)
-    src, dst, disp, dist = directed_edges_all_images_bruteforce(positions, cutoff, cell=cell_t, pbc=pbc)
+    src, dst, disp, dist = directed_edges_all_images(positions, cutoff, cell=cell_t, pbc=pbc)
     edge_index = torch.stack((src, dst))
 
     if int(src.numel()) == 0:
@@ -260,7 +265,7 @@ def ordinary_edge_primitives_with_derivative(positions, atom_types, cell, pbc, c
     max_width = max(2 * int(channel["l"]) + 1 for channel in channels)
 
     cell_t = None if cell is None else torch.as_tensor(cell, dtype=positions.dtype, device=positions.device)
-    src, dst, disp, dist = directed_edges_all_images_bruteforce(positions, cutoff, cell=cell_t, pbc=pbc)
+    src, dst, disp, dist = directed_edges_all_images(positions, cutoff, cell=cell_t, pbc=pbc)
     edge_index = torch.stack((src, dst))
 
     if int(src.numel()) == 0:
@@ -1350,6 +1355,7 @@ class RealMomentEvaluator:
 
     def _build_evaluation_tensors(self):
         real_moment_keys = self.program["real_moment_keys"]
+        self._center_tables = None
         by_degree = {}
         for idx, key in enumerate(real_moment_keys):
             by_degree.setdefault(len(key), []).append(idx)
@@ -1441,11 +1447,16 @@ class RealMomentEvaluator:
         else:
             A_gathered = A_real.new_zeros((n_atoms, 0))
 
-        density_product = phi_real.new_ones((n_atoms, self.term_count))
+        return self._evaluate_pooled_real(A_gathered, M, z)
+
+    def _evaluate_pooled_real(self, A_gathered, M, z):
+        """Use one value summation order in descriptor and derivative calls."""
+        n_atoms = len(z)
+        density_product = A_gathered.new_ones((n_atoms, self.term_count))
         for count, (term_idx, factor_idx) in self._density_buckets.items():
             if count == 0:
                 continue
-            block = phi_real.new_ones((n_atoms, term_idx.shape[0]))
+            block = A_gathered.new_ones((n_atoms, term_idx.shape[0]))
             for j in range(count):
                 block = block * A_gathered[:, factor_idx[:, j]]
             density_product.index_copy_(1, term_idx, block)
@@ -1461,15 +1472,15 @@ class RealMomentEvaluator:
             value = torch.where(valid_mask, value, torch.zeros_like(value))
             free_factor.index_copy_(1, term_idx, value.unsqueeze(1).expand(n_atoms, term_idx.shape[0]))
 
-        moment_product = phi_real.new_ones((n_atoms, self.term_count))
+        moment_product = A_gathered.new_ones((n_atoms, self.term_count))
         for b, (term_idx, moment_idx) in self._partition_buckets.items():
-            block = phi_real.new_ones((n_atoms, term_idx.shape[0]))
+            block = A_gathered.new_ones((n_atoms, term_idx.shape[0]))
             for j in range(b):
                 block = block * M[:, moment_idx[:, j]]
             moment_product.index_copy_(1, term_idx, block)
 
         term_value = self._term_coefficient.unsqueeze(0) * density_product * free_factor * moment_product
-        out = phi_real.new_zeros((n_atoms, self.descriptor_count))
+        out = A_gathered.new_zeros((n_atoms, self.descriptor_count))
         if self.term_count:
             out.index_add_(1, self._term_feature_index, term_value)
         return out
@@ -1498,7 +1509,122 @@ class RealMomentEvaluator:
             total = total + derivatives[j] * (prefix[j] * suffix[j + 1]).unsqueeze(-1)
         return total
 
+    def _center_derivative_tables(self):
+        """Pack the saved moment program and its literal product derivatives.
+
+        This changes evaluation order only. Feature labels and coefficients
+        come from the compiled program. No new coupling or image reduction is
+        performed here. Neighbor-count factors have zero position derivative.
+        """
+        if self._center_tables is not None:
+            return self._center_tables
+        density_count = len(self.program["real_density_keys"])
+        source_count = density_count + len(self.program["real_moment_keys"])
+        p_values = sorted(self._p_buckets)
+        p_indices = {p: source_count + i for i, p in enumerate(p_values)}
+        width = source_count + len(p_values)
+        reverse = {}
+        for term in self.program["terms"]:
+            factors = list(term["density_factor_indices"]) + [
+                density_count + i for i in term["moment_indices"]]
+            counts = [0] * width
+            for index in factors:
+                counts[index] += 1
+            counts[p_indices[term["p"]]] = 1
+            feature, coefficient = int(term["feature_index"]), float(term["coefficient"])
+            for index in sorted(set(factors)):
+                derivative = counts.copy()
+                derivative[index] -= 1
+                reverse.setdefault((feature, index), []).append(
+                    (derivative, coefficient * counts[index]))
+
+        def pack(groups):
+            counts, coefficients, outputs, offsets = [], [], [], [0]
+            for output, group in enumerate(groups):
+                for powers, coefficient in group:
+                    counts.append(powers)
+                    coefficients.append(coefficient)
+                    outputs.append(output)
+                offsets.append(len(counts))
+            return (torch.tensor(counts, dtype=torch.long).reshape(-1, width),
+                    torch.tensor(offsets, dtype=torch.long),
+                    torch.tensor(outputs, dtype=torch.long),
+                    torch.tensor(coefficients, dtype=torch.float64))
+
+        coordinates = sorted(reverse)
+        connections = []
+        for feature in range(self.descriptor_count):
+            selected = [(i, source) for i, (output, source) in enumerate(coordinates)
+                        if output == feature]
+            connections.append((torch.tensor([i for i, _ in selected], dtype=torch.long),
+                                torch.tensor([s for _, s in selected], dtype=torch.long)))
+        self._center_tables = (pack([reverse[key] for key in coordinates]), connections, p_values)
+        return self._center_tables
+
     def evaluate_real_with_jacobian(
+        self, phi_real, dphi_real, A_real, edge_index, n_atoms, term_chunk_size=None,
+    ):
+        """Evaluate center derivatives first, then contract with edge derivatives.
+
+        For pooled sources X=(A,M), dB/dd_e = (dB/dX)[src(e)] dX/dd_e.
+        The existing monomial kernel evaluates dB/dX with explicit,
+        division-free product derivatives. Only contributing source/feature
+        pairs are stored. Edge memory is independent of the term count.
+        ``term_chunk_size`` bounds edge rows during the final contraction.
+        """
+        from ye3t.runtime.execution_plan import symmetric_power_monomial_contraction
+
+        if term_chunk_size is not None and type(term_chunk_size) is not int:
+            raise TypeError("term_chunk_size must be a positive integer or None.")
+        if term_chunk_size is not None and term_chunk_size <= 0:
+            raise ValueError("term_chunk_size must be positive.")
+        src = edge_index[0]
+        edges = len(src)
+        if not self.term_count or not n_atoms:
+            return (phi_real.new_zeros((n_atoms, self.descriptor_count)),
+                    phi_real.new_zeros((edges, self.descriptor_count, 3)))
+        moment_count = len(self.program["real_moment_keys"])
+        moments = phi_real.new_zeros((n_atoms, moment_count))
+        derivatives = phi_real.new_zeros((edges, moment_count, 3))
+        for degree, (indices, channels, components) in self._moment_buckets.items():
+            values = [phi_real[:, channels[:, j], components[:, j]] for j in range(degree)]
+            gradients = [dphi_real[:, channels[:, j], components[:, j], :] for j in range(degree)]
+            product = torch.ones_like(values[0])
+            for value in values:
+                product = product * value
+            pooled = phi_real.new_zeros((n_atoms, len(indices)))
+            pooled.index_add_(0, src, product)
+            moments.index_copy_(1, indices, pooled)
+            derivatives.index_copy_(1, indices,
+                                    self._prefix_suffix_derivative(values, gradients, degree))
+        sources = torch.cat((A_real[:, self._density_channels, self._density_a], moments), dim=1)
+        source_derivatives = torch.cat((
+            dphi_real[:, self._density_channels, self._density_a, :], derivatives), dim=1)
+        reverse, connections, p_values = self._center_derivative_tables()
+        z = torch.bincount(src, minlength=n_atoms).to(phi_real.dtype)
+        free = []
+        for p in p_values:
+            value = torch.ones_like(z)
+            for i in range(self.tag_count - p):
+                value = value * (z - p - i)
+            free.append(torch.where(z >= self.tag_count, value, torch.zeros_like(value)))
+        inputs = torch.cat((sources, torch.stack(free, dim=1)), dim=1)
+        # Share the value evaluator with descriptor-only and ASE energy calls.
+        # This also preserves their summation order for ill-conditioned fits.
+        output = self._evaluate_pooled_real(sources[:, :len(self._density_channels)], moments, z)
+        adjoint = symmetric_power_monomial_contraction(inputs, *reverse)
+        edge_derivatives = phi_real.new_zeros((edges, self.descriptor_count, 3))
+        chunk = term_chunk_size or max(edges, 1)
+        for start in range(0, edges, chunk):
+            stop = min(edges, start + chunk)
+            for feature, (entries, source_indices) in enumerate(connections):
+                if entries.numel():
+                    edge_derivatives[start:stop, feature] = torch.einsum(
+                        "es,esd->ed", adjoint[:, entries][src[start:stop]],
+                        source_derivatives[start:stop, source_indices])
+        return output, edge_derivatives
+
+    def _evaluate_real_with_jacobian_reference(
         self,
         phi_real,
         dphi_real,

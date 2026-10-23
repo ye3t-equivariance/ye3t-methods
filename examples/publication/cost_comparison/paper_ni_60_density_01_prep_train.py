@@ -28,7 +28,8 @@ config = {
     },
     "basis": {"from_saved_model": True},
     "representation": {"from_saved_model": True},
-    "runtime": {"evaluator": "torch", "neighbors": "ase", "device": "cpu"},
+    "runtime": {"evaluator": "torch", "neighbors": "ase", "device": "cpu",
+                "cache": {"mode": "auto", "directory": None}},
     "model": {
         "kind": "linear", "basis_family": "density", "feature_count": 60,
         "source_archive": str(example / "portable_models/Ni_ye3t_tagged_60.ye3t"),

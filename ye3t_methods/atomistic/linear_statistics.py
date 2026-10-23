@@ -428,8 +428,14 @@ def score_linear_statistics(statistics, runtime_coefficients):
         unit_roundoff = np.finfo(np.float64).eps
         gamma = operation_count * unit_roundoff
         gamma = gamma / max(1.0 - gamma, 0.5)
+        # Dot-product bounds use sums of absolute terms, including cancellation
+        # inside beta.T G beta and beta.T h. Higham, Accuracy and Stability of
+        # Numerical Algorithms, ch. 3 (componentwise product error bounds).
+        # Independent implementation; no external source code used.
+        absolute_beta = np.abs(extended_beta)
         roundoff_bound = gamma * (
-            abs(quadratic) + abs(linear) + abs(target_square)
+            absolute_beta @ np.abs(gram) @ absolute_beta
+            + 2.0 * (absolute_beta @ np.abs(rhs)) + abs(target_square)
         )
         if value < -roundoff_bound:
             raise FloatingPointError("Sufficient-statistics SSE is materially negative.")

@@ -190,3 +190,36 @@ selects ``native_cpu``; ``torch`` is available for comparison. Both evaluators
 include the fitted intercept and the ZBL reference. Set
 ``YE3T_WORKFLOW_ROOT`` to choose the output location, and edit the dataset and
 model paths in the scripts when using an extracted example archive.
+
+Shared caches and repeated fits
+-------------------------------
+
+The paper archive contains its selected catalogue and coupling coefficients.
+Loading it restores those coordinates. General basis construction also uses
+YE3T's shared per-user coefficient cache at ``~/.cache/ye3t``. Set
+``YE3T_CACHE_DIR`` to choose another directory; ``XDG_CACHE_HOME`` is respected.
+
+The paper refit stores target-free descriptor and force rows in the shared
+application cache, normally ``~/.cache/ye3t/applications``. Separate Python
+processes reuse these rows. Atomic numbers, positions, cell, periodic flags,
+source archive and selected coordinates determine reuse. Changing target
+energies, forces, or fitting weights reuses the rows and rebuilds the fit.
+
+.. code-block:: python
+
+   config["runtime"]["cache"] = {"mode": "auto", "directory": None}
+   model = LinearModel(basis).fit(training, config=config)
+
+``auto`` reads or populates the shared cache. ``off`` computes fresh rows
+without persistent I/O; ``read_only`` requires existing rows. Set ``directory``
+for a study-specific cache. ``YE3T_ACE_CACHE_DIR`` sets the application cache
+root; otherwise ``YE3T_CACHE_DIR/applications`` is used when configured.
+Cached arrays are checked for corruption on load. Cache identities remain
+internal to normal use.
+
+The Torch fitting route uses analytic radial/angular derivatives and the
+installed YE3T C++ monomial kernel for tagged center derivatives when available.
+The product derivatives are combined at each center before contraction with
+neighbor-edge derivatives. This avoids expanding each polynomial term over
+every edge. The ``native_cpu`` ASE calculator uses the complete C++ model
+evaluator; fitting and calculator dispatch are separate settings.

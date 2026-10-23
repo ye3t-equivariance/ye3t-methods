@@ -25,6 +25,10 @@ from ye3t_methods.atomistic.linear_statistics import (
     sum_linear_statistics,
 )
 from ye3t_methods.atomistic.reference_potentials import YE3TZBLCalculator
+from ye3t_methods.atomistic.cache.linear_regression import (
+    LINEAR_STATISTICS_CACHE_SCHEMA, load_linear_sufficient_statistics,
+    persist_linear_sufficient_statistics, default_linear_cache_directory,
+)
 
 from .portable_archive import (
     _json, portable_feature_design_row, read_portable_linear_archive, select_portable_density_basis,
@@ -59,6 +63,10 @@ def _fit_settings(config, record):
             config["representation"] != {"from_saved_model": True}):
         raise ValueError("Portable Ni refit must use the selected saved-model basis.")
     runtime = config["runtime"]
+    cache = runtime.get("cache", {})
+    if (not isinstance(cache, dict) or set(cache) - {"directory", "mode"} or
+            cache.get("mode", "auto") not in {"auto", "off", "read_only"}):
+        raise ValueError("Portable row cache supports directory and mode=auto, off, or read_only.")
     if (runtime.get("evaluator") != "torch" or
             runtime.get("neighbors") not in {"auto", "ase"} or
             runtime.get("device", "cpu") != "cpu"):
@@ -105,7 +113,45 @@ def _fit_settings(config, record):
         "group_weights": parsed_groups,
         "tagged_penalty": _finite(fit["tagged_penalty"], "tagged penalty", positive=True),
         "targets": targets, "checks": tuple(checks),
+        "cache": cache,
     }
+
+
+def _cached_design_row(record, atoms, basis_identity, cache):
+    """Reuse target-free rows through the shared application array cache."""
+    mode = cache.get("mode", "auto")
+    if mode == "off":
+        row = portable_feature_design_row(record, atoms)
+        return {name: np.ascontiguousarray(value) for name, value in row.items()}, False
+    identity = hashlib.sha256(basis_identity)
+    for array in (atoms.numbers, atoms.positions, atoms.cell.array, atoms.pbc):
+        values = np.ascontiguousarray(array, dtype="<f8")
+        identity.update(_canonical(list(values.shape)))
+        identity.update(values.tobytes())
+    key = identity.hexdigest()
+    directory = cache.get("directory")
+    root = default_linear_cache_directory() if directory is None else Path(directory).expanduser()
+    if (root / "linear_sufficient_statistics" / key).exists():
+        saved = load_linear_sufficient_statistics(key, directory=directory)
+        row = saved["arrays"]
+        width = len(record["labels"])
+        shapes = {"site_features": (len(atoms), width), "energy": (width,),
+                  "forces": (3 * len(atoms), width)}
+        if set(row) != set(shapes) or any(
+                row[name].shape != shape or not np.isfinite(row[name]).all()
+                for name, shape in shapes.items()):
+            raise ValueError("Cached Ni design-row dimensions or values are invalid.")
+        return row, True
+    if mode == "read_only":
+        raise FileNotFoundError("Ni design row is absent from the read-only cache; use mode='auto' first.")
+    row = {name: np.ascontiguousarray(value) for name, value in
+           portable_feature_design_row(record, atoms).items()}
+    persist_linear_sufficient_statistics({
+        "schema": LINEAR_STATISTICS_CACHE_SCHEMA,
+        "request_hash": key, "cache_hash": key,
+        "metadata": {"kind": "portable_ni_geometry_row_v1"}, "arrays": row,
+    }, directory=directory)
+    return row, False
 
 
 def apply_portable_refit(base_archive, ordinary, tagged, e0, fit_metadata):
@@ -159,6 +205,13 @@ def fit_portable_linear(record, structures, config):
     training_hash = hashlib.sha256()
     design_hash = hashlib.sha256()
     residual_hash = hashlib.sha256()
+    basis_identity = _canonical({
+        "kind": "portable_ni_geometry_row_v1",
+        "archive": hashlib.sha256(record["archive_bytes"]).hexdigest(),
+        "ordinary_indices": list(record["ordinary_indices"]),
+        "tagged_indices": list(record["tagged_indices"]),
+    })
+    cache_hits = 0
     for index, atoms in enumerate(frames):
         if set(atoms.get_chemical_symbols()) != {"Ni"}:
             raise ValueError(f"Portable Ni refit structure {index} contains another species.")
@@ -182,7 +235,8 @@ def fit_portable_linear(record, structures, config):
                 target_forces.shape != (len(atoms), 3) or
                 not np.isfinite(target_forces).all()):
             raise ValueError(f"Structure {index} has invalid fit targets.")
-        row = portable_feature_design_row(record, atoms)
+        row, cache_hit = _cached_design_row(record, atoms, basis_identity, settings["cache"])
+        cache_hits += int(cache_hit)
         zbl_atoms = atoms.copy()
         zbl_atoms.calc = reference
         residual_energy = target_energy - float(zbl_atoms.get_potential_energy())
@@ -245,6 +299,8 @@ def fit_portable_linear(record, structures, config):
             np.ascontiguousarray(normal["rhs"], dtype="<f8").tobytes()).hexdigest(),
         "training_score": score,
         "structure_count": len(frames),
+        "geometry_cache": {"mode": settings["cache"].get("mode", "auto"),
+                           "hits": cache_hits, "computed": len(frames) - cache_hits},
         "group_structure_counts": {group: len(rows) for group, rows in by_group.items()},
         "objective": {"alpha": settings["alpha"],
                       "energy_weight": settings["energy_weight"],
